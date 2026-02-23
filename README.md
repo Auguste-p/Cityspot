@@ -1,5 +1,5 @@
 
-  # City Improvement Photo App
+  # City Spot App
 
   This is a code bundle for City Improvement Photo App. The original project is available at https://www.figma.com/design/XktHdCVAyIvYDDu09QAoAN/City-Improvement-Photo-App.
 
