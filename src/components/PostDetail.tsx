@@ -1,0 +1,480 @@
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
+import { mockPosts } from '../data/mockPosts';
+import { Card } from './ui/card';
+import { Badge } from './ui/badge';
+import { Progress } from './ui/progress';
+import {
+  MapPin,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ArrowLeft,
+  Edit,
+  Trash2,
+  MessageSquare,
+  Share2,
+  Package,
+  Home,
+  ThumbsUp,
+  ThumbsDown,
+  Mail,
+  FileText,
+  Vote,
+  Info,
+  Building2,
+} from 'lucide-react';
+import { toast } from 'sonner@2.0.3';
+import { VoteDialog } from './VoteDialog';
+
+export function PostDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const post = mockPosts.find((p) => p.id === id);
+
+  const [tasks, setTasks] = useState(post?.tasks || []);
+  const [voteDialogOpen, setVoteDialogOpen] = useState(false);
+
+  if (!post) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-4">
+        <Card className="p-8 text-center">
+          <AlertCircle className="size-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="mb-2">Signalement introuvable</h2>
+          <p className="text-muted-foreground mb-4">
+            Ce signalement n'existe pas ou a été supprimé.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Retour à la carte
+          </button>
+        </Card>
+      </div>
+    );
+  }
+
+  // Calculate net votes
+  const netVotes = post.votes.positive - post.votes.negative;
+  
+  // Determine actual status based on votes
+  const actualStatus = post.status === 'completed' 
+    ? 'completed' 
+    : netVotes >= 10 
+      ? 'in-progress' 
+      : 'pending';
+
+  const getStatusConfig = (status: typeof actualStatus) => {
+    switch (status) {
+      case 'completed':
+        return {
+          label: 'Terminé',
+          icon: CheckCircle2,
+          color: 'bg-green-500',
+          textColor: 'text-green-700',
+          bgColor: 'bg-green-50',
+        };
+      case 'in-progress':
+        return {
+          label: 'En cours',
+          icon: Clock,
+          color: 'bg-amber-500',
+          textColor: 'text-amber-700',
+          bgColor: 'bg-amber-50',
+        };
+      case 'pending':
+        return {
+          label: 'En vote',
+          icon: Vote,
+          color: 'bg-blue-500',
+          textColor: 'text-blue-700',
+          bgColor: 'bg-blue-50',
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig(actualStatus);
+  const StatusIcon = statusConfig.icon;
+  
+  // Only show incomplete tasks for pending projects, all tasks for in-progress and completed
+  const visibleTasks = actualStatus === 'pending' 
+    ? tasks.filter(t => !t.completed)
+    : tasks;
+  
+  const completedTasks = tasks.filter((t) => t.completed).length;
+  const progress = (completedTasks / tasks.length) * 100;
+
+  // Tasks are only editable when status is in-progress
+  const canEditTasks = actualStatus === 'in-progress';
+
+  const toggleTask = (taskId: string) => {
+    if (!canEditTasks) {
+      if (actualStatus === 'pending') {
+        toast.info('Les tâches seront modifiables une fois le projet lancé (objectif de +10 votes atteint)');
+      } else {
+        toast.info('Les tâches ne sont plus modifiables pour ce projet terminé');
+      }
+      return;
+    }
+    
+    setTasks(
+      tasks.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
+    );
+    toast.success('Tâche mise à jour');
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: post.title,
+        text: post.description,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Lien copié dans le presse-papier');
+    }
+  };
+
+  const handleVote = (type: 'positive' | 'negative', commitment: 'simple' | 'engage' | 'lead') => {
+    const commitmentLabels = {
+      simple: 'une proposition simple',
+      engage: 'un engagement',
+      lead: 'le lead du projet'
+    };
+    
+    toast.success(
+      type === 'positive'
+        ? `Vote positif enregistré avec ${commitmentLabels[commitment]} ! 👍`
+        : 'Vote négatif enregistré 👎'
+    );
+  };
+
+  return (
+    <div className="min-h-full bg-background pb-6">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="size-5" />
+              <span>Retour</span>
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleShare}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+              >
+                <Share2 className="size-5" />
+              </button>
+              <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
+                <Edit className="size-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
+        {/* Image */}
+        <div className="mb-6">
+          <img
+            src={post.imageUrl}
+            alt={post.title}
+            className="w-full h-80 object-cover rounded-xl shadow-lg"
+          />
+        </div>
+
+        {/* Title & Status */}
+        <div className="mb-6">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <h1>{post.title}</h1>
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <Badge
+                variant="outline"
+                className={`${statusConfig.bgColor} ${statusConfig.textColor} border-0 flex items-center gap-1.5 px-3 py-1`}
+              >
+                <StatusIcon className="size-4" />
+                {statusConfig.label}
+              </Badge>
+              {post.isMunicipalProject && (
+                <Badge className="bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0 shadow-lg">
+                  <Building2 className="size-3 mr-1" />
+                  Projet Mairie
+                </Badge>
+              )}
+            </div>
+          </div>
+          <p className="text-muted-foreground">{post.description}</p>
+        </div>
+
+        {/* Info Cards */}
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <Card className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <MapPin className="size-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm text-muted-foreground mb-1">Localisation</h4>
+                <p className="text-sm">{post.location.address}</p>
+                {post.isPrivateProperty && (
+                  <Badge variant="outline" className="flex items-center gap-1 w-fit mt-2">
+                    <Home className="size-3" />
+                    Voie privée
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Calendar className="size-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm text-muted-foreground mb-1">Date de signalement</h4>
+                <p className="text-sm">
+                  {new Date(post.createdAt).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Private Property Info */}
+        {post.isPrivateProperty && post.ownerEmail && (
+          <Card className="p-4 mb-6 bg-muted/30">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Mail className="size-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm text-muted-foreground mb-1">Propriétaire notifié</h4>
+                <p className="text-sm">{post.ownerEmail}</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Vote Section - Only show if not completed */}
+        {actualStatus !== 'completed' && (
+          <Card className="p-6 mb-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+            <div className="flex items-center justify-between mb-4">
+              <h2>{actualStatus === 'pending' ? 'Soutien du projet' : 'Votes du projet'}</h2>
+              <Badge variant="outline" className="text-lg">
+                {netVotes} / 10
+              </Badge>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <ThumbsUp className="size-4 text-green-600" />
+                  <span className="text-green-600">{post.votes.positive} votes pour</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThumbsDown className="size-4 text-red-600" />
+                  <span className="text-red-600">{post.votes.negative} votes contre</span>
+                </div>
+              </div>
+
+              {actualStatus === 'pending' && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Objectif: +10 votes</span>
+                    <span>{Math.max(0, 10 - netVotes)} votes restants</span>
+                  </div>
+                  <div className="h-2 bg-background rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{
+                        width: `${Math.min((netVotes / 10) * 100, 100)}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {actualStatus === 'in-progress' && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg text-sm text-amber-700">
+                  <CheckCircle2 className="size-4 flex-shrink-0" />
+                  <span>Projet lancé ! Les travaux peuvent commencer.</span>
+                </div>
+              )}
+            </div>
+
+            {actualStatus === 'pending' && (
+              <button
+                onClick={() => setVoteDialogOpen(true)}
+                className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              >
+                <ThumbsUp className="size-5" />
+                Voter pour ce projet
+              </button>
+            )}
+          </Card>
+        )}
+
+        {/* Materials Section */}
+        {post.materials && post.materials.length > 0 && (
+          <Card className="p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Package className="size-5 text-primary" />
+              <h2>Matériel nécessaire</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {post.materials.map((material, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
+                >
+                  <Package className="size-4 text-primary flex-shrink-0" />
+                  <span className="text-sm">{material}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Tasks Section */}
+        {visibleTasks.length > 0 && (
+          <Card className="p-6 mb-6">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2>Tâches à effectuer</h2>
+                {actualStatus !== 'pending' && (
+                  <span className="text-sm text-muted-foreground">
+                    {completedTasks}/{tasks.length}
+                  </span>
+                )}
+              </div>
+              {actualStatus !== 'pending' && <Progress value={progress} className="h-2" />}
+              
+              {!canEditTasks && actualStatus === 'pending' && (
+                <div className="flex items-start gap-2 p-3 mt-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                  <Info className="size-4 mt-0.5 flex-shrink-0" />
+                  <span>Les tâches seront visibles et modifiables une fois l'objectif de +10 votes atteint.</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {visibleTasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => toggleTask(task.id)}
+                  className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
+                    canEditTasks ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
+                  } ${
+                    task.completed
+                      ? 'bg-muted/30 border-primary/20'
+                      : 'bg-card border-border hover:border-primary/40'
+                  }`}
+                >
+                  <div
+                    className={`mt-0.5 size-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      task.completed
+                        ? 'bg-primary border-primary'
+                        : 'border-muted-foreground hover:border-primary'
+                    }`}
+                  >
+                    {task.completed && <CheckCircle2 className="size-4 text-primary-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`transition-all ${
+                        task.completed ? 'line-through text-muted-foreground' : ''
+                      }`}
+                    >
+                      {task.title}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Comments Section */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquare className="size-5 text-primary" />
+            <h2>Commentaires</h2>
+            <Badge variant="secondary" className="ml-auto">
+              3
+            </Badge>
+          </div>
+
+          <div className="space-y-4 mb-4">
+            {[
+              {
+                id: 1,
+                author: 'Marie Dubois',
+                date: '25 janvier 2025',
+                comment: 'Merci pour ce signalement ! Je passe par là tous les jours.',
+              },
+              {
+                id: 2,
+                author: 'Pierre Martin',
+                date: '26 janvier 2025',
+                comment: "J'ai contacté la mairie à ce sujet. Ils vont intervenir la semaine prochaine.",
+              },
+              {
+                id: 3,
+                author: 'Sophie Laurent',
+                date: '27 janvier 2025',
+                comment: 'Excellente initiative ! Notre quartier en a vraiment besoin.',
+              },
+            ].map((comment) => (
+              <div key={comment.id} className="border-l-2 border-primary/30 pl-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    {comment.author[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm">{comment.author}</p>
+                    <p className="text-xs text-muted-foreground">{comment.date}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">{comment.comment}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-border">
+            <textarea
+              placeholder="Ajouter un commentaire..."
+              className="w-full p-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              rows={3}
+            />
+            <div className="flex justify-end mt-2">
+              <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+                Publier
+              </button>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Vote Dialog */}
+      <VoteDialog
+        isOpen={voteDialogOpen}
+        onClose={() => setVoteDialogOpen(false)}
+        onVote={handleVote}
+        postTitle={post.title}
+        currentVotes={post.votes}
+      />
+    </div>
+  );
+}
