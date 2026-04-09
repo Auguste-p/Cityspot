@@ -23,6 +23,8 @@ import {
   Trees,
   Armchair,
 } from "lucide-react";
+import { getNetVotes } from "../lib/postStatus";
+import { PostCard } from "./PostCard";
 
 export function MunicipalView() {
   const navigate = useNavigate();
@@ -75,45 +77,6 @@ export function MunicipalView() {
     },
   ];
 
-  const getNetVotes = (post: (typeof mockPosts)[0]) =>
-    post.votes.positive - post.votes.negative;
-
-  const getActualStatus = (
-    post: (typeof mockPosts)[0],
-  ): "pending" | "in-progress" | "completed" => {
-    if (post.status === "completed") return "completed";
-    const netVotes = getNetVotes(post);
-    return netVotes >= 10 ? "in-progress" : "pending";
-  };
-
-  const getStatusConfig = (
-    status: "pending" | "in-progress" | "completed",
-  ) => {
-    switch (status) {
-      case "completed":
-        return {
-          label: "Terminé",
-          icon: CheckCircle2,
-          color: "text-green-600",
-          bg: "bg-green-50",
-        };
-      case "in-progress":
-        return {
-          label: "En cours",
-          icon: Clock,
-          color: "text-amber-600",
-          bg: "bg-amber-50",
-        };
-      case "pending":
-        return {
-          label: "En vote",
-          icon: Vote,
-          color: "text-blue-600",
-          bg: "bg-blue-50",
-        };
-    }
-  };
-
   const getCategoryConfig = (category?: PostCategory) => {
     if (!category) return null;
     return categories.find((c) => c.value === category);
@@ -142,90 +105,6 @@ export function MunicipalView() {
   const completedPosts = filteredPosts.filter(
     (p) => p.status === "completed",
   );
-
-  const PostCard = ({
-    post,
-  }: {
-    post: (typeof mockPosts)[0];
-  }) => {
-    const config = getStatusConfig(getActualStatus(post));
-    const StatusIcon = config.icon;
-    const completedTasks = post.tasks.filter(
-      (t) => t.completed,
-    ).length;
-    const netVotes = getNetVotes(post);
-    const categoryConfig = getCategoryConfig(post.category);
-    const CategoryIcon = categoryConfig?.icon || Building2;
-
-    return (
-      <Card
-        className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate(`/post/${post.id}`)}
-      >
-        <div className="flex gap-4">
-          <img
-            src={post.imageUrl}
-            alt={post.title}
-            className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <h3 className="text-sm truncate">{post.title}</h3>
-              <div className="flex flex-col gap-1 flex-shrink-0">
-                <Badge
-                  variant="outline"
-                  className={`${config.bg} ${config.color} border-0`}
-                >
-                  <StatusIcon className="size-3 mr-1" />
-                  {config.label}
-                </Badge>
-                {post.isMunicipalProject && (
-                  <Badge className="bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0">
-                    <Building2 className="size-3 mr-1" />
-                    Mairie
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-              {post.description}
-            </p>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <MapPin className="size-3" />
-                <span className="truncate">
-                  {post.location.address.split(",")[0]}
-                </span>
-              </div>
-              {categoryConfig && (
-                <div className="flex items-center gap-1">
-                  <CategoryIcon
-                    className={`size-3 ${categoryConfig.color}`}
-                  />
-                  <span>{categoryConfig.label}</span>
-                </div>
-              )}
-              {(getActualStatus(post) === "in-progress" ||
-                getActualStatus(post) === "completed") && (
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="size-3" />
-                  <span>
-                    {completedTasks}/{post.tasks.length}
-                  </span>
-                </div>
-              )}
-              {netVotes < 10 && post.status === "pending" && (
-                <div className="flex items-center gap-1">
-                  <Vote className="size-3" />
-                  <span>{netVotes}/10 votes</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
-    );
-  };
 
   return (
     <div className="min-h-full bg-background pb-6">
@@ -351,7 +230,12 @@ export function MunicipalView() {
           <TabsContent value="all" className="space-y-4">
             {filteredPosts.length > 0 ? (
               filteredPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
+                />
               ))
             ) : (
               <Card className="p-8 text-center">
@@ -366,7 +250,12 @@ export function MunicipalView() {
           <TabsContent value="voting" className="space-y-4">
             {votingPosts.length > 0 ? (
               votingPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
+                />
               ))
             ) : (
               <Card className="p-8 text-center">
@@ -384,7 +273,12 @@ export function MunicipalView() {
           >
             {inProgressPosts.length > 0 ? (
               inProgressPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
+                />
               ))
             ) : (
               <Card className="p-8 text-center">
@@ -399,7 +293,12 @@ export function MunicipalView() {
           <TabsContent value="completed" className="space-y-4">
             {completedPosts.length > 0 ? (
               completedPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
+                />
               ))
             ) : (
               <Card className="p-8 text-center">
