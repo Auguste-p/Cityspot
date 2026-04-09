@@ -1,19 +1,28 @@
 import { useState } from 'react';
+import { useFieldArray, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router';
+import { z } from 'zod';
+import { Camera, Check, FileText, Loader2, MapPin, Package, Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Camera, MapPin, Plus, X, Check, Package, FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { Button } from './ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { createPostSchema } from '../schemas/formSchemas';
 
-interface TaskInput {
-  id: string;
-  title: string;
-}
+type CreatePostFormInput = z.input<typeof createPostSchema>;
+type CreatePostFormOutput = z.output<typeof createPostSchema>;
+type CreatePostForm = z.input<typeof createPostSchema>;
+
+type ListFieldName = 'tasks' | 'materials';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+
+type FormApi = ReturnType<typeof useForm<CreatePostFormInput, undefined, CreatePostFormOutput>>;
 
 interface UploadSectionProps {
   imagePreview: string | null;
@@ -31,20 +40,22 @@ function UploadSection({ imagePreview, onImageUpload, onRemoveImage }: UploadSec
             <img
               src={imagePreview}
               alt="Aperçu"
-              className="w-full h-64 object-cover rounded-lg"
+              className="h-64 w-full rounded-lg object-cover"
             />
-            <button
+            <Button
               type="button"
               onClick={onRemoveImage}
-              className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-2 rounded-full hover:bg-destructive/90 transition-colors"
+              variant="destructive"
+              size="sm"
+              className="absolute right-2 top-2 rounded-full p-2"
             >
               <X className="size-4" />
-            </button>
+            </Button>
           </div>
         ) : (
-          <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-border rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
+          <label className="flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 transition-colors hover:bg-muted/50">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <Camera className="size-12 text-muted-foreground mb-3" />
+              <Camera className="mb-3 size-12 text-muted-foreground" />
               <p className="mb-2 text-muted-foreground">
                 <span className="text-primary">Cliquez pour ajouter</span> une photo
               </p>
@@ -64,61 +75,67 @@ function UploadSection({ imagePreview, onImageUpload, onRemoveImage }: UploadSec
 }
 
 interface PropertySectionProps {
-  isPrivateProperty: 'public' | 'private';
-  setIsPrivateProperty: (value: 'public' | 'private') => void;
-  isOwnProperty: 'yes' | 'no';
-  setIsOwnProperty: (value: 'yes' | 'no') => void;
-  propertyDocument: string | null;
+  form: FormApi;
   onDocumentUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveDocument: () => void;
-  ownerEmail: string;
-  setOwnerEmail: (value: string) => void;
+  propertyDocumentName: string | null;
 }
 
 function PropertySection({
-  isPrivateProperty,
-  setIsPrivateProperty,
-  isOwnProperty,
-  setIsOwnProperty,
-  propertyDocument,
+  form,
   onDocumentUpload,
   onRemoveDocument,
-  ownerEmail,
-  setOwnerEmail,
+  propertyDocumentName,
 }: PropertySectionProps) {
+  const isPrivateProperty = form.watch('isPrivateProperty');
+  const isOwnProperty = form.watch('isOwnProperty');
   return (
     <Card className="p-6">
       <Label className="mb-3 block">Type de voie</Label>
-      <RadioGroup
-        value={isPrivateProperty}
-        onValueChange={(value: 'public' | 'private') => setIsPrivateProperty(value)}
-      >
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="public" id="public" />
-          <Label htmlFor="public" className="cursor-pointer">Voie publique</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="private" id="private" />
-          <Label htmlFor="private" className="cursor-pointer">Voie privée</Label>
-        </div>
-      </RadioGroup>
+      <FormField
+        control={form.control}
+        name="isPrivateProperty"
+        render={({ field }) => (
+          <FormItem>
+            <FormControl>
+              <RadioGroup value={field.value} onValueChange={field.onChange}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="public" id="public" />
+                  <Label htmlFor="public" className="cursor-pointer">Voie publique</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="private" id="private" />
+                  <Label htmlFor="private" className="cursor-pointer">Voie privée</Label>
+                </div>
+              </RadioGroup>
+            </FormControl>
+          </FormItem>
+        )}
+      />
 
       {isPrivateProperty === 'private' && (
         <div className="mt-4 space-y-4 p-4 bg-muted/30 rounded-lg">
           <Label className="block">Est-ce votre propriété ?</Label>
-          <RadioGroup
-            value={isOwnProperty}
-            onValueChange={(value: 'yes' | 'no') => setIsOwnProperty(value)}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="own-yes" />
-              <Label htmlFor="own-yes" className="cursor-pointer">Oui</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="own-no" />
-              <Label htmlFor="own-no" className="cursor-pointer">Non</Label>
-            </div>
-          </RadioGroup>
+          <FormField
+            control={form.control}
+            name="isOwnProperty"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <RadioGroup value={field.value} onValueChange={field.onChange}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id="own-yes" />
+                      <Label htmlFor="own-yes" className="cursor-pointer">Oui</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="own-no" />
+                      <Label htmlFor="own-no" className="cursor-pointer">Non</Label>
+                    </div>
+                  </RadioGroup>
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
           {isOwnProperty === 'yes' ? (
             <div className="mt-3">
@@ -126,9 +143,9 @@ function PropertySection({
                 <FileText className="size-4" />
                 Document de propriété
               </Label>
-              {propertyDocument ? (
+              {propertyDocumentName ? (
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <span className="text-sm">{propertyDocument}</span>
+                  <span className="text-sm">{propertyDocumentName}</span>
                   <button
                     type="button"
                     onClick={onRemoveDocument}
@@ -157,16 +174,27 @@ function PropertySection({
             </div>
           ) : (
             <div className="mt-3">
-              <Label htmlFor="owner-email" className="mb-2 block">
-                Email du propriétaire
-              </Label>
-              <Input
-                id="owner-email"
-                type="email"
-                value={ownerEmail}
-                onChange={(e) => setOwnerEmail(e.target.value)}
-                placeholder="proprietaire@example.com"
-                className="bg-input-background"
+              <FormField
+                control={form.control}
+                name="ownerEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="owner-email" className="mb-2 block">
+                      Email du propriétaire
+                    </Label>
+                    <FormControl>
+                      <Input
+                        id="owner-email"
+                        type="email"
+                        {...field}
+                        value={field.value || ''}
+                        placeholder="proprietaire@example.com"
+                        className="bg-input-background"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
               <p className="text-xs text-muted-foreground mt-2">
                 Une alerte sera envoyée au propriétaire
@@ -179,18 +207,10 @@ function PropertySection({
   );
 }
 
-interface SimpleTask {
-  id: string;
-  title: string;
-}
-
 interface ListSectionProps {
   title: string;
-  items: SimpleTask[];
-  newValue: string;
-  onNewValueChange: (value: string) => void;
-  onAdd: () => void;
-  onRemove: (id: string) => void;
+  fieldName: 'tasks' | 'materials';
+  form: FormApi;
   placeholder: string;
   addLabel: string;
   icon: typeof Package;
@@ -198,15 +218,28 @@ interface ListSectionProps {
 
 function ListSection({
   title,
-  items,
-  newValue,
-  onNewValueChange,
-  onAdd,
-  onRemove,
+  fieldName,
+  form,
   placeholder,
   addLabel,
   icon: Icon,
 }: ListSectionProps) {
+  const [newValue, setNewValue] = useState('');
+  const { fields: items, append, remove } = useFieldArray({
+    control: form.control,
+    name: fieldName as any,
+  });
+
+  const handleAdd = () => {
+    if (newValue.trim()) {
+      if (fieldName === 'tasks') {
+        append({ id: Date.now().toString(), title: newValue.trim() } as any);
+      } else {
+        append(newValue.trim() as any);
+      }
+      setNewValue('');
+    }
+  };
   return (
     <Card className="p-6">
       <Label className="mb-3 block flex items-center gap-2">
@@ -224,10 +257,12 @@ function ListSection({
               <div className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary text-sm flex-shrink-0">
                 {index + 1}
               </div>
-              <span className="flex-1">{item.title}</span>
+              <span className="flex-1">
+                {fieldName === 'tasks' ? (item as any).title : (item as any)}
+              </span>
               <button
                 type="button"
-                onClick={() => onRemove(item.id)}
+                onClick={() => remove(index)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
               >
                 <X className="size-4" />
@@ -240,11 +275,11 @@ function ListSection({
       <div className="flex gap-2">
         <Input
           value={newValue}
-          onChange={(e) => onNewValueChange(e.target.value)}
+          onChange={(e) => setNewValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              onAdd();
+              handleAdd();
             }
           }}
           placeholder={placeholder}
@@ -252,7 +287,7 @@ function ListSection({
         />
         <button
           type="button"
-          onClick={onAdd}
+          onClick={handleAdd}
           disabled={!newValue.trim()}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
@@ -264,22 +299,33 @@ function ListSection({
   );
 }
 
-function FormActions({ onCancel }: { onCancel: () => void }) {
+function FormActions({ onCancel, isSubmitting }: { onCancel: () => void; isSubmitting: boolean }) {
   return (
     <div className="flex gap-3 pt-2">
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 px-6 py-3 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors"
+        disabled={isSubmitting}
+        className="flex-1 px-6 py-3 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Annuler
       </button>
       <button
         type="submit"
-        className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+        disabled={isSubmitting}
+        className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        <Check className="size-5" />
-        Créer le signalement
+        {isSubmitting ? (
+          <>
+            <Loader2 className="size-5 animate-spin" />
+            Création...
+          </>
+        ) : (
+          <>
+            <Check className="size-5" />
+            Créer le signalement
+          </>
+        )}
       </button>
     </div>
   );
@@ -287,20 +333,23 @@ function FormActions({ onCancel }: { onCancel: () => void }) {
 
 export function CreatePost() {
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [address, setAddress] = useState('');
-  const [tasks, setTasks] = useState<TaskInput[]>([]);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [materials, setMaterials] = useState<string[]>([]);
-  const [newMaterial, setNewMaterial] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isPrivateProperty, setIsPrivateProperty] = useState<'public' | 'private'>('public');
-  const [isOwnProperty, setIsOwnProperty] = useState<'yes' | 'no'>('yes');
-  const [propertyDocument, setPropertyDocument] = useState<string | null>(null);
-  const [ownerEmail, setOwnerEmail] = useState('');
+  const [propertyDocumentName, setPropertyDocumentName] = useState<string | null>(null);
 
-  const isValidEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
+  const form = useForm<CreatePostFormInput, undefined, CreatePostFormOutput>({
+    resolver: zodResolver(createPostSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      address: '',
+      isPrivateProperty: 'public',
+      isOwnProperty: 'yes',
+      propertyDocument: undefined,
+      ownerEmail: '',
+      tasks: [],
+      materials: [],
+    },
+  });
 
   const isAllowedImageFile = (file: File) =>
     file.type.startsWith('image/') && file.size <= MAX_UPLOAD_SIZE;
@@ -339,63 +388,12 @@ export function CreatePost() {
       return;
     }
 
-    setPropertyDocument(file.name);
+    setPropertyDocumentName(file.name);
+    form.setValue('propertyDocument', file.name);
     toast.success(`Document "${file.name}" ajouté`);
   };
 
-  const addTask = () => {
-    if (newTaskTitle.trim()) {
-      setTasks((currentTasks) => [
-        ...currentTasks,
-        { id: Date.now().toString(), title: newTaskTitle.trim() },
-      ]);
-      setNewTaskTitle('');
-    }
-  };
-
-  const removeTask = (id: string) => {
-    setTasks((currentTasks) => currentTasks.filter((task) => task.id !== id));
-  };
-
-  const addMaterial = () => {
-    if (newMaterial.trim()) {
-      setMaterials((currentMaterials) => [...currentMaterials, newMaterial.trim()]);
-      setNewMaterial('');
-    }
-  };
-
-  const removeMaterial = (index: number) => {
-    setMaterials((currentMaterials) => currentMaterials.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim()) {
-      toast.error('Veuillez entrer un titre');
-      return;
-    }
-    
-    if (!description.trim()) {
-      toast.error('Veuillez entrer une description');
-      return;
-    }
-    
-    if (!address.trim()) {
-      toast.error('Veuillez entrer une adresse');
-      return;
-    }
-
-    if (isPrivateProperty === 'private' && isOwnProperty === 'no' && !ownerEmail.trim()) {
-      toast.error('Veuillez entrer l\'email du propriétaire');
-      return;
-    }
-
-    if (isPrivateProperty === 'private' && isOwnProperty === 'no' && !isValidEmail(ownerEmail.trim())) {
-      toast.error('Veuillez entrer un email valide pour le propriétaire');
-      return;
-    }
-
+  const onSubmit = (_data: CreatePostFormOutput) => {
     // Mock submission
     toast.success('Signalement créé avec succès ! 🎉');
     
@@ -415,95 +413,122 @@ export function CreatePost() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <UploadSection
-            imagePreview={imagePreview}
-            onImageUpload={handleImageUpload}
-            onRemoveImage={() => setImagePreview(null)}
-          />
-
-          <Card className="p-6">
-            <Label htmlFor="title" className="mb-3 block">
-              Titre du signalement
-            </Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Nid-de-poule rue Victor Hugo"
-              className="bg-input-background"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <UploadSection
+              imagePreview={imagePreview}
+              onImageUpload={handleImageUpload}
+              onRemoveImage={() => setImagePreview(null)}
             />
-          </Card>
 
-          <Card className="p-6">
-            <Label htmlFor="description" className="mb-3 block">
-              Description
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez la dégradation en détail..."
-              rows={4}
-              className="bg-input-background resize-none"
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <Card className="p-6">
+                  <FormItem>
+                    <Label htmlFor="title" className="mb-3 block">
+                      Titre du signalement
+                    </Label>
+                    <FormControl>
+                      <Input
+                        id="title"
+                        {...field}
+                        placeholder="Ex: Nid-de-poule rue Victor Hugo"
+                        className="bg-input-background"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </Card>
+              )}
             />
-          </Card>
 
-          <Card className="p-6">
-            <Label htmlFor="address" className="mb-3 block flex items-center gap-2">
-              <MapPin className="size-4 text-primary" />
-              Localisation
-            </Label>
-            <Input
-              id="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Adresse ou lieu précis"
-              className="bg-input-background"
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <Card className="p-6">
+                  <FormItem>
+                    <Label htmlFor="description" className="mb-3 block">
+                      Description
+                    </Label>
+                    <FormControl>
+                      <Textarea
+                        id="description"
+                        {...field}
+                        placeholder="Décrivez la dégradation en détail..."
+                        rows={4}
+                        className="bg-input-background resize-none"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </Card>
+              )}
             />
-            <p className="text-xs text-muted-foreground mt-2">
-              Soyez le plus précis possible pour faciliter l'intervention
-            </p>
-          </Card>
 
-          <PropertySection
-            isPrivateProperty={isPrivateProperty}
-            setIsPrivateProperty={setIsPrivateProperty}
-            isOwnProperty={isOwnProperty}
-            setIsOwnProperty={setIsOwnProperty}
-            propertyDocument={propertyDocument}
-            onDocumentUpload={handleDocumentUpload}
-            onRemoveDocument={() => setPropertyDocument(null)}
-            ownerEmail={ownerEmail}
-            setOwnerEmail={setOwnerEmail}
-          />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <Card className="p-6">
+                  <FormItem>
+                    <Label htmlFor="address" className="mb-3 block flex items-center gap-2">
+                      <MapPin className="size-4 text-primary" />
+                      Localisation
+                    </Label>
+                    <FormControl>
+                      <Input
+                        id="address"
+                        {...field}
+                        placeholder="Adresse ou lieu précis"
+                        className="bg-input-background"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Soyez le plus précis possible pour faciliter l'intervention
+                    </p>
+                  </FormItem>
+                </Card>
+              )}
+            />
 
-          <ListSection
-            title="Tâches à effectuer"
-            items={tasks}
-            newValue={newTaskTitle}
-            onNewValueChange={setNewTaskTitle}
-            onAdd={addTask}
-            onRemove={removeTask}
-            placeholder="Ajouter une tâche..."
-            addLabel="Ajouter"
-            icon={Package}
-          />
+            <PropertySection
+              form={form}
+              onDocumentUpload={handleDocumentUpload}
+              onRemoveDocument={() => {
+                setPropertyDocumentName(null);
+                form.setValue('propertyDocument', undefined);
+              }}
+              propertyDocumentName={propertyDocumentName}
+            />
 
-          <ListSection
-            title="Matériel nécessaire"
-            items={materials.map((material, index) => ({ id: index.toString(), title: material }))}
-            newValue={newMaterial}
-            onNewValueChange={setNewMaterial}
-            onAdd={addMaterial}
-            onRemove={(id) => removeMaterial(Number(id))}
-            placeholder="Ex: Bitume, Peinture..."
-            addLabel="Ajouter"
-            icon={Package}
-          />
+            <ListSection
+              title="Tâches à effectuer"
+              fieldName="tasks"
+              form={form}
+              placeholder="Ajouter une tâche..."
+              addLabel="Ajouter"
+              icon={Package}
+            />
 
-          <FormActions onCancel={() => navigate('/')} />
-        </form>
+            <ListSection
+              title="Matériel nécessaire"
+              fieldName="materials"
+              form={form}
+              placeholder="Ex: Bitume, Peinture..."
+              addLabel="Ajouter"
+              icon={Package}
+            />
+
+            <FormActions 
+              onCancel={() => navigate('/')} 
+              isSubmitting={form.formState.isSubmitting}
+            />
+          </form>
+        </Form>
       </div>
     </div>
   );
