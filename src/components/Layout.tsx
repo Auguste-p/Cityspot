@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Map, Plus, User, Building2 } from "lucide-react";
+import { Button } from "./ui/button";
 import { useUser } from '../context/UserContext';
 
 export function Layout() {
@@ -22,16 +23,14 @@ export function Layout() {
           <div className="flex items-center justify-between">
             {/* Municipal button on left */}
             {isMunicipalUser && (
-              <button
+              <Button
                 onClick={() => navigate("/municipal")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                  isActive("/municipal")
-                    ? "bg-primary-foreground/20 backdrop-blur-sm border-2 border-primary-foreground/30 scale-105"
-                    : "hover:bg-primary-foreground/10"
-                }`}
+                variant={isActive("/municipal") ? "secondary" : "ghost"}
+                size="sm"
+                className="flex items-center gap-2"
               >
                 <Building2 className="size-5" />
-              </button>
+              </Button>
             )}
 
             {/* Title centered or left-aligned */}
@@ -58,44 +57,37 @@ export function Layout() {
       <nav className="bg-card border-t border-border shadow-lg sticky bottom-0">
         <div className="container mx-auto px-4">
           <div className="flex justify-around items-center h-16">
-            <button
+            <Button
               onClick={() => navigate("/")}
-              className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                isActive("/") &&
-                !location.pathname.includes("/post/") &&
-                !location.pathname.includes("/profile") &&
-                !location.pathname.includes("/municipal")
-                  ? "text-primary bg-secondary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              variant={isActive("/") && !location.pathname.includes("/post/") && !location.pathname.includes("/profile") && !location.pathname.includes("/municipal") ? "secondary" : "ghost"}
+              size="sm"
+              className="flex flex-col items-center justify-center gap-1 px-4 py-2"
             >
               <Map className="size-6" />
               <span className="text-xs">Carte</span>
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => navigate("/create")}
+              variant={isActive("/create") ? "default" : "secondary"}
+              size="sm"
               className={`flex flex-col items-center justify-center gap-1 px-6 py-2 rounded-full transition-all ${
-                isActive("/create")
-                  ? "bg-primary text-primary-foreground scale-110 shadow-lg"
-                  : "bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
+                isActive("/create") ? "scale-110 shadow-lg" : ""
               }`}
             >
               <Plus className="size-7" />
               <span className="text-xs">Nouveau</span>
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => navigate("/profile")}
-              className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                isActive("/profile")
-                  ? "text-primary bg-secondary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              variant={isActive("/profile") ? "secondary" : "ghost"}
+              size="sm"
+              className="flex flex-col items-center justify-center gap-1 px-4 py-2"
             >
               <User className="size-6" />
               <span className="text-xs">Profil</span>
-            </button>
+            </Button>
           </div>
         </div>
       </nav>

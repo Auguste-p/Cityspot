@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { mockPosts } from '../data/mockPosts';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import {
   MapPin,
@@ -46,12 +47,14 @@ export function PostDetail() {
           <p className="text-muted-foreground mb-4">
             Ce signalement n'existe pas ou a été supprimé.
           </p>
-          <button
+          <Button
             onClick={() => navigate('/')}
-            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
           >
             Retour à la carte
-          </button>
+          </Button>
         </Card>
       </div>
     );
@@ -124,23 +127,31 @@ export function PostDetail() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <button
+            <Button
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="size-5" />
               <span>Retour</span>
-            </button>
+            </Button>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={handleShare}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                variant="ghost"
+                size="sm"
+                className="p-2 text-muted-foreground hover:text-foreground"
               >
                 <Share2 className="size-5" />
-              </button>
-              <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
+              </Button>
+              <Button 
+                variant="ghost"
+                size="sm"
+                className="p-2 text-muted-foreground hover:text-foreground"
+              >
                 <Edit className="size-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
