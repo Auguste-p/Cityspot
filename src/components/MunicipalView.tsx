@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { mockPosts } from "../data/mockPosts";
 import { PostCategory } from "../types/Post";
@@ -26,85 +26,124 @@ import {
 import { getNetVotes } from "../lib/postStatus";
 import { PostCard } from "./PostCard";
 
+type CategoryValue = PostCategory | "all";
+
+const CATEGORIES: Array<{
+  value: CategoryValue;
+  label: string;
+  icon: typeof Building2;
+  color: string;
+}> = [
+  {
+    value: "all",
+    label: "Tous",
+    icon: Building2,
+    color: "text-primary",
+  },
+  {
+    value: "voirie",
+    label: "Voirie",
+    icon: Car,
+    color: "text-slate-600",
+  },
+  {
+    value: "eclairage",
+    label: "Éclairage",
+    icon: Lightbulb,
+    color: "text-yellow-600",
+  },
+  {
+    value: "securite",
+    label: "Sécurité",
+    icon: Shield,
+    color: "text-red-600",
+  },
+  {
+    value: "proprete",
+    label: "Propreté",
+    icon: TrashIcon,
+    color: "text-cyan-600",
+  },
+  {
+    value: "espaces-verts",
+    label: "Espaces verts",
+    icon: Trees,
+    color: "text-green-600",
+  },
+  {
+    value: "mobilier-urbain",
+    label: "Mobilier urbain",
+    icon: Armchair,
+    color: "text-orange-600",
+  },
+];
+
 export function MunicipalView() {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<
-    PostCategory | "all"
-  >("all");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
 
-  const categories = [
-    {
-      value: "all" as const,
-      label: "Tous",
-      icon: Building2,
-      color: "text-primary",
-    },
-    {
-      value: "voirie" as const,
-      label: "Voirie",
-      icon: Car,
-      color: "text-slate-600",
-    },
-    {
-      value: "eclairage" as const,
-      label: "Éclairage",
-      icon: Lightbulb,
-      color: "text-yellow-600",
-    },
-    {
-      value: "securite" as const,
-      label: "Sécurité",
-      icon: Shield,
-      color: "text-red-600",
-    },
-    {
-      value: "proprete" as const,
-      label: "Propreté",
-      icon: TrashIcon,
-      color: "text-cyan-600",
-    },
-    {
-      value: "espaces-verts" as const,
-      label: "Espaces verts",
-      icon: Trees,
-      color: "text-green-600",
-    },
-    {
-      value: "mobilier-urbain" as const,
-      label: "Mobilier urbain",
-      icon: Armchair,
-      color: "text-orange-600",
-    },
-  ];
+  const categoryConfigByValue = useMemo(
+    () => new Map(CATEGORIES.map((category) => [category.value, category])),
+    [],
+  );
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<CategoryValue, number> = {
+      all: mockPosts.length,
+      voirie: 0,
+      eclairage: 0,
+      securite: 0,
+      proprete: 0,
+      "espaces-verts": 0,
+      "mobilier-urbain": 0,
+    };
+
+    mockPosts.forEach((post) => {
+      if (post.category) {
+        counts[post.category] += 1;
+      }
+    });
+
+    return counts;
+  }, []);
+
+  const filteredPosts = useMemo(
+    () =>
+      selectedCategory === "all"
+        ? mockPosts
+        : mockPosts.filter((post) => post.category === selectedCategory),
+    [selectedCategory],
+  );
+
+  const votingPosts = useMemo(
+    () =>
+      filteredPosts.filter((post) => {
+        const netVotes = getNetVotes(post);
+        return post.status === "pending" && netVotes < 10;
+      }),
+    [filteredPosts],
+  );
+
+  const inProgressPosts = useMemo(
+    () =>
+      filteredPosts.filter((post) => {
+        const netVotes = getNetVotes(post);
+        return post.status === "in-progress" || (post.status === "pending" && netVotes >= 10);
+      }),
+    [filteredPosts],
+  );
+
+  const completedPosts = useMemo(
+    () => filteredPosts.filter((post) => post.status === "completed"),
+    [filteredPosts],
+  );
 
   const getCategoryConfig = (category?: PostCategory) => {
-    if (!category) return null;
-    return categories.find((c) => c.value === category);
+    if (!category) {
+      return null;
+    }
+    return categoryConfigByValue.get(category) ?? null;
   };
-
-  const filteredPosts =
-    selectedCategory === "all"
-      ? mockPosts
-      : mockPosts.filter(
-          (p) => p.category === selectedCategory,
-        );
-
-  const votingPosts = filteredPosts.filter((p) => {
-    const netVotes = getNetVotes(p);
-    return p.status === "pending" && netVotes < 10;
-  });
-
-  const inProgressPosts = filteredPosts.filter((p) => {
-    const netVotes = getNetVotes(p);
-    return (
-      p.status === "in-progress" ||
-      (p.status === "pending" && netVotes >= 10)
-    );
-  });
-
-  const completedPosts = filteredPosts.filter(
-    (p) => p.status === "completed",
-  );
 
   return (
     <div className="min-h-full bg-background pb-6">
@@ -166,16 +205,11 @@ export function MunicipalView() {
         <div className="mb-6">
           <h2 className="mb-4">Filtrer par catégorie</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            {categories.map((category) => {
+            {CATEGORIES.map((category) => {
               const Icon = category.icon;
               const isSelected =
                 selectedCategory === category.value;
-              const count =
-                category.value === "all"
-                  ? mockPosts.length
-                  : mockPosts.filter(
-                      (p) => p.category === category.value,
-                    ).length;
+              const count = categoryCounts[category.value];
 
               return (
                 <Card

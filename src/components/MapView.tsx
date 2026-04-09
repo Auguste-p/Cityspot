@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { mockPosts } from '../data/mockPosts';
 import { Post } from '../types/Post';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2 } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
+
+const MARKER_POSITIONS = [
+  { top: '25%', left: '35%' },
+  { top: '45%', left: '55%' },
+  { top: '35%', left: '70%' },
+  { top: '60%', left: '40%' },
+  { top: '55%', left: '65%' },
+] as const;
 
 export function MapView() {
   const navigate = useNavigate();
@@ -16,8 +25,14 @@ export function MapView() {
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [votingPost, setVotingPost] = useState<Post | null>(null);
 
-  const selectedStatus = selectedPost ? getActualStatus(selectedPost) : null;
-  const selectedStatusConfig = selectedStatus ? getStatusConfig(selectedStatus) : null;
+  const selectedStatus = useMemo(
+    () => (selectedPost ? getActualStatus(selectedPost) : null),
+    [selectedPost],
+  );
+  const selectedStatusConfig = useMemo(
+    () => (selectedStatus ? getStatusConfig(selectedStatus) : null),
+    [selectedStatus],
+  );
   const SelectedStatusIcon = selectedStatusConfig?.icon;
 
   const handleVote = (post: Post) => {
@@ -71,15 +86,7 @@ export function MapView() {
               const actualStatus = getActualStatus(post);
               const statusConfig = getStatusConfig(actualStatus);
               const StatusIcon = statusConfig.icon;
-              // Position markers in a visually pleasing way
-              const positions = [
-                { top: '25%', left: '35%' },
-                { top: '45%', left: '55%' },
-                { top: '35%', left: '70%' },
-                { top: '60%', left: '40%' },
-                { top: '55%', left: '65%' },
-              ];
-              const position = positions[index % positions.length];
+              const position = MARKER_POSITIONS[index % MARKER_POSITIONS.length];
 
               return (
                 <div
@@ -245,13 +252,14 @@ export function MapView() {
                       </div>
                     </div>
                     {selectedStatus === 'pending' && (
-                      <button
+                      <Button
                         onClick={() => handleVote(selectedPost)}
-                        className="w-full mt-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
+                        variant="secondary"
+                        className="mt-2 w-full flex items-center justify-center gap-2"
                       >
                         <ThumbsUp className="size-4" />
                         Voter pour ce projet
-                      </button>
+                      </Button>
                     )}
                     {selectedStatus === 'in-progress' && (
                       <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg text-xs text-amber-700 mt-2">
@@ -287,12 +295,12 @@ export function MapView() {
                   </div>
                 )}
 
-                <button
+                <Button
                   onClick={() => navigate(`/post/${selectedPost.id}`)}
-                  className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                  className="w-full"
                 >
                   Voir les détails
-                </button>
+                </Button>
               </div>
             </Card>
           </div>
