@@ -4,17 +4,18 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { useUser } from '../context/UserContext';
 
 export function Settings() {
   const navigate = useNavigate();
+  const { user } = useUser();
   
-  // Mock user data
   const [formData, setFormData] = useState({
-    name: 'Jean Dupont',
-    email: 'jean.dupont@email.com',
-    phone: '+33 6 12 34 56 78',
-    address: '123 Rue de la République, 75001 Paris',
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    address: user.address,
   });
 
   const handleChange = (field: string, value: string) => {
@@ -55,7 +56,7 @@ export function Settings() {
             <h2 className="mb-4">Photo de profil</h2>
             <div className="flex items-center gap-4">
               <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl">
-                JD
+                {user.avatar}
               </div>
               <div>
                 <button

@@ -1,12 +1,11 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { Map, Plus, List, User, Building2 } from "lucide-react";
+import { Map, Plus, User, Building2 } from "lucide-react";
+import { useUser } from '../context/UserContext';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Mock user data - in real app, this would come from auth context
-  const isMunicipalUser = true; // Set to true to show municipal view
+  const { isMunicipalUser } = useUser();
 
   const isActive = (path: string) => {
     if (path === "/") {

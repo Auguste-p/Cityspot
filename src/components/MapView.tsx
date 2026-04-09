@@ -6,7 +6,8 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2 } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 
 export function MapView() {
   const navigate = useNavigate();
@@ -15,47 +16,9 @@ export function MapView() {
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [votingPost, setVotingPost] = useState<Post | null>(null);
 
-  // Center of Paris for the mock map
-  const mapCenter = { lat: 48.8566, lng: 2.3522 };
-
-  // Calculate net votes
-  const getNetVotes = (post: Post) => post.votes.positive - post.votes.negative;
-  
-  // Determine actual status based on votes
-  const getActualStatus = (post: Post): 'pending' | 'in-progress' | 'completed' => {
-    if (post.status === 'completed') return 'completed';
-    const netVotes = getNetVotes(post);
-    return netVotes >= 10 ? 'in-progress' : 'pending';
-  };
-
-  const getStatusConfig = (status: 'pending' | 'in-progress' | 'completed') => {
-    switch (status) {
-      case 'completed':
-        return { 
-          label: 'Terminé', 
-          icon: CheckCircle2, 
-          color: 'bg-green-500',
-          textColor: 'text-green-600',
-          bgColor: 'bg-green-50'
-        };
-      case 'in-progress':
-        return { 
-          label: 'En cours', 
-          icon: Clock, 
-          color: 'bg-amber-500',
-          textColor: 'text-amber-600',
-          bgColor: 'bg-amber-50'
-        };
-      case 'pending':
-        return { 
-          label: 'En vote', 
-          icon: Vote, 
-          color: 'bg-blue-500',
-          textColor: 'text-blue-600',
-          bgColor: 'bg-blue-50'
-        };
-    }
-  };
+  const selectedStatus = selectedPost ? getActualStatus(selectedPost) : null;
+  const selectedStatusConfig = selectedStatus ? getStatusConfig(selectedStatus) : null;
+  const SelectedStatusIcon = selectedStatusConfig?.icon;
 
   const handleVote = (post: Post) => {
     setVotingPost(post);
@@ -91,19 +54,23 @@ export function MapView() {
         {/* Map Overlay */}
         <div className="relative h-full min-h-[400px] lg:min-h-screen overflow-hidden">
           {/* Grid lines for map effect */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="grid grid-cols-12 grid-rows-12 h-full w-full">
-              {Array.from({ length: 144 }).map((_, i) => (
-                <div key={i} className="border border-primary/20" />
-              ))}
-            </div>
+          <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage:
+                  'linear-gradient(to right, rgba(37, 99, 235, 0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(37, 99, 235, 0.2) 1px, transparent 1px)',
+                backgroundSize: 'calc(100% / 12) 100%, 100% calc(100% / 12)',
+              }}
+            />
           </div>
 
           {/* Map Markers */}
           <div className="absolute inset-0 p-8">
             {mockPosts.map((post, index) => {
               const actualStatus = getActualStatus(post);
-              const StatusIcon = getStatusConfig(actualStatus).icon;
+              const statusConfig = getStatusConfig(actualStatus);
+              const StatusIcon = statusConfig.icon;
               // Position markers in a visually pleasing way
               const positions = [
                 { top: '25%', left: '35%' },
@@ -139,7 +106,7 @@ export function MapView() {
                     />
                     <div
                       className={`absolute top-2 left-1/2 transform -translate-x-1/2 size-3 rounded-full ${
-                        getStatusConfig(actualStatus).color
+                        statusConfig.color
                       }`}
                     />
                     {post.isPrivateProperty && (
@@ -205,21 +172,15 @@ export function MapView() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h2>{selectedPost.title}</h2>
                     <div className="flex flex-col gap-1">
-                      <Badge 
-                        variant="outline" 
-                        className={`${getStatusConfig(getActualStatus(selectedPost)).bgColor} ${getStatusConfig(getActualStatus(selectedPost)).textColor} border-0 flex items-center gap-1.5`}
-                      >
-                        {(() => {
-                          const config = getStatusConfig(getActualStatus(selectedPost));
-                          const StatusIcon = config.icon;
-                          return (
-                            <>
-                              <StatusIcon className="size-3" />
-                              {config.label}
-                            </>
-                          );
-                        })()}
-                      </Badge>
+                      {selectedStatusConfig && (
+                        <Badge
+                          variant="outline"
+                          className={`${selectedStatusConfig.bgColor} ${selectedStatusConfig.textColor} border-0 flex items-center gap-1.5`}
+                        >
+                          {SelectedStatusIcon && <SelectedStatusIcon className="size-3" />}
+                          {selectedStatusConfig.label}
+                        </Badge>
+                      )}
                       {selectedPost.isMunicipalProject && (
                         <Badge className="bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0">
                           <Building2 className="size-3 mr-1" />
@@ -254,7 +215,7 @@ export function MapView() {
                 </div>
 
                 {/* Vote Section - Only for pending and in-progress */}
-                {getActualStatus(selectedPost) !== 'completed' && (
+                {selectedStatus !== 'completed' && (
                   <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Votes</span>
@@ -283,7 +244,7 @@ export function MapView() {
                         />
                       </div>
                     </div>
-                    {getActualStatus(selectedPost) === 'pending' && (
+                    {selectedStatus === 'pending' && (
                       <button
                         onClick={() => handleVote(selectedPost)}
                         className="w-full mt-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
@@ -292,7 +253,7 @@ export function MapView() {
                         Voter pour ce projet
                       </button>
                     )}
-                    {getActualStatus(selectedPost) === 'in-progress' && (
+                    {selectedStatus === 'in-progress' && (
                       <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg text-xs text-amber-700 mt-2">
                         <CheckCircle2 className="size-4 flex-shrink-0" />
                         <span>Projet lancé !</span>
@@ -302,7 +263,7 @@ export function MapView() {
                 )}
 
                 {/* Tasks - Only show for in-progress and completed */}
-                {getActualStatus(selectedPost) !== 'pending' && (
+                {selectedStatus !== 'pending' && (
                   <div>
                     <h3 className="mb-2">Tâches ({selectedPost.tasks.filter(t => t.completed).length}/{selectedPost.tasks.length})</h3>
                     <ul className="space-y-2">
@@ -350,6 +311,8 @@ export function MapView() {
               <h3>Tous les signalements</h3>
               {mockPosts.map((post) => {
                 const actualStatus = getActualStatus(post);
+                const statusConfig = getStatusConfig(actualStatus);
+                const StatusIcon = statusConfig.icon;
                 return (
                   <Card
                     key={post.id}
@@ -382,18 +345,10 @@ export function MapView() {
                         <div className="flex items-center gap-2 mt-1">
                           <Badge 
                             variant="outline" 
-                            className={`text-xs ${getStatusConfig(actualStatus).bgColor} ${getStatusConfig(actualStatus).textColor} border-0 flex items-center gap-1`}
+                            className={`text-xs ${statusConfig.bgColor} ${statusConfig.textColor} border-0 flex items-center gap-1`}
                           >
-                            {(() => {
-                              const config = getStatusConfig(actualStatus);
-                              const StatusIcon = config.icon;
-                              return (
-                                <>
-                                  <StatusIcon className="size-2.5" />
-                                  {config.label}
-                                </>
-                              );
-                            })()}
+                            <StatusIcon className="size-2.5" />
+                            {statusConfig.label}
                           </Badge>
                           <div className="flex items-center gap-1 text-xs text-green-600">
                             <ThumbsUp className="size-3" />

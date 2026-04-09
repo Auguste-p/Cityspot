@@ -25,8 +25,9 @@ import {
   Info,
   Building2,
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
+import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
@@ -56,45 +57,8 @@ export function PostDetail() {
     );
   }
 
-  // Calculate net votes
-  const netVotes = post.votes.positive - post.votes.negative;
-  
-  // Determine actual status based on votes
-  const actualStatus = post.status === 'completed' 
-    ? 'completed' 
-    : netVotes >= 10 
-      ? 'in-progress' 
-      : 'pending';
-
-  const getStatusConfig = (status: typeof actualStatus) => {
-    switch (status) {
-      case 'completed':
-        return {
-          label: 'Terminé',
-          icon: CheckCircle2,
-          color: 'bg-green-500',
-          textColor: 'text-green-700',
-          bgColor: 'bg-green-50',
-        };
-      case 'in-progress':
-        return {
-          label: 'En cours',
-          icon: Clock,
-          color: 'bg-amber-500',
-          textColor: 'text-amber-700',
-          bgColor: 'bg-amber-50',
-        };
-      case 'pending':
-        return {
-          label: 'En vote',
-          icon: Vote,
-          color: 'bg-blue-500',
-          textColor: 'text-blue-700',
-          bgColor: 'bg-blue-50',
-        };
-    }
-  };
-
+  const netVotes = getNetVotes(post);
+  const actualStatus = getActualStatus(post);
   const statusConfig = getStatusConfig(actualStatus);
   const StatusIcon = statusConfig.icon;
   
@@ -104,7 +68,7 @@ export function PostDetail() {
     : tasks;
   
   const completedTasks = tasks.filter((t) => t.completed).length;
-  const progress = (completedTasks / tasks.length) * 100;
+  const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
 
   // Tasks are only editable when status is in-progress
   const canEditTasks = actualStatus === 'in-progress';
@@ -119,8 +83,10 @@ export function PostDetail() {
       return;
     }
     
-    setTasks(
-      tasks.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task,
+      ),
     );
     toast.success('Tâche mise à jour');
   };
