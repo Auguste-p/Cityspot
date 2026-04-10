@@ -60,7 +60,7 @@ export interface CreateIssueInput {
   category?: PostCategory | null;
 }
 
-const DEFAULT_IMAGE_URL = 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&h=800&fit=crop';
+const DEFAULT_IMAGE_URL = 'https://picsum.photos/200';
 
 const localIssuesStore: Post[] = [];
 
