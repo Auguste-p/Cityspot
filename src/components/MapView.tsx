@@ -4,7 +4,7 @@ import { Post } from '../types/Post';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2, ChevronLeft } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
@@ -195,6 +195,15 @@ export function MapView() {
       <div className="lg:w-96 bg-background border-t lg:border-t-0 lg:border-l border-border overflow-y-auto">
         {selectedPost ? (
           <div className="p-6">
+            <button
+              type="button"
+              onClick={() => setSelectedPost(null)}
+              className="mb-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Retour à la liste des signalements"
+            >
+              <ChevronLeft className="size-4" />
+              <span>Retour</span>
+            </button>
             <Card className="overflow-hidden">
               <img
                 src={selectedPost.imageUrl}
