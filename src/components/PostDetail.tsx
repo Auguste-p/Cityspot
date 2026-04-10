@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { mockPosts } from '../data/mockPosts';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -25,18 +24,47 @@ import {
   Vote,
   Info,
   Building2,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
+import { useIssue } from '../hooks/useIssues';
 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const post = mockPosts.find((p) => p.id === id);
-
+  const { issue: post, loading, error } = useIssue(id);
   const [tasks, setTasks] = useState(post?.tasks || []);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setTasks(post?.tasks || []);
+  }, [post]);
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
+          <h2 className="mb-2">Chargement du signalement</h2>
+          <p className="text-sm text-muted-foreground">Récupération depuis Supabase.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <h2 className="mb-2">Impossible de charger le signalement</h2>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </Card>
+      </div>
+    );
+  }
 
   if (!post) {
     return (

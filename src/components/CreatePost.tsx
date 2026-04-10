@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Button } from './ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { createPostSchema } from '../schemas/formSchemas';
+import { createIssue } from '../services/issuesService';
 
 type CreatePostFormInput = z.input<typeof createPostSchema>;
 type CreatePostFormOutput = z.output<typeof createPostSchema>;
@@ -393,14 +394,31 @@ export function CreatePost() {
     toast.success(`Document "${file.name}" ajouté`);
   };
 
-  const onSubmit = (_data: CreatePostFormOutput) => {
-    // Mock submission
-    toast.success('Signalement créé avec succès ! 🎉');
-    
-    // Navigate back to map after a short delay
-    setTimeout(() => {
+  const onSubmit = async (data: CreatePostFormOutput) => {
+    try {
+      await createIssue({
+        title: data.title,
+        description: data.description,
+        address: data.address,
+        imageUrl: imagePreview,
+        materials: data.materials.map((material) => material.title),
+        tasks: data.tasks.map((task) => task.title),
+        location: {
+          lat: 0,
+          lng: 0,
+          address: data.address,
+        },
+        isPrivateProperty: data.isPrivateProperty === 'private',
+        positiveVotes: 0,
+        negativeVotes: 0,
+        isMunicipalProject: false,
+      });
+
+      toast.success('Signalement créé avec succès ! 🎉');
       navigate('/');
-    }, 1500);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Impossible de créer le signalement');
+    }
   };
 
   return (

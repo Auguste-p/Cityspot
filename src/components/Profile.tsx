@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { mockPosts } from '../data/mockPosts';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
@@ -12,16 +11,17 @@ import {
   TrendingUp,
   Award,
   Vote,
+  Loader2,
 } from 'lucide-react';
 import { PostCard } from './PostCard';
 import { getNetVotes } from '../lib/postStatus';
 import { useUser } from '../context/UserContext';
+import { useIssues } from '../hooks/useIssues';
 
 export function Profile() {
   const navigate = useNavigate();
   const { user } = useUser();
-
-  const myPosts = mockPosts; // In a real app, filter by user
+  const { issues: myPosts, loading, error } = useIssues(); // In a real app, filter by user
   
   const votingPosts = myPosts.filter(p => {
     const netVotes = getNetVotes(p);
@@ -34,6 +34,30 @@ export function Profile() {
   });
   
   const completedPosts = myPosts.filter(p => p.status === 'completed');
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
+          <h2 className="mb-2">Chargement du profil</h2>
+          <p className="text-sm text-muted-foreground">Récupération des signalements.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <h2 className="mb-2">Impossible de charger le profil</h2>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-background pb-6">

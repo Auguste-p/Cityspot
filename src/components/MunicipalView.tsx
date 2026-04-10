@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { mockPosts } from "../data/mockPosts";
 import { PostCategory } from "../types/Post";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -22,9 +21,12 @@ import {
   Trash2 as TrashIcon,
   Trees,
   Armchair,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { getNetVotes } from "../lib/postStatus";
 import { PostCard } from "./PostCard";
+import { useIssues } from "../hooks/useIssues";
 
 type CategoryValue = PostCategory | "all";
 
@@ -81,6 +83,7 @@ const CATEGORIES: Array<{
 export function MunicipalView() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
+  const { issues: posts, loading, error } = useIssues();
 
   const categoryConfigByValue = useMemo(
     () => new Map(CATEGORIES.map((category) => [category.value, category])),
@@ -89,7 +92,7 @@ export function MunicipalView() {
 
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryValue, number> = {
-      all: mockPosts.length,
+      all: posts.length,
       voirie: 0,
       eclairage: 0,
       securite: 0,
@@ -98,7 +101,7 @@ export function MunicipalView() {
       "mobilier-urbain": 0,
     };
 
-    mockPosts.forEach((post) => {
+    posts.forEach((post) => {
       if (post.category) {
         counts[post.category] += 1;
       }
@@ -110,9 +113,9 @@ export function MunicipalView() {
   const filteredPosts = useMemo(
     () =>
       selectedCategory === "all"
-        ? mockPosts
-        : mockPosts.filter((post) => post.category === selectedCategory),
-    [selectedCategory],
+        ? posts
+        : posts.filter((post) => post.category === selectedCategory),
+    [posts, selectedCategory],
   );
 
   const votingPosts = useMemo(
@@ -144,6 +147,32 @@ export function MunicipalView() {
     }
     return categoryConfigByValue.get(category) ?? null;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
+          <h2 className="mb-2">Chargement des projets</h2>
+          <p className="text-sm text-muted-foreground">
+            Les données municipales arrivent depuis Supabase.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <h2 className="mb-2">Impossible de charger les projets</h2>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-background pb-6">
