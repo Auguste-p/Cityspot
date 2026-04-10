@@ -1,30 +1,67 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { Post } from '../types/Post';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2, ChevronLeft } from 'lucide-react';
+import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2, ChevronLeft, LocateFixed } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import { useIssues } from '../hooks/useIssues';
+import { FALLBACK_CITY, MAP_STYLE } from '../constants/map';
 
-const MARKER_POSITIONS = [
-  { top: '25%', left: '35%' },
-  { top: '45%', left: '55%' },
-  { top: '35%', left: '70%' },
-  { top: '60%', left: '40%' },
-  { top: '55%', left: '65%' },
-] as const;
+const STATUS_MARKER_COLORS = {
+  pending: '#3b82f6',
+  'in-progress': '#f59e0b',
+  completed: '#22c55e',
+} as const;
+
+async function reverseGeocodeCity(lat: number, lng: number) {
+  const endpoint = new URL('https://nominatim.openstreetmap.org/reverse');
+  endpoint.searchParams.set('format', 'jsonv2');
+  endpoint.searchParams.set('lat', String(lat));
+  endpoint.searchParams.set('lon', String(lng));
+  endpoint.searchParams.set('accept-language', 'fr');
+
+  try {
+    const response = await fetch(endpoint.toString());
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json() as {
+      address?: {
+        city?: string;
+        town?: string;
+        village?: string;
+        municipality?: string;
+      };
+    };
+
+    return payload.address?.city
+      ?? payload.address?.town
+      ?? payload.address?.village
+      ?? payload.address?.municipality
+      ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function MapView() {
   const navigate = useNavigate();
   const { issues: posts, loading, error } = useIssues();
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [hoveredPost, setHoveredPost] = useState<string | null>(null);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [votingPost, setVotingPost] = useState<Post | null>(null);
+  const [activeCity, setActiveCity] = useState<string>(FALLBACK_CITY.name);
+  const [isLocating, setIsLocating] = useState(false);
 
   const selectedStatus = useMemo(
     () => (selectedPost ? getActualStatus(selectedPost) : null),
@@ -54,6 +91,148 @@ export function MapView() {
         : 'Vote négatif enregistré 👎'
     );
   };
+
+  const handleLocateUser = () => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setActiveCity(FALLBACK_CITY.name);
+      map.flyTo({
+        center: [FALLBACK_CITY.lng, FALLBACK_CITY.lat],
+        zoom: FALLBACK_CITY.zoom,
+        duration: 900,
+      });
+      toast.info('La géolocalisation est indisponible sur cet appareil.');
+      return;
+    }
+
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        map.flyTo({ center: [longitude, latitude], zoom: 13.5, duration: 900 });
+
+        const cityName = await reverseGeocodeCity(latitude, longitude);
+        setActiveCity(cityName ?? 'Position actuelle');
+
+        toast.success(cityName
+          ? `Carte centrée sur ${cityName}.`
+          : 'Carte centrée sur votre position.');
+        setIsLocating(false);
+      },
+      () => {
+        setActiveCity(FALLBACK_CITY.name);
+        map.flyTo({
+          center: [FALLBACK_CITY.lng, FALLBACK_CITY.lat],
+          zoom: FALLBACK_CITY.zoom,
+          duration: 900,
+        });
+        toast.info(`Géolocalisation refusée: recentrage sur ${FALLBACK_CITY.name}.`);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 300000,
+      },
+    );
+  };
+
+  useEffect(() => {
+    if (loading || error) {
+      return;
+    }
+
+    if (!mapContainerRef.current || mapRef.current) {
+      return;
+    }
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: MAP_STYLE,
+      center: [FALLBACK_CITY.lng, FALLBACK_CITY.lat],
+      zoom: FALLBACK_CITY.zoom,
+      attributionControl: { compact: true },
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+    mapRef.current = map;
+
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [loading, error]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    posts.forEach((post) => {
+      if (!Number.isFinite(post.location.lat) || !Number.isFinite(post.location.lng)) {
+        return;
+      }
+
+      const markerElement = document.createElement('button');
+      markerElement.type = 'button';
+      markerElement.className = 'cityspot-marker';
+      if (selectedPost?.id === post.id) {
+        markerElement.classList.add('is-selected');
+      }
+      markerElement.style.setProperty('--marker-color', STATUS_MARKER_COLORS[getActualStatus(post)]);
+      markerElement.setAttribute('title', post.title);
+      markerElement.setAttribute('aria-label', `Ouvrir le signalement ${post.title}`);
+
+      const dot = document.createElement('span');
+      dot.className = 'cityspot-marker-dot';
+      markerElement.appendChild(dot);
+
+      if (post.isPrivateProperty) {
+        const privateBadge = document.createElement('span');
+        privateBadge.className = 'cityspot-marker-private';
+        privateBadge.textContent = 'P';
+        markerElement.appendChild(privateBadge);
+      }
+
+      markerElement.addEventListener('click', () => {
+        setSelectedPost(post);
+      });
+
+      const marker = new maplibregl.Marker({ element: markerElement, anchor: 'bottom' })
+        .setLngLat([post.location.lng, post.location.lat])
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    });
+  }, [posts, selectedPost?.id]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedPost) {
+      return;
+    }
+
+    if (!Number.isFinite(selectedPost.location.lat) || !Number.isFinite(selectedPost.location.lng)) {
+      return;
+    }
+
+    map.flyTo({
+      center: [selectedPost.location.lng, selectedPost.location.lat],
+      zoom: Math.max(map.getZoom(), 14),
+      duration: 700,
+    });
+  }, [selectedPost]);
 
   if (loading) {
     return (
@@ -85,90 +264,29 @@ export function MapView() {
     <div className="h-full flex flex-col lg:flex-row">
       {/* Map Area */}
       <div className="relative flex-1 bg-muted">
-        {/* Mock Map Background */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&h=800&fit=crop)',
-          }}
-        />
-        
-        {/* Map Overlay */}
-        <div className="relative h-full min-h-[400px] lg:min-h-screen overflow-hidden">
-          {/* Grid lines for map effect */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
-            <div
-              className="h-full w-full"
-              style={{
-                backgroundImage:
-                  'linear-gradient(to right, rgba(37, 99, 235, 0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(37, 99, 235, 0.2) 1px, transparent 1px)',
-                backgroundSize: 'calc(100% / 12) 100%, 100% calc(100% / 12)',
-              }}
-            />
-          </div>
+        <div className="relative h-full min-h-[400px] lg:min-h-screen overflow-hidden rounded-none lg:rounded-r-lg" role="region" aria-label="Carte des signalements">
+          <div ref={mapContainerRef} className="cityspot-map h-full w-full" />
 
-          {/* Map Markers */}
-          <div className="absolute inset-0 p-8">
-            {posts.map((post, index) => {
-              const actualStatus = getActualStatus(post);
-              const statusConfig = getStatusConfig(actualStatus);
-              const StatusIcon = statusConfig.icon;
-              const position = MARKER_POSITIONS[index % MARKER_POSITIONS.length];
-
-              return (
-                <div
-                  key={post.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200"
-                  style={position}
-                  onMouseEnter={() => setHoveredPost(post.id)}
-                  onMouseLeave={() => setHoveredPost(null)}
-                  onClick={() => setSelectedPost(post)}
-                >
-                  <div
-                    className={`relative transition-all duration-200 ${
-                      hoveredPost === post.id || selectedPost?.id === post.id
-                        ? 'scale-125'
-                        : 'scale-100'
-                    }`}
-                  >
-                    <MapPin
-                      className={`size-10 drop-shadow-lg ${
-                        selectedPost?.id === post.id
-                          ? 'text-primary fill-primary'
-                          : 'text-accent fill-accent'
-                      }`}
-                    />
-                    <div
-                      className={`absolute top-2 left-1/2 transform -translate-x-1/2 size-3 rounded-full ${
-                        statusConfig.color
-                      }`}
-                    />
-                    {post.isPrivateProperty && (
-                      <div className="absolute -top-1 -right-1">
-                        <Home className="size-4 text-primary fill-primary drop-shadow-lg" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Hover tooltip */}
-                  {hoveredPost === post.id && !selectedPost && (
-                    <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-card p-2 rounded-lg shadow-lg whitespace-nowrap z-10 border border-border">
-                      <p className="text-sm">{post.title}</p>
-                      {post.isPrivateProperty && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <Home className="size-3" />
-                          Voie privée
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="absolute top-4 left-4 z-10 space-y-2">
+            <div className="bg-card/95 backdrop-blur-sm px-3 py-2 rounded-lg border border-border shadow-md text-sm">
+              <span className="text-muted-foreground">Ville: </span>
+              <span>{activeCity}</span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="shadow-md"
+              onClick={handleLocateUser}
+              disabled={isLocating}
+            >
+              <LocateFixed className="size-4 mr-2" />
+              {isLocating ? 'Localisation...' : 'Me localiser'}
+            </Button>
           </div>
 
           {/* Legend */}
-          <div className="absolute top-4 right-4 bg-card/95 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-border">
+          <div className="absolute top-4 right-4 z-10 bg-card/95 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-border">
             <h3 className="mb-2">Statut</h3>
             <div className="space-y-1.5">
               {(['pending', 'in-progress', 'completed'] as const).map((status) => {

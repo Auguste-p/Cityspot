@@ -9,3 +9,5 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module 'maplibre-gl/dist/maplibre-gl.css';
