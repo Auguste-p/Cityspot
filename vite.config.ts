@@ -14,6 +14,24 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      cssCodeSplit: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return;
+            }
+
+            if (id.includes('maplibre-gl')) {
+              return 'vendor-map';
+            }
+
+            if (id.includes('@supabase/supabase-js')) {
+              return 'vendor-supabase';
+            }
+          },
+        },
+      },
     },
     server: {
       port: 3000,
