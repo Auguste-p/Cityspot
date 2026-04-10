@@ -8,6 +8,15 @@
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
+
+## Supabase
+
+The app expects a public browser-safe key in `.env`:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Do not use a service-role or secret key in the browser. If the anon key is missing, the app falls back to local mock data.
   
 # Avancée du jour avec IA
 

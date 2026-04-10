@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { mockPosts } from '../data/mockPosts';
 import { Post } from '../types/Post';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2 } from 'lucide-react';
+import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2 } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
+import { useIssues } from '../hooks/useIssues';
 
 const MARKER_POSITIONS = [
   { top: '25%', left: '35%' },
@@ -20,6 +20,7 @@ const MARKER_POSITIONS = [
 
 export function MapView() {
   const navigate = useNavigate();
+  const { issues: posts, loading, error } = useIssues();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [hoveredPost, setHoveredPost] = useState<string | null>(null);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
@@ -54,6 +55,32 @@ export function MapView() {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
+          <h2 className="mb-2">Chargement des signalements</h2>
+          <p className="text-sm text-muted-foreground">
+            Récupération des données depuis Supabase.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <h2 className="mb-2">Impossible de charger la carte</h2>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col lg:flex-row">
       {/* Map Area */}
@@ -82,7 +109,7 @@ export function MapView() {
 
           {/* Map Markers */}
           <div className="absolute inset-0 p-8">
-            {mockPosts.map((post, index) => {
+            {posts.map((post, index) => {
               const actualStatus = getActualStatus(post);
               const statusConfig = getStatusConfig(actualStatus);
               const StatusIcon = statusConfig.icon;
@@ -317,7 +344,7 @@ export function MapView() {
             {/* List of all posts */}
             <div className="space-y-3 mt-6">
               <h3>Tous les signalements</h3>
-              {mockPosts.map((post) => {
+              {posts.map((post) => {
                 const actualStatus = getActualStatus(post);
                 const statusConfig = getStatusConfig(actualStatus);
                 const StatusIcon = statusConfig.icon;
