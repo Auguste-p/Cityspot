@@ -75,10 +75,10 @@ export function Profile() {
           
           <div className="flex flex-col items-center text-center">
             <div className="size-20 rounded-full bg-primary-foreground/20 flex items-center justify-center mb-3 backdrop-blur-sm border-2 border-primary-foreground/30">
-              <span className="text-2xl">{user.avatar}</span>
+              <span className="text-2xl">{user?.avatar}</span>
             </div>
-            <h1 className="mb-1">{user.name}</h1>
-            <p className="text-primary-foreground/80 text-sm mb-4">{user.email}</p>
+            <h1 className="mb-1">{user?.name}</h1>
+            <p className="text-primary-foreground/80 text-sm mb-4">{user?.email}</p>
             
             {/* Stats */}
             <div className="flex gap-6 mt-2">
@@ -109,9 +109,9 @@ export function Profile() {
               </div>
               <div>
                 <h3 className="text-sm text-amber-900">Contributeur actif</h3>
-                <p className="text-xs text-amber-700 mt-1">
-                  Membre depuis {new Date(user.joinDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                </p>
+                {/* <p className="text-xs text-amber-700 mt-1">
+                  Membre depuis {user?.joinDate ? new Date(user.joinDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'inconnue'}
+                </p> */}
               </div>
             </div>
           </Card>

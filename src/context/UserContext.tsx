@@ -1,45 +1,89 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+import { getSupabaseClient } from '../lib/supabase';
 
 export type UserRole = 'citizen' | 'municipal';
 
 export interface AppUser {
-  name: string;
+  id: string;
   email: string;
-  avatar: string;
-  joinDate: Date;
-  phone: string;
-  address: string;
+  name?: string;
+  avatar?: string;
   role: UserRole;
 }
 
-const mockUser: AppUser = {
-  name: 'Jean Dupont',
-  email: 'jean.dupont@email.com',
-  avatar: 'JD',
-  joinDate: new Date('2024-06-15'),
-  phone: '+33 6 12 34 56 78',
-  address: '123 Rue de la République, 75001 Paris',
-  role: 'municipal',
-};
-
 interface UserContextValue {
-  user: AppUser;
+  user: AppUser | null;
+  loading: boolean;
   isMunicipalUser: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
 
-interface UserProviderProps {
-  children: ReactNode;
-}
+export function UserProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export function UserProvider({ children }: UserProviderProps) {
-  const value: UserContextValue = {
-    user: mockUser,
-    isMunicipalUser: mockUser.role === 'municipal',
+  // 🔄 Charger user au démarrage
+  const loadUser = async () => {
+    setLoading(true);
+
+    const { data } = await getSupabaseClient()!.auth.getUser();
+
+    const authUser = data.user;
+
+    if (!authUser) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    // 👉 mapping Supabase → ton AppUser
+    const appUser: AppUser = {
+      id: authUser.id,
+      email: authUser.email!,
+      name: authUser.user_metadata?.name || authUser.email!,
+      avatar: authUser.user_metadata?.avatar || '',
+      role: authUser.user_metadata?.role || 'citizen',
+    };
+
+    setUser(appUser);
+    setLoading(false);
   };
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+  useEffect(() => {
+    loadUser();
+
+    // 👂 écoute login/logout en live
+    const { data: listener } = getSupabaseClient()!.auth.onAuthStateChange(
+      async () => {
+        await loadUser();
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const value: UserContextValue = {
+    user,
+    loading,
+    isMunicipalUser: user?.role === 'municipal',
+    refreshUser: loadUser,
+  };
+
+  return (
+    <UserContext.Provider value={value}>
+      {children}
+    </UserContext.Provider>
+  );
 }
 
 export function useUser() {

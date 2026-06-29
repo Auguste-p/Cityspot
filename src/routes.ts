@@ -3,6 +3,13 @@ import { Layout } from "./components/Layout";
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    lazy: async () => {
+      const { default: LoginPage } = await import("./components/LoginPage");
+      return { Component: LoginPage };
+    },
+  },
+  {
     path: "/",
     Component: Layout,
     children: [

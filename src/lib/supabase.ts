@@ -94,7 +94,6 @@ let supabaseClient: SupabaseClient<Database> | null = null;
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabaseSecretKey = import.meta.env.VITE_SUPABASE_SECRET_KEY;
 
 function isSecretKey(value?: string) {
   return Boolean(value && value.startsWith('sb_secret_'));
@@ -109,12 +108,10 @@ export function getSupabaseClient() {
     return null;
   }
 
-  if (isSecretKey(supabaseAnonKey) || isSecretKey(supabaseSecretKey)) {
-    if (import.meta.env.DEV) {
+  if (isSecretKey(supabaseAnonKey)) {
       console.warn(
         'Supabase browser client disabled: use VITE_SUPABASE_ANON_KEY, not a secret/service role key.',
       );
-    }
 
     return null;
   }

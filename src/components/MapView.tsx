@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import { useIssues } from '../hooks/useIssues';
 import { FALLBACK_CITY, MAP_STYLE } from '../constants/map';
+import { deleteIssue } from '../services/issuesService';
 
 const STATUS_MARKER_COLORS = {
   pending: '#3b82f6',
@@ -454,6 +455,16 @@ export function MapView() {
                   className="w-full"
                 >
                   Voir les détails
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    deleteIssue(selectedPost.id);
+                    // window.location.reload();
+                  }}
+                  className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Supprimer le signalement
                 </Button>
               </div>
             </Card>
