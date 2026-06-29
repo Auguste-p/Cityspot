@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Map, Plus, User, Building2 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -6,7 +7,11 @@ import { useUser } from '../context/UserContext';
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isMunicipalUser } = useUser();
+  const { user, loading, isMunicipalUser } = useUser();
+
+  useEffect(() => {
+    if (!loading && !user) navigate('/login', { replace: true });
+  }, [user, loading]);
 
   const isActive = (path: string) => {
     if (path === "/") {

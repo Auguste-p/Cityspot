@@ -1,4 +1,5 @@
-import { getSupabaseClient } from '../lib/supabase';
+import {getSupabaseClient} from '../lib/supabase';
+import { getAccessToken } from './authService';
 import type { Post, PostCategory, Task } from '../types/Post';
 
 type DatabaseIssueStatus = 'open' | 'in-progress' | 'resolved';
@@ -390,6 +391,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
 
   const supabase = client as any;
 
+  // Insert the issue first to ensure we have a valid issue_id for tasks and materials
   const { data: createdIssue, error: issueError } = await supabase
     .from('issues')
     .insert(issuePayload)
@@ -403,6 +405,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
   const taskInputs = input.tasks ?? [];
   const materialInputs = input.materials ?? [];
 
+  // Handle tasks insertion after issue is created to ensure we have a valid issue_id
   if (taskInputs.length > 0) {
     const taskPayload = taskInputs.map((title, index) => ({
       id: `task-${Date.now()}-${index}`,
@@ -418,8 +421,10 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     }
   }
 
+  // Handle materials insertion after issue is created to ensure we have a valid issue_id
   if (materialInputs.length > 0) {
-    const materialPayload = materialInputs.map((name) => ({
+    const materialPayload = materialInputs.map((name, index) => ({
+      id: `material-${Date.now()}-${index}`,
       issue_id: issueId,
       name,
     }));
@@ -431,6 +436,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     }
   }
 
+  // Fetch the tasks and materials after insertion to ensure we return the complete issue data
   const { data: taskRows, error: tasksError } = await supabase
     .from('tasks')
     .select('*')
@@ -441,6 +447,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     throw new Error(tasksError.message);
   }
 
+  // Fetch materials after tasks to ensure we return the complete issue data
   const { data: materialRows, error: materialsError } = await supabase
     .from('materials')
     .select('*')
@@ -451,6 +458,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     throw new Error(materialsError.message);
   }
 
+  // Return the fully normalized issue with tasks and materials included
   return normalizeIssue(
     createdIssue as IssueRow,
     (taskRows ?? []) as TaskRow[],
@@ -488,4 +496,30 @@ export async function updateIssueVotes(
   }
 
   return normalizeIssue(data as IssueRow);
+}
+
+export async function deleteIssue(issueId: string) {
+  const anon_key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    'https://tlnnoajvqmpskmwewjak.supabase.co/functions/v1/delete-issue',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': anon_key,
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ issueId }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error);
+  }
+
+  return true;
 }

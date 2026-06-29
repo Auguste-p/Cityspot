@@ -1,0 +1,49 @@
+import {getSupabaseClient} from '../lib/supabase';
+
+// 🔑 Sign up
+export async function signUp(email: string, password: string) {
+  const { data, error } = await getSupabaseClient()!.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+// 🔐 Login
+export async function signIn(email: string, password: string) {
+  const { data, error } = await getSupabaseClient()!.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+// 🚪 Logout
+export async function signOut() {
+  const { error } = await getSupabaseClient()!.auth.signOut();
+  if (error) throw error;
+}
+
+// 👤 User courant
+export async function getCurrentUser() {
+  const { data, error } = await getSupabaseClient()!.auth.getUser();
+  if (error) throw error;
+  return data.user;
+}
+
+// 🎟️ Session (important pour Edge Functions)
+export async function getSession() {
+  const { data, error } = await getSupabaseClient()!.auth.getSession();
+  if (error) throw error;
+  return data.session;
+}
+
+// 🔑 Token JWT
+export async function getAccessToken() {
+  const session = await getSession();
+  return session?.access_token;
+}

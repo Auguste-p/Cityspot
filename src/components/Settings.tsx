@@ -3,13 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '../context/UserContext';
+import { signOut } from '../services/authService';
 import { settingsFormSchema } from '../schemas/formSchemas';
 import { z } from 'zod';
 
@@ -17,13 +17,15 @@ export function Settings() {
   const navigate = useNavigate();
   const { user } = useUser();
 
+  if (!user) return null;
+
   const form = useForm<z.input<typeof settingsFormSchema>, undefined, z.output<typeof settingsFormSchema>>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
-      name: user.name,
+      name: user.name ?? '',
       email: user.email,
-      phone: user.phone ?? '',
-      address: user.address ?? '',
+      phone: '',
+      address: '',
       avatar: user.avatar ?? '',
       notificationsEnabled: true,
       emailNotifications: true,
@@ -42,9 +44,9 @@ export function Settings() {
     }
   };
 
-  const handleLogout = () => {
-    toast.success('Déconnexion réussie');
-    setTimeout(() => navigate('/'), 1500);
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
   };
 
   return (

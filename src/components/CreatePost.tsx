@@ -233,11 +233,7 @@ function ListSection({
 
   const handleAdd = () => {
     if (newValue.trim()) {
-      if (fieldName === 'tasks') {
-        append({ id: Date.now().toString(), title: newValue.trim() } as any);
-      } else {
-        append(newValue.trim() as any);
-      }
+      append({ id: Date.now().toString(), title: newValue.trim() } as any);
       setNewValue('');
     }
   };
@@ -259,7 +255,7 @@ function ListSection({
                 {index + 1}
               </div>
               <span className="flex-1">
-                {fieldName === 'tasks' ? (item as any).title : (item as any)}
+                {(item as any).title}
               </span>
               <button
                 type="button"
