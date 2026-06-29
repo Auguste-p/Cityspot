@@ -38,6 +38,14 @@ interface MaterialRow {
   name: string;
 }
 
+interface CommentRow {
+  id: string;
+  created_at: string;
+  id_user: string;
+  id_issue: string;
+  comment: string;
+}
+
 function normalizeKey(value: string) {
   return value.trim();
 }
@@ -522,4 +530,56 @@ export async function deleteIssue(issueId: string) {
   }
 
   return true;
+}
+
+export interface Comment {
+  id: string;
+  created_at: string;
+  id_user: string;
+  id_issue: string;
+  comment: string;
+}
+
+export async function listComments(issueId: string): Promise<Comment[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+
+  const { data, error } = await client
+    .from('comments')
+    .select('*')
+    .eq('id_issue', issueId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return ((data ?? []) as CommentRow[]).map((row) => ({
+    id: row.id,
+    created_at: row.created_at,
+    id_user: row.id_user,
+    id_issue: row.id_issue,
+    comment: row.comment,
+  }));
+}
+
+export async function createComment(issueId: string, userId: string, text: string): Promise<Comment> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase non configuré');
+
+  const supabase = client as any;
+  const { data, error } = await supabase
+    .from('comments')
+    .insert({ id_issue: issueId, id_user: userId, comment: text })
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const row = data as CommentRow;
+  return {
+    id: row.id,
+    created_at: row.created_at,
+    id_user: row.id_user,
+    id_issue: row.id_issue,
+    comment: row.comment,
+  };
 }

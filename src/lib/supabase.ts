@@ -86,6 +86,26 @@ export interface Database {
           name?: string;
         };
       };
+      comments: {
+        Row: {
+          id: string;
+          created_at: string;
+          id_user: string;
+          id_issue: string;
+          comments: string;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          id_user: string;
+          id_issue: string;
+          comments: string;
+        };
+        Update: {
+          id?: string;
+          comments?: string;
+        };
+      };
     };
   };
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Post } from '../types/Post';
-import { getIssueById, listIssues } from '../services/issuesService';
+import { type Comment, createComment, getIssueById, listComments, listIssues } from '../services/issuesService';
 
 export function useIssues() {
   const [issues, setIssues] = useState<Post[]>([]);
@@ -70,4 +70,31 @@ export function useIssue(issueId?: string) {
   }, [issueId]);
 
   return { issue, loading, error };
+}
+
+export function useComments(issueId?: string) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!issueId) { setComments([]); setLoading(false); return; }
+
+    setLoading(true);
+    listComments(issueId)
+      .then((data) => { if (isActive) setComments(data); })
+      .catch((err) => { if (isActive) setError(err instanceof Error ? err : new Error('Impossible de charger les commentaires')); })
+      .finally(() => { if (isActive) setLoading(false); });
+
+    return () => { isActive = false; };
+  }, [issueId]);
+
+  const addComment = useCallback(async (userId: string, text: string) => {
+    if (!issueId) return;
+    const comment = await createComment(issueId, userId, text);
+    setComments((prev) => [...prev, comment]);
+  }, [issueId]);
+
+  return { comments, loading, error, addComment };
 }
