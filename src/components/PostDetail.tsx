@@ -29,14 +29,19 @@ import {
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
 import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
-import { useIssue } from '../hooks/useIssues';
+import { useComments, useIssue } from '../hooks/useIssues';
+import { useUser } from '../context/UserContext';
 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
   const { issue: post, loading, error } = useIssue(id);
+  const { comments, loading: commentsLoading, error: commentsError, addComment } = useComments(id);
   const [tasks, setTasks] = useState(post?.tasks || []);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setTasks(post?.tasks || []);
@@ -132,6 +137,19 @@ export function PostDetail() {
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Lien copié dans le presse-papier');
+    }
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!commentText.trim() || !user) return;
+    setSubmitting(true);
+    try {
+      await addComment(user.id, commentText.trim());
+      setCommentText('');
+    } catch {
+      toast.error('Impossible de publier le commentaire');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -417,58 +435,68 @@ export function PostDetail() {
             <MessageSquare className="size-5 text-primary" />
             <h2>Commentaires</h2>
             <Badge variant="secondary" className="ml-auto">
-              3
+              {comments.length}
             </Badge>
           </div>
 
-          <div className="space-y-4 mb-4">
-            {[
-              {
-                id: 1,
-                author: 'Marie Dubois',
-                date: '25 janvier 2025',
-                comment: 'Merci pour ce signalement ! Je passe par là tous les jours.',
-              },
-              {
-                id: 2,
-                author: 'Pierre Martin',
-                date: '26 janvier 2025',
-                comment: "J'ai contacté la mairie à ce sujet. Ils vont intervenir la semaine prochaine.",
-              },
-              {
-                id: 3,
-                author: 'Sophie Laurent',
-                date: '27 janvier 2025',
-                comment: 'Excellente initiative ! Notre quartier en a vraiment besoin.',
-              },
-            ].map((comment) => (
-              <div key={comment.id} className="border-l-2 border-primary/30 pl-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    {comment.author[0]}
-                  </div>
-                  <div>
-                    <p className="text-sm">{comment.author}</p>
-                    <p className="text-xs text-muted-foreground">{comment.date}</p>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">{comment.comment}</p>
-              </div>
-            ))}
-          </div>
+          {commentsError && (
+            <p className="text-sm text-destructive mb-4">{commentsError.message}</p>
+          )}
 
-          <div className="pt-4 border-t border-border">
-            <textarea
-              placeholder="Ajouter un commentaire..."
-              className="w-full p-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              rows={3}
-            />
-            <div className="flex justify-end mt-2">
-              <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                Publier
-              </button>
+          {commentsLoading && (
+            <p className="text-sm text-muted-foreground mb-4">Chargement des commentaires…</p>
+          )}
+
+          {!commentsLoading && !commentsError && comments.length === 0 && (
+            <p className="text-sm text-muted-foreground mb-4">Aucun commentaire pour l'instant.</p>
+          )}
+
+          {comments.length > 0 && (
+            <div className="space-y-4 mb-4">
+              {comments.map((comment) => {
+                const isMe = comment.id_user === user?.id;
+                const authorLabel = isMe ? (user?.name ?? 'Moi') : 'Citoyen';
+                const avatarChar = isMe ? (user?.name?.[0] ?? 'M') : 'C';
+                return (
+                  <div key={comment.id} className="border-l-2 border-primary/30 pl-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                        {avatarChar}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{authorLabel}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(comment.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">{comment.comment}</p>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
+
+          {user && (
+            <div className="pt-4 border-t border-border">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Ajouter un commentaire..."
+                className="w-full p-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                rows={3}
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handleCommentSubmit}
+                  disabled={submitting || !commentText.trim()}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Publication...' : 'Publier'}
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 
