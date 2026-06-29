@@ -17,22 +17,22 @@ export function Settings() {
   const navigate = useNavigate();
   const { user } = useUser();
 
-  if (!user) return null;
-
   const form = useForm<z.input<typeof settingsFormSchema>, undefined, z.output<typeof settingsFormSchema>>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
-      name: user.name ?? '',
-      email: user.email,
+      name: user?.name ?? '',
+      email: user?.email ?? '',
       phone: '',
       address: '',
-      avatar: user.avatar ?? '',
+      avatar: user?.avatar ?? '',
       notificationsEnabled: true,
       emailNotifications: true,
       profileVisible: false,
     },
     mode: 'onBlur',
   });
+
+  if (!user) return null;
 
   const onSubmit = async (data: z.output<typeof settingsFormSchema>) => {
     try {

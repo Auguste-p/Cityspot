@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../lib/supabase';
 
 export type UserRole = 'citizen' | 'municipal';
@@ -30,40 +31,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Charger user au démarrage
+  const toAppUser = (u: User): AppUser => ({
+    id: u.id,
+    email: u.email!,
+    name: u.user_metadata?.name || u.email!,
+    avatar: u.user_metadata?.avatar || '',
+    role: u.user_metadata?.role || 'citizen',
+  });
+
   const loadUser = async () => {
     setLoading(true);
-
-    const { data } = await getSupabaseClient()!.auth.getUser();
-
-    const authUser = data.user;
-
-    if (!authUser) {
+    try {
+      const { data } = await getSupabaseClient()!.auth.getUser();
+      setUser(data.user ? toAppUser(data.user) : null);
+    } catch {
       setUser(null);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // 👉 mapping Supabase → ton AppUser
-    const appUser: AppUser = {
-      id: authUser.id,
-      email: authUser.email!,
-      name: authUser.user_metadata?.name || authUser.email!,
-      avatar: authUser.user_metadata?.avatar || '',
-      role: authUser.user_metadata?.role || 'citizen',
-    };
-
-    setUser(appUser);
-    setLoading(false);
   };
 
   useEffect(() => {
-    loadUser();
+    void loadUser();
 
-    // 👂 écoute login/logout en live
     const { data: listener } = getSupabaseClient()!.auth.onAuthStateChange(
-      async () => {
-        await loadUser();
+      (_event, session) => {
+        setUser(session?.user ? toAppUser(session.user) : null);
+        setLoading(false);
       }
     );
 
