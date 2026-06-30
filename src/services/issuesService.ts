@@ -23,6 +23,7 @@ interface IssueRow {
   status: DatabaseIssueStatus | null;
   is_municipal_project: boolean | null;
   category: PostCategory | null;
+  created_by: string | null;
 }
 
 interface TaskRow {
@@ -67,6 +68,7 @@ export interface CreateIssueInput {
   negativeVotes?: number;
   isMunicipalProject?: boolean;
   category?: PostCategory | null;
+  created_by?: string;
 }
 
 const DEFAULT_IMAGE_URL = 'https://picsum.photos/200';
@@ -234,6 +236,7 @@ function normalizeIssue(
     status: normalizeIssueStatus(row.status),
     isMunicipalProject: Boolean(row.is_municipal_project),
     category: row.category ?? undefined,
+    created_by: row.created_by ?? undefined,
   };
 }
 
@@ -265,6 +268,7 @@ function buildLocalIssue(input: CreateIssueInput): Post {
     status: 'pending',
     isMunicipalProject: input.isMunicipalProject ?? false,
     category: input.category ?? undefined,
+    created_by: input.created_by ?? undefined,
   };
 }
 
@@ -395,6 +399,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     status: denormalizePostStatus('pending'),
     is_municipal_project: input.isMunicipalProject ?? false,
     category: input.category ?? null,
+    created_by: input.created_by ?? undefined,
   };
 
   const supabase = client as any;
@@ -582,4 +587,45 @@ export async function createComment(issueId: string, userId: string, text: strin
     id_issue: row.id_issue,
     comment: row.comment,
   };
+}
+
+interface VoteRow {
+  id: string;
+  created_at: string;
+  id_user: string;
+  id_issue: string;
+  yes: boolean;
+}
+
+export interface Vote {
+  id: string;
+  created_at: string;
+  id_user: string;
+  id_issue: string;
+  yes: boolean;
+}
+
+export async function listVotes(issueId: string): Promise<Vote[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+  const { data, error } = await client
+    .from('votes')
+    .select('*')
+    .eq('id_issue', issueId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as VoteRow[];
+}
+
+export async function createVote(issueId: string, userId: string, yes: boolean): Promise<Vote> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase non configuré');
+  const supabase = client as any;
+  const { data, error } = await supabase
+    .from('votes')
+    .insert({ id_issue: issueId, id_user: userId, yes })
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as VoteRow;
 }

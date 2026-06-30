@@ -106,6 +106,11 @@ export interface Database {
           comments?: string;
         };
       };
+      votes: {
+        Row: { id: string; created_at: string; id_user: string; id_issue: string; yes: boolean; };
+        Insert: { id?: string; created_at?: string; id_user: string; id_issue: string; yes: boolean; };
+        Update: { id?: string; yes?: boolean; };
+      };
     };
   };
 }
