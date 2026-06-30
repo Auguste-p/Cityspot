@@ -21,7 +21,7 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       {/* Header */}
       <header className="bg-primary text-primary-foreground shadow-md">
         <div className="container mx-auto px-4 py-4">
@@ -30,7 +30,7 @@ export function Layout() {
             {isMunicipalUser && (
               <Button
                 onClick={() => navigate("/municipal")}
-                variant={isActive("/municipal") ? "secondary" : "ghost"}
+                variant={isActive("/municipal") ? "default" : "ghost"}
                 size="sm"
                 className="flex items-center gap-2"
               >
@@ -54,7 +54,7 @@ export function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-h-0 overflow-hidden">
         <Outlet />
       </main>
 
@@ -64,7 +64,7 @@ export function Layout() {
           <div className="flex justify-around items-center h-16">
             <Button
               onClick={() => navigate("/")}
-              variant={isActive("/") && !location.pathname.includes("/post/") && !location.pathname.includes("/profile") && !location.pathname.includes("/municipal") ? "secondary" : "ghost"}
+              variant={isActive("/") && !location.pathname.includes("/post/") && !location.pathname.includes("/profile") && !location.pathname.includes("/municipal") ? "default" : "ghost"}
               size="sm"
               className="flex flex-col items-center justify-center gap-1 px-4 py-2"
             >
@@ -74,7 +74,7 @@ export function Layout() {
 
             <Button
               onClick={() => navigate("/create")}
-              variant={isActive("/create") ? "default" : "secondary"}
+              variant={isActive("/create") ? "default" : "ghost"}
               size="sm"
               className={`flex flex-col items-center justify-center gap-1 px-6 py-2 rounded-full transition-all ${
                 isActive("/create") ? "scale-110 shadow-lg" : ""
@@ -86,7 +86,7 @@ export function Layout() {
 
             <Button
               onClick={() => navigate("/profile")}
-              variant={isActive("/profile") ? "secondary" : "ghost"}
+              variant={isActive("/profile") ? "default" : "ghost"}
               size="sm"
               className="flex flex-col items-center justify-center gap-1 px-4 py-2"
             >
