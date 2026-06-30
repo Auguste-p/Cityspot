@@ -31,4 +31,5 @@ export interface Post {
   status: 'pending' | 'in-progress' | 'completed';
   isMunicipalProject?: boolean;
   category?: PostCategory;
+  created_by?: string;
 }

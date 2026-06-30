@@ -28,9 +28,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
-import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
-import { useComments, useIssue } from '../hooks/useIssues';
+import { getActualStatus, getStatusConfig } from '../lib/postStatus';
+import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
+import { updateIssueVotes } from '../services/issuesService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,10 +40,16 @@ export function PostDetail() {
   const { user } = useUser();
   const { issue: post, loading, error } = useIssue(id);
   const { comments, loading: commentsLoading, error: commentsError, addComment } = useComments(id);
+  const { votes, loading: votesLoading, addVote } = useVotes(id);
   const [tasks, setTasks] = useState(post?.tasks || []);
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
+  const [votersDialogOpen, setVotersDialogOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const positiveVotes = votes.filter((v) => v.yes).length;
+  const negativeVotes = votes.filter((v) => !v.yes).length;
+  const hasVoted = !votesLoading && votes.some((v) => v.id_user === user?.id);
 
   useEffect(() => {
     setTasks(post?.tasks || []);
@@ -93,8 +101,11 @@ export function PostDetail() {
     );
   }
 
-  const netVotes = getNetVotes(post);
-  const actualStatus = getActualStatus(post);
+  const displayPositive = votesLoading ? post.votes.positive : positiveVotes;
+  const displayNegative = votesLoading ? post.votes.negative : negativeVotes;
+  const netVotes = displayPositive - displayNegative;
+  const syntheticPost = { ...post, votes: { positive: displayPositive, negative: displayNegative } };
+  const actualStatus = getActualStatus(syntheticPost);
   const statusConfig = getStatusConfig(actualStatus);
   const StatusIcon = statusConfig.icon;
   
@@ -106,8 +117,8 @@ export function PostDetail() {
   const completedTasks = tasks.filter((t) => t.completed).length;
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
 
-  // Tasks are only editable when status is in-progress
-  const canEditTasks = actualStatus === 'in-progress';
+  // Tasks are only editable when status is in-progress and if user connected is creator of issue
+  const canEditTasks = actualStatus === 'in-progress' && user?.id === post.created_by;
 
   const toggleTask = (taskId: string) => {
     if (!canEditTasks) {
@@ -153,18 +164,19 @@ export function PostDetail() {
     }
   };
 
-  const handleVote = (type: 'positive' | 'negative', commitment: 'simple' | 'engage' | 'lead') => {
-    const commitmentLabels = {
-      simple: 'une proposition simple',
-      engage: 'un engagement',
-      lead: 'le lead du projet'
-    };
-    
-    toast.success(
-      type === 'positive'
-        ? `Vote positif enregistré avec ${commitmentLabels[commitment]} ! 👍`
-        : 'Vote négatif enregistré 👎'
-    );
+  const handleVote = async (type: 'positive' | 'negative', _commitment: 'simple' | 'engage' | 'lead') => {
+    if (!user || !id) return;
+    const yes = type === 'positive';
+    try {
+      await addVote(user.id, yes);
+      await updateIssueVotes(id, {
+        positive: positiveVotes + (yes ? 1 : 0),
+        negative: negativeVotes + (!yes ? 1 : 0),
+      });
+      toast.success(yes ? 'Vote positif enregistré !' : 'Vote négatif enregistré');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Impossible de voter');
+    }
   };
 
   return (
@@ -191,13 +203,15 @@ export function PostDetail() {
               >
                 <Share2 className="size-5" />
               </Button>
-              <Button 
-                variant="ghost"
-                size="sm"
-                className="p-2 text-muted-foreground hover:text-foreground"
-              >
-                <Edit className="size-5" />
-              </Button>
+              {user?.id === post.created_by && (
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Edit className="size-5" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -295,20 +309,22 @@ export function PostDetail() {
           <Card className="p-6 mb-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
             <div className="flex items-center justify-between mb-4">
               <h2>{actualStatus === 'pending' ? 'Soutien du projet' : 'Votes du projet'}</h2>
-              <Badge variant="outline" className="text-lg">
-                {netVotes} / 10
-              </Badge>
+              <button onClick={() => setVotersDialogOpen(true)} title="Voir les votants">
+                <Badge variant="outline" className="text-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                  {netVotes} / 10
+                </Badge>
+              </button>
             </div>
 
             <div className="space-y-3 mb-4">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <ThumbsUp className="size-4 text-green-600" />
-                  <span className="text-green-600">{post.votes.positive} votes pour</span>
+                  <span className="text-green-600">{displayPositive} votes pour</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ThumbsDown className="size-4 text-red-600" />
-                  <span className="text-red-600">{post.votes.negative} votes contre</span>
+                  <span className="text-red-600">{displayNegative} votes contre</span>
                 </div>
               </div>
 
@@ -316,7 +332,7 @@ export function PostDetail() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Objectif: +10 votes</span>
-                    <span>{Math.max(0, 10 - netVotes)} votes restants</span>
+                    <span>{Math.max(0, 10 - netVotes)} votes pour restants</span>
                   </div>
                   <div className="h-2 bg-background rounded-full overflow-hidden">
                     <div
@@ -328,7 +344,7 @@ export function PostDetail() {
                   </div>
                 </div>
               )}
-              
+
               {actualStatus === 'in-progress' && (
                 <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg text-sm text-amber-700">
                   <CheckCircle2 className="size-4 flex-shrink-0" />
@@ -338,13 +354,17 @@ export function PostDetail() {
             </div>
 
             {actualStatus === 'pending' && (
-              <button
-                onClick={() => setVoteDialogOpen(true)}
-                className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <ThumbsUp className="size-5" />
-                Voter pour ce projet
-              </button>
+              hasVoted ? (
+                <p className="text-center text-sm text-muted-foreground py-2">Vous avez déjà voté pour ce projet.</p>
+              ) : (
+                <button
+                  onClick={() => setVoteDialogOpen(true)}
+                  className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                >
+                  <ThumbsUp className="size-5" />
+                  Voter pour ce projet
+                </button>
+              )
             )}
           </Card>
         )}
@@ -506,8 +526,44 @@ export function PostDetail() {
         onClose={() => setVoteDialogOpen(false)}
         onVote={handleVote}
         postTitle={post.title}
-        currentVotes={post.votes}
+        currentVotes={{ positive: displayPositive, negative: displayNegative }}
       />
+
+      {/* Voters Dialog */}
+      <Dialog open={votersDialogOpen} onOpenChange={setVotersDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Votants ({votes.length})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+            {votes.length === 0 && (
+              <p className="text-sm text-muted-foreground py-2">Aucun vote pour l'instant.</p>
+            )}
+            {votes.map((vote) => {
+              const isMe = vote.id_user === user?.id;
+              return (
+                <div key={vote.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
+                      {isMe ? (user?.name?.[0]?.toUpperCase() ?? 'M') : 'C'}
+                    </div>
+                    <span className="text-sm">{isMe ? (user?.name ?? 'Moi') : 'Citoyen'}</span>
+                  </div>
+                  {vote.yes ? (
+                    <span className="text-xs text-green-600 flex items-center gap-1">
+                      <ThumbsUp className="size-3" /> Pour
+                    </span>
+                  ) : (
+                    <span className="text-xs text-red-600 flex items-center gap-1">
+                      <ThumbsDown className="size-3" /> Contre
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
