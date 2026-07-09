@@ -2625,8 +2625,7 @@ html {
   background: var(--marker-color, var(--primary));
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
   cursor: pointer;
-  transform: translateY(-2px);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 
 .cityspot-marker::after {
@@ -2643,7 +2642,6 @@ html {
 
 .cityspot-marker:hover,
 .cityspot-marker.is-selected {
-  transform: translateY(-4px) scale(1.08);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
@@ -2656,6 +2654,12 @@ html {
   border-radius: 9999px;
   background: #fff;
   transform: translate(-50%, -50%);
+  transition: transform 0.15s ease;
+}
+
+.cityspot-marker:hover .cityspot-marker-dot,
+.cityspot-marker.is-selected .cityspot-marker-dot {
+  transform: translate(-50%, -50%) scale(1.4);
 }
 
 .cityspot-marker-private {

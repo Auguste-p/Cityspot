@@ -27,6 +27,7 @@ serve(async (req) => {
       Deno.env.get('VITE_SUPABASE_ANON_KEY')!
     )
 
+    // Supprimer l'issue de la base de données
     const { error } = await supabase
       .from('issues')
       .delete()
