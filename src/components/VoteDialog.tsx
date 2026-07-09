@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { ThumbsUp, ThumbsDown, Target } from 'lucide-react';
+import { VOTE_GOAL, VOTE_GOAL_LABEL } from '../lib/postStatus';
 
 interface VoteDialogProps {
   isOpen: boolean;
@@ -22,8 +23,7 @@ export function VoteDialog({ isOpen, onClose, onVote, postTitle, currentVotes }:
   };
 
   const voteDifference = currentVotes.positive - currentVotes.negative;
-  const voteGoal = 10;
-  const progress = Math.min((voteDifference / voteGoal) * 100, 100);
+  const progress = Math.min((voteDifference / VOTE_GOAL) * 100, 100);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -37,8 +37,8 @@ export function VoteDialog({ isOpen, onClose, onVote, postTitle, currentVotes }:
           {/* Vote Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Objectif: +10 votes</span>
-              <span className="font-medium">{voteDifference} / {voteGoal}</span>
+              <span className="text-muted-foreground">{VOTE_GOAL_LABEL}</span>
+              <span className="font-medium">{voteDifference} / {VOTE_GOAL}</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div

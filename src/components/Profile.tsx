@@ -14,7 +14,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { PostCard } from './PostCard';
-import { getNetVotes } from '../lib/postStatus';
+import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from '../lib/postStatus';
 import { useUser } from '../context/UserContext';
 import { useIssues } from '../hooks/useIssues';
 
@@ -25,12 +25,12 @@ export function Profile() {
   
   const votingPosts = myPosts.filter(p => {
     const netVotes = getNetVotes(p);
-    return p.status === 'pending' && netVotes < 10;
+    return p.status === 'pending' && netVotes < VOTE_GOAL;
   });
-  
+
   const inProgressPosts = myPosts.filter(p => {
     const netVotes = getNetVotes(p);
-    return p.status === 'in-progress' || (p.status === 'pending' && netVotes >= 10);
+    return p.status === 'in-progress' || (p.status === 'pending' && netVotes >= VOTE_GOAL);
   });
   
   const completedPosts = myPosts.filter(p => p.status === 'completed');
@@ -177,7 +177,7 @@ export function Profile() {
             ) : (
               <Card className="p-8 text-center">
                 <Vote className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">Aucun signalement en cours de vote</p>
+                <p className="text-muted-foreground">{EMPTY_STATE_LABELS.voting}</p>
               </Card>
             )}
           </TabsContent>
@@ -194,7 +194,7 @@ export function Profile() {
             ) : (
               <Card className="p-8 text-center">
                 <Clock className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">Aucun signalement en cours</p>
+                <p className="text-muted-foreground">{EMPTY_STATE_LABELS.inProgress}</p>
               </Card>
             )}
           </TabsContent>
@@ -211,7 +211,7 @@ export function Profile() {
             ) : (
               <Card className="p-8 text-center">
                 <CheckCircle2 className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">Aucun signalement terminé</p>
+                <p className="text-muted-foreground">{EMPTY_STATE_LABELS.completed}</p>
               </Card>
             )}
           </TabsContent>

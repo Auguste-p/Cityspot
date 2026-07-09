@@ -3,6 +3,23 @@ import type { Post } from '../types/Post';
 
 export type PostDisplayStatus = Post['status'];
 
+export const VOTE_GOAL = 10;
+export const VOTE_GOAL_LABEL = `Objectif: +${VOTE_GOAL} votes`;
+
+export const MUNICIPAL_GRADIENT_CLASS = 'bg-gradient-to-r from-blue-600 to-blue-500';
+
+export const STATUS_MARKER_COLORS: Record<PostDisplayStatus, string> = {
+  pending: '#3b82f6',
+  'in-progress': '#f59e0b',
+  completed: '#22c55e',
+};
+
+export const EMPTY_STATE_LABELS = {
+  voting: 'Aucun signalement en cours de vote',
+  inProgress: 'Aucun signalement en cours',
+  completed: 'Aucun signalement terminé',
+} as const;
+
 export interface StatusConfig {
   label: string;
   icon: LucideIcon;
@@ -22,7 +39,7 @@ export const getActualStatus = (
     return 'completed';
   }
 
-  return getNetVotes(post) >= 10 ? 'in-progress' : 'pending';
+  return getNetVotes(post) >= VOTE_GOAL ? 'in-progress' : 'pending';
 };
 
 export const getStatusConfig = (status: PostDisplayStatus): StatusConfig => {

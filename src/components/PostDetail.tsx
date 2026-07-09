@@ -28,11 +28,18 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
-import { getActualStatus, getStatusConfig } from '../lib/postStatus';
+import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, VOTE_GOAL_LABEL, getActualStatus, getStatusConfig } from '../lib/postStatus';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { updateIssueVotes } from '../services/issuesService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+
+function getVoterIdentity(isMe: boolean, userName?: string) {
+  return {
+    label: isMe ? (userName ?? 'Moi') : 'Citoyen',
+    avatar: isMe ? (userName?.[0]?.toUpperCase() ?? 'M') : 'C',
+  };
+}
 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
@@ -123,7 +130,7 @@ export function PostDetail() {
   const toggleTask = (taskId: string) => {
     if (!canEditTasks) {
       if (actualStatus === 'pending') {
-        toast.info('Les tâches seront modifiables une fois le projet lancé (objectif de +10 votes atteint)');
+        toast.info(`Les tâches seront modifiables une fois le projet lancé (objectif de +${VOTE_GOAL} votes atteint)`);
       } else {
         toast.info('Les tâches ne sont plus modifiables pour ce projet terminé');
       }
@@ -240,7 +247,7 @@ export function PostDetail() {
                 {statusConfig.label}
               </Badge>
               {post.isMunicipalProject && (
-                <Badge className="bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0 shadow-lg">
+                <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 shadow-lg`}>
                   <Building2 className="size-3 mr-1" />
                   Projet Mairie
                 </Badge>
@@ -311,7 +318,7 @@ export function PostDetail() {
               <h2>{actualStatus === 'pending' ? 'Soutien du projet' : 'Votes du projet'}</h2>
               <button onClick={() => setVotersDialogOpen(true)} title="Voir les votants">
                 <Badge variant="outline" className="text-lg cursor-pointer hover:bg-accent/50 transition-colors">
-                  {netVotes} / 10
+                  {netVotes} / {VOTE_GOAL}
                 </Badge>
               </button>
             </div>
@@ -331,14 +338,14 @@ export function PostDetail() {
               {actualStatus === 'pending' && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Objectif: +10 votes</span>
-                    <span>{Math.max(0, 10 - netVotes)} votes pour restants</span>
+                    <span>{VOTE_GOAL_LABEL}</span>
+                    <span>{Math.max(0, VOTE_GOAL - netVotes)} votes pour restants</span>
                   </div>
                   <div className="h-2 bg-background rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary transition-all"
                       style={{
-                        width: `${Math.min((netVotes / 10) * 100, 100)}%`
+                        width: `${Math.min((netVotes / VOTE_GOAL) * 100, 100)}%`
                       }}
                     />
                   </div>
@@ -407,7 +414,7 @@ export function PostDetail() {
               {!canEditTasks && actualStatus === 'pending' && (
                 <div className="flex items-start gap-2 p-3 mt-3 bg-blue-50 rounded-lg text-sm text-blue-700">
                   <Info className="size-4 mt-0.5 flex-shrink-0" />
-                  <span>Les tâches seront visibles et modifiables une fois l'objectif de +10 votes atteint.</span>
+                  <span>Les tâches seront visibles et modifiables une fois l'objectif de +{VOTE_GOAL} votes atteint.</span>
                 </div>
               )}
             </div>
@@ -475,8 +482,7 @@ export function PostDetail() {
             <div className="space-y-4 mb-4">
               {comments.map((comment) => {
                 const isMe = comment.id_user === user?.id;
-                const authorLabel = isMe ? (user?.name ?? 'Moi') : 'Citoyen';
-                const avatarChar = isMe ? (user?.name?.[0] ?? 'M') : 'C';
+                const { label: authorLabel, avatar: avatarChar } = getVoterIdentity(isMe, user?.name);
                 return (
                   <div key={comment.id} className="border-l-2 border-primary/30 pl-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -541,13 +547,14 @@ export function PostDetail() {
             )}
             {votes.map((vote) => {
               const isMe = vote.id_user === user?.id;
+              const { label: voterLabel, avatar: voterAvatar } = getVoterIdentity(isMe, user?.name);
               return (
                 <div key={vote.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div className="flex items-center gap-2">
                     <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
-                      {isMe ? (user?.name?.[0]?.toUpperCase() ?? 'M') : 'C'}
+                      {voterAvatar}
                     </div>
-                    <span className="text-sm">{isMe ? (user?.name ?? 'Moi') : 'Citoyen'}</span>
+                    <span className="text-sm">{voterLabel}</span>
                   </div>
                   {vote.yes ? (
                     <span className="text-xs text-green-600 flex items-center gap-1">
