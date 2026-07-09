@@ -3,7 +3,7 @@ import { Building2, CheckCircle2, Home, MapPin, Vote } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
+import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import type { Post } from '../types/Post';
 
 type CategoryBadge = {
@@ -46,7 +46,7 @@ function PostCardComponent({ post, onClick, categoryBadge, className }: PostCard
                 {statusConfig.label}
               </Badge>
               {post.isMunicipalProject && (
-                <Badge className="bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0 text-xs">
+                <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 text-xs`}>
                   <Building2 className="size-2.5 mr-1" />
                   Mairie
                 </Badge>
@@ -80,10 +80,10 @@ function PostCardComponent({ post, onClick, categoryBadge, className }: PostCard
               </div>
             )}
 
-            {netVotes < 10 && post.status === 'pending' && (
+            {netVotes < VOTE_GOAL && post.status === 'pending' && (
               <div className="flex items-center gap-1">
                 <Vote className="size-3" />
-                <span>{netVotes}/10 votes</span>
+                <span>{netVotes}/{VOTE_GOAL} votes</span>
               </div>
             )}
 

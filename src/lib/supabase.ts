@@ -2,6 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+export type IssueStatus = 'open' | 'in-progress' | 'resolved';
+
 export interface Database {
   public: {
     Tables: {
@@ -16,7 +18,7 @@ export interface Database {
           positive_votes: number | null;
           negative_votes: number | null;
           created_at: string | null;
-          status: 'open' | 'in-progress' | 'resolved' | null;
+          status: IssueStatus | null;
           is_municipal_project: boolean | null;
           category: string | null;
         };
@@ -30,7 +32,7 @@ export interface Database {
           positive_votes?: number | null;
           negative_votes?: number | null;
           created_at?: string | null;
-          status?: 'open' | 'in-progress' | 'resolved' | null;
+          status?: IssueStatus | null;
           is_municipal_project?: boolean | null;
           category?: string | null;
         };
@@ -44,7 +46,7 @@ export interface Database {
           positive_votes?: number | null;
           negative_votes?: number | null;
           created_at?: string | null;
-          status?: 'open' | 'in-progress' | 'resolved' | null;
+          status?: IssueStatus | null;
           is_municipal_project?: boolean | null;
           category?: string | null;
         };

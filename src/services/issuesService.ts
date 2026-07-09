@@ -1,8 +1,8 @@
-import {getSupabaseClient} from '../lib/supabase';
+import {getSupabaseClient, type IssueStatus} from '../lib/supabase';
 import { getAccessToken } from './authService';
 import type { Post, PostCategory, Task } from '../types/Post';
 
-type DatabaseIssueStatus = 'open' | 'in-progress' | 'resolved';
+type DatabaseIssueStatus = IssueStatus;
 
 interface IssueLocation {
   lat?: number | string;
@@ -516,7 +516,7 @@ export async function deleteIssue(issueId: string) {
   const token = await getAccessToken();
 
   const response = await fetch(
-    'https://tlnnoajvqmpskmwewjak.supabase.co/functions/v1/delete-issue',
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-issue`,
     {
       method: 'POST',
       headers: {

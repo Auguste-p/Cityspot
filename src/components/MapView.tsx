@@ -9,19 +9,13 @@ import { Button } from './ui/button';
 import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2, ChevronLeft, LocateFixed } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
-import { getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
+import { MUNICIPAL_GRADIENT_CLASS, STATUS_MARKER_COLORS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import { useIssues } from '../hooks/useIssues';
-import { FALLBACK_CITY, MAP_STYLE } from '../constants/map';
+import { FALLBACK_CITY, MAP_STYLE, NOMINATIM_REVERSE_GEOCODE_URL } from '../constants/map';
 import { deleteIssue } from '../services/issuesService';
 
-const STATUS_MARKER_COLORS = {
-  pending: '#3b82f6',
-  'in-progress': '#f59e0b',
-  completed: '#22c55e',
-} as const;
-
 async function reverseGeocodeCity(lat: number, lng: number) {
-  const endpoint = new URL('https://nominatim.openstreetmap.org/reverse');
+  const endpoint = new URL(NOMINATIM_REVERSE_GEOCODE_URL);
   endpoint.searchParams.set('format', 'jsonv2');
   endpoint.searchParams.set('lat', String(lat));
   endpoint.searchParams.set('lon', String(lng));
@@ -344,7 +338,7 @@ export function MapView() {
                         </Badge>
                       )}
                       {selectedPost.isMunicipalProject && (
-                        <Badge className="bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0">
+                        <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0`}>
                           <Building2 className="size-3 mr-1" />
                           Mairie
                         </Badge>
@@ -394,14 +388,14 @@ export function MapView() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Objectif: +10</span>
-                        <span>{getNetVotes(selectedPost)} / 10</span>
+                        <span>Objectif: +{VOTE_GOAL}</span>
+                        <span>{getNetVotes(selectedPost)} / {VOTE_GOAL}</span>
                       </div>
                       <div className="h-1.5 bg-background rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all"
                           style={{
-                            width: `${Math.min((getNetVotes(selectedPost) / 10) * 100, 100)}%`
+                            width: `${Math.min((getNetVotes(selectedPost) / VOTE_GOAL) * 100, 100)}%`
                           }}
                         />
                       </div>
@@ -503,7 +497,7 @@ export function MapView() {
                           <h4 className="text-sm truncate flex-1">{post.title}</h4>
                           <div className="flex gap-1 flex-shrink-0">
                             {post.isMunicipalProject && (
-                              <div className="flex items-center justify-center p-0.5 bg-gradient-to-r from-blue-600 to-blue-500 rounded" title="Projet Mairie">
+                              <div className={`flex items-center justify-center p-0.5 ${MUNICIPAL_GRADIENT_CLASS} rounded`} title="Projet Mairie">
                                 <Building2 className="size-3 text-white" />
                               </div>
                             )}

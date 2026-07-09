@@ -1,5 +1,7 @@
 import type { StyleSpecification } from 'maplibre-gl';
 
+export const NOMINATIM_REVERSE_GEOCODE_URL = 'https://nominatim.openstreetmap.org/reverse';
+
 export const FALLBACK_CITY = {
   name: 'Paris',
   lat: 48.8566,

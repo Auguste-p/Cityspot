@@ -24,7 +24,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { getNetVotes } from "../lib/postStatus";
+import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from "../lib/postStatus";
 import { PostCard } from "./PostCard";
 import { useIssues } from "../hooks/useIssues";
 
@@ -122,7 +122,7 @@ export function MunicipalView() {
     () =>
       filteredPosts.filter((post) => {
         const netVotes = getNetVotes(post);
-        return post.status === "pending" && netVotes < 10;
+        return post.status === "pending" && netVotes < VOTE_GOAL;
       }),
     [filteredPosts],
   );
@@ -131,7 +131,7 @@ export function MunicipalView() {
     () =>
       filteredPosts.filter((post) => {
         const netVotes = getNetVotes(post);
-        return post.status === "in-progress" || (post.status === "pending" && netVotes >= 10);
+        return post.status === "in-progress" || (post.status === "pending" && netVotes >= VOTE_GOAL);
       }),
     [filteredPosts],
   );
@@ -324,7 +324,7 @@ export function MunicipalView() {
               <Card className="p-8 text-center">
                 <Vote className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">
-                  Aucun signalement en cours de vote
+                  {EMPTY_STATE_LABELS.voting}
                 </p>
               </Card>
             )}
@@ -347,7 +347,7 @@ export function MunicipalView() {
               <Card className="p-8 text-center">
                 <Clock className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">
-                  Aucun signalement en cours
+                  {EMPTY_STATE_LABELS.inProgress}
                 </p>
               </Card>
             )}
@@ -367,7 +367,7 @@ export function MunicipalView() {
               <Card className="p-8 text-center">
                 <CheckCircle2 className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">
-                  Aucun signalement terminé
+                  {EMPTY_STATE_LABELS.completed}
                 </p>
               </Card>
             )}
