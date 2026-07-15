@@ -33,6 +33,7 @@ export function Layout() {
                 variant={isActive("/municipal") ? "default" : "ghost"}
                 size="sm"
                 className="flex items-center gap-2"
+                aria-label="Vue municipale"
               >
                 <Building2 className="size-5" />
               </Button>

@@ -2,14 +2,34 @@ import * as React from "react";
 
 import { cn } from "./utils";
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+function Card({ className, onClick, onKeyDown, ...props }: React.ComponentProps<"div">) {
+  // ponytail: Card doubles as a clickable list item in several places (PostCard, category
+  // filters, map list). Making it keyboard-operable here fixes every call site at once
+  // instead of re-adding role/tabIndex/onKeyDown wherever a Card gets an onClick.
+  const interactiveProps = onClick
+    ? {
+        role: "button",
+        tabIndex: 0,
+        onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+          onKeyDown?.(event);
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+          }
+        },
+      }
+    : { onKeyDown };
+
   return (
     <div
       data-slot="card"
       className={cn(
         "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border",
+        onClick && "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
         className,
       )}
+      onClick={onClick}
+      {...interactiveProps}
       {...props}
     />
   );

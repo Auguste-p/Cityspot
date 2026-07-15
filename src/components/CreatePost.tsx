@@ -49,6 +49,7 @@ function UploadSection({ imagePreview, onImageUpload, onRemoveImage }: UploadSec
               variant="destructive"
               size="sm"
               className="absolute right-2 top-2 rounded-full p-2"
+              aria-label="Supprimer la photo"
             >
               <X className="size-4" />
             </Button>
@@ -151,6 +152,7 @@ function PropertySection({
                     type="button"
                     onClick={onRemoveDocument}
                     className="text-destructive hover:text-destructive/80"
+                    aria-label="Supprimer le document"
                   >
                     <X className="size-4" />
                   </button>
@@ -260,7 +262,8 @@ function ListSection({
               <button
                 type="button"
                 onClick={() => remove(index)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                aria-label={`Supprimer "${(item as any).title}"`}
               >
                 <X className="size-4" />
               </button>
