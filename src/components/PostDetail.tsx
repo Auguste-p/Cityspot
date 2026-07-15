@@ -31,7 +31,6 @@ import { VoteDialog } from './VoteDialog';
 import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, VOTE_GOAL_LABEL, getActualStatus, getStatusConfig } from '../lib/postStatus';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
-import { updateIssueVotes } from '../services/issuesService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 function getVoterIdentity(isMe: boolean, userName?: string) {
@@ -175,11 +174,10 @@ export function PostDetail() {
     if (!user || !id) return;
     const yes = type === 'positive';
     try {
+      // positive_votes/negative_votes on `issues` are recomputed server-side by a
+      // trigger on the `votes` table (see supabase/migrations) — the client must
+      // not write them directly, or it could push an arbitrary tally.
       await addVote(user.id, yes);
-      await updateIssueVotes(id, {
-        positive: positiveVotes + (yes ? 1 : 0),
-        negative: negativeVotes + (!yes ? 1 : 0),
-      });
       toast.success(yes ? 'Vote positif enregistré !' : 'Vote négatif enregistré');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Impossible de voter');
@@ -207,14 +205,16 @@ export function PostDetail() {
                 variant="ghost"
                 size="sm"
                 className="p-2 text-muted-foreground hover:text-foreground"
+                aria-label="Partager"
               >
                 <Share2 className="size-5" />
               </Button>
               {user?.id === post.created_by && (
-                <Button 
+                <Button
                   variant="ghost"
                   size="sm"
                   className="p-2 text-muted-foreground hover:text-foreground"
+                  aria-label="Modifier le signalement"
                 >
                   <Edit className="size-5" />
                 </Button>
@@ -423,8 +423,18 @@ export function PostDetail() {
               {visibleTasks.map((task) => (
                 <div
                   key={task.id}
+                  role="checkbox"
+                  aria-checked={task.completed}
+                  aria-disabled={!canEditTasks}
+                  tabIndex={0}
                   onClick={() => toggleTask(task.id)}
-                  className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleTask(task.id);
+                    }
+                  }}
+                  className={`flex items-start gap-3 p-4 rounded-lg border transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
                     canEditTasks ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
                   } ${
                     task.completed
@@ -505,7 +515,11 @@ export function PostDetail() {
 
           {user && (
             <div className="pt-4 border-t border-border">
+              <label htmlFor="comment-text" className="sr-only">
+                Ajouter un commentaire
+              </label>
               <textarea
+                id="comment-text"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Ajouter un commentaire..."

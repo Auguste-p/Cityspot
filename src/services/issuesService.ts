@@ -479,38 +479,6 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
   );
 }
 
-export async function updateIssueVotes(
-  issueId: string,
-  votes: { positive: number; negative: number },
-) {
-  const client = getSupabaseClient();
-
-  if (!client) {
-    const issue = localIssuesStore.find((post) => post.id === issueId);
-    if (!issue) {
-      return null;
-    }
-
-    issue.votes = { ...votes };
-    return clonePost(issue);
-  }
-
-  const supabase = client as any;
-
-  const { data, error } = await supabase
-    .from('issues')
-    .update({ positive_votes: votes.positive, negative_votes: votes.negative })
-    .eq('id', issueId)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return normalizeIssue(data as IssueRow);
-}
-
 export async function deleteIssue(issueId: string) {
   const anon_key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const token = await getAccessToken();

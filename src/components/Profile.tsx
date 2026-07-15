@@ -68,6 +68,7 @@ export function Profile() {
             <button
               onClick={() => navigate('/settings')}
               className="p-2 hover:bg-primary-foreground/10 rounded-lg transition-colors"
+              aria-label="Paramètres"
             >
               <Settings className="size-5" />
             </button>

@@ -10,7 +10,8 @@ import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDow
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
 import { MUNICIPAL_GRADIENT_CLASS, STATUS_MARKER_COLORS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
-import { useIssues } from '../hooks/useIssues';
+import { useIssues, useVotes } from '../hooks/useIssues';
+import { useUser } from '../context/UserContext';
 import { FALLBACK_CITY, MAP_STYLE, NOMINATIM_REVERSE_GEOCODE_URL } from '../constants/map';
 import { deleteIssue } from '../services/issuesService';
 
@@ -48,6 +49,7 @@ async function reverseGeocodeCity(lat: number, lng: number) {
 
 export function MapView() {
   const navigate = useNavigate();
+  const { user } = useUser();
   const { issues: posts, loading, error } = useIssues();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -58,9 +60,20 @@ export function MapView() {
   const [activeCity, setActiveCity] = useState<string>(FALLBACK_CITY.name);
   const [isLocating, setIsLocating] = useState(false);
 
+  const { votes: selectedVotes, loading: selectedVotesLoading, addVote } = useVotes(selectedPost?.id);
+  const selectedPositiveVotes = selectedVotes.filter((v) => v.yes).length;
+  const selectedNegativeVotes = selectedVotes.filter((v) => !v.yes).length;
+  const hasVotedSelected = !selectedVotesLoading && selectedVotes.some((v) => v.id_user === user?.id);
+  const displaySelectedPositive = selectedVotesLoading ? (selectedPost?.votes.positive ?? 0) : selectedPositiveVotes;
+  const displaySelectedNegative = selectedVotesLoading ? (selectedPost?.votes.negative ?? 0) : selectedNegativeVotes;
+
+  const syntheticSelectedPost = selectedPost
+    ? { ...selectedPost, votes: { positive: displaySelectedPositive, negative: displaySelectedNegative } }
+    : null;
+
   const selectedStatus = useMemo(
-    () => (selectedPost ? getActualStatus(selectedPost) : null),
-    [selectedPost],
+    () => (syntheticSelectedPost ? getActualStatus(syntheticSelectedPost) : null),
+    [syntheticSelectedPost],
   );
   const selectedStatusConfig = useMemo(
     () => (selectedStatus ? getStatusConfig(selectedStatus) : null),
@@ -73,18 +86,15 @@ export function MapView() {
     setVoteDialogOpen(true);
   };
 
-  const handleVoteSubmit = (type: 'positive' | 'negative', commitment: 'simple' | 'engage' | 'lead') => {
-    const commitmentLabels = {
-      simple: 'une proposition simple',
-      engage: 'un engagement',
-      lead: 'le lead du projet'
-    };
-    
-    toast.success(
-      type === 'positive'
-        ? `Vote positif enregistré avec ${commitmentLabels[commitment]} ! 👍`
-        : 'Vote négatif enregistré 👎'
-    );
+  const handleVoteSubmit = async (type: 'positive' | 'negative', _commitment: 'simple' | 'engage' | 'lead') => {
+    if (!user || !votingPost) return;
+    const yes = type === 'positive';
+    try {
+      await addVote(user.id, yes);
+      toast.success(yes ? 'Vote positif enregistré !' : 'Vote négatif enregistré');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Impossible de voter');
+    }
   };
 
   const handleLocateUser = () => {
@@ -378,37 +388,41 @@ export function MapView() {
                       <div className="flex items-center gap-3 text-sm">
                         <div className="flex items-center gap-1 text-green-600">
                           <ThumbsUp className="size-4" />
-                          <span>{selectedPost.votes.positive}</span>
+                          <span>{displaySelectedPositive}</span>
                         </div>
                         <div className="flex items-center gap-1 text-red-600">
                           <ThumbsDown className="size-4" />
-                          <span>{selectedPost.votes.negative}</span>
+                          <span>{displaySelectedNegative}</span>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Objectif: +{VOTE_GOAL}</span>
-                        <span>{getNetVotes(selectedPost)} / {VOTE_GOAL}</span>
+                        <span>{getNetVotes(syntheticSelectedPost!)} / {VOTE_GOAL}</span>
                       </div>
                       <div className="h-1.5 bg-background rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all"
                           style={{
-                            width: `${Math.min((getNetVotes(selectedPost) / VOTE_GOAL) * 100, 100)}%`
+                            width: `${Math.min((getNetVotes(syntheticSelectedPost!) / VOTE_GOAL) * 100, 100)}%`
                           }}
                         />
                       </div>
                     </div>
                     {selectedStatus === 'pending' && (
-                      <Button
-                        onClick={() => handleVote(selectedPost)}
-                        variant="secondary"
-                        className="mt-2 w-full flex items-center justify-center gap-2"
-                      >
-                        <ThumbsUp className="size-4" />
-                        Voter pour ce projet
-                      </Button>
+                      hasVotedSelected ? (
+                        <p className="text-center text-xs text-muted-foreground mt-2">Vous avez déjà voté pour ce projet.</p>
+                      ) : (
+                        <Button
+                          onClick={() => handleVote(selectedPost)}
+                          variant="secondary"
+                          className="mt-2 w-full flex items-center justify-center gap-2"
+                        >
+                          <ThumbsUp className="size-4" />
+                          Voter pour ce projet
+                        </Button>
+                      )
                     )}
                     {selectedStatus === 'in-progress' && (
                       <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg text-xs text-amber-700 mt-2">
@@ -542,7 +556,7 @@ export function MapView() {
           }}
           onVote={handleVoteSubmit}
           postTitle={votingPost.title}
-          currentVotes={votingPost.votes}
+          currentVotes={{ positive: displaySelectedPositive, negative: displaySelectedNegative }}
         />
       )}
     </div>
