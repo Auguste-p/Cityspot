@@ -29,10 +29,12 @@
             "@types/react": "^19.2.14",
             "@types/react-dom": "^19.2.3",
             "@vitejs/plugin-react-swc": "^3.10.2",
-            "vite": "^6.4.2"
+            "vite": "^6.4.2",
+            "vitest": "^3.2.7"
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "vite build",
+            "test": "vitest run"
       }
 }
