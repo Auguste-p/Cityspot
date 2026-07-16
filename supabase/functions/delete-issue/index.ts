@@ -30,8 +30,8 @@ serve(async (req) => {
     // vérifie réellement l'identité (verify_jwt côté plateforme ne fait que
     // s'assurer que le token est valide, pas qui est propriétaire de l'issue).
     const supabase = createClient(
-      Deno.env.get('VITE_SUPABASE_URL')!,
-      Deno.env.get('VITE_SUPABASE_ANON_KEY')!,
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     )
 

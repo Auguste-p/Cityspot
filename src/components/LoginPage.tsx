@@ -11,6 +11,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -30,7 +32,7 @@ export default function LoginPage() {
       if (mode === 'login') {
         await signIn(email, password);
       } else {
-        await signUp(email, password);
+        await signUp(email, password, { name, city });
       }
       navigate('/', { replace: true });
     } catch (err: any) {
@@ -54,6 +56,36 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Jeanne Dupont"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  autoComplete="name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">Ville</Label>
+                <Input
+                  id="city"
+                  type="text"
+                  placeholder="Lyon"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  required
+                  autoComplete="address-level2"
+                />
+              </div>
+            </>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

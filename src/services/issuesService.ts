@@ -479,6 +479,119 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
   );
 }
 
+export interface UpdateIssueInput {
+  title: string;
+  description: string;
+  imageUrl?: string | null;
+  materials?: string[];
+  tasks?: string[];
+  location: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  isPrivateProperty?: boolean;
+}
+
+export async function updateIssue(issueId: string, input: UpdateIssueInput): Promise<Post> {
+  const client = getSupabaseClient();
+
+  if (!client) {
+    const index = localIssuesStore.findIndex((post) => post.id === issueId);
+    if (index === -1) {
+      throw new Error('Signalement introuvable');
+    }
+
+    const updated: Post = {
+      ...localIssuesStore[index],
+      title: input.title,
+      description: input.description,
+      location: { ...input.location },
+      imageUrl: input.imageUrl?.trim() ? input.imageUrl : localIssuesStore[index].imageUrl,
+      materials: input.materials ?? [],
+      tasks: (input.tasks ?? []).map((title, taskIndex) => ({
+        id: `task-${Date.now()}-${taskIndex}`,
+        title,
+        completed: false,
+      })),
+      isPrivateProperty: input.isPrivateProperty ?? localIssuesStore[index].isPrivateProperty,
+    };
+    localIssuesStore[index] = updated;
+    return clonePost(updated);
+  }
+
+  const supabase = client as any;
+
+  const { data: updatedIssue, error: issueError } = await supabase
+    .from('issues')
+    .update({
+      title: input.title,
+      description: input.description,
+      location: input.location,
+      image_url: input.imageUrl?.trim() ? input.imageUrl : DEFAULT_IMAGE_URL,
+      is_private_property: input.isPrivateProperty ?? false,
+    })
+    .eq('id', issueId)
+    .select('*')
+    .single();
+
+  if (issueError) {
+    throw new Error(issueError.message);
+  }
+
+  // Tasks/materials are simple title lists with no stable diff key — replace wholesale.
+  await supabase.from('tasks').delete().eq('issue_id', issueId);
+  await supabase.from('materials').delete().eq('issue_id', issueId);
+
+  const taskInputs = input.tasks ?? [];
+  const materialInputs = input.materials ?? [];
+
+  if (taskInputs.length > 0) {
+    const taskPayload = taskInputs.map((title, index) => ({
+      id: `task-${Date.now()}-${index}`,
+      issue_id: issueId,
+      title,
+      completed: false,
+    }));
+
+    const { error: taskError } = await supabase.from('tasks').insert(taskPayload);
+    if (taskError) {
+      throw new Error(taskError.message);
+    }
+  }
+
+  if (materialInputs.length > 0) {
+    const materialPayload = materialInputs.map((name, index) => ({
+      id: `material-${Date.now()}-${index}`,
+      issue_id: issueId,
+      name,
+    }));
+
+    const { error: materialError } = await supabase.from('materials').insert(materialPayload);
+    if (materialError) {
+      throw new Error(materialError.message);
+    }
+  }
+
+  const { data: taskRows } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('issue_id', issueId)
+    .order('id', { ascending: true });
+
+  const { data: materialRows } = await supabase
+    .from('materials')
+    .select('*')
+    .eq('issue_id', issueId)
+    .order('id', { ascending: true });
+
+  return normalizeIssue(
+    updatedIssue as IssueRow,
+    (taskRows ?? []) as TaskRow[],
+    (materialRows ?? []) as MaterialRow[],
+  );
+}
+
 export async function deleteIssue(issueId: string) {
   const anon_key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const token = await getAccessToken();

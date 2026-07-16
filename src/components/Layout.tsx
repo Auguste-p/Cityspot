@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router";
 import { Map, Plus, User, Building2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useUser } from '../context/UserContext';
+import { toast } from 'sonner';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -10,8 +11,18 @@ export function Layout() {
   const { user, loading, isMunicipalUser } = useUser();
 
   useEffect(() => {
-    if (!loading && !user) navigate('/login', { replace: true });
-  }, [user, loading]);
+    if (loading) return;
+
+    if (!user) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    if (!isMunicipalUser && location.pathname.startsWith('/municipal')) {
+      toast.error('Accès réservé aux comptes municipaux');
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, isMunicipalUser, location.pathname]);
 
   const isActive = (path: string) => {
     if (path === "/") {

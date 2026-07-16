@@ -113,6 +113,42 @@ export interface Database {
         Insert: { id?: string; created_at?: string; id_user: string; id_issue: string; yes: boolean; };
         Update: { id?: string; yes: boolean; };
       };
+      users: {
+        Row: {
+          id: string;
+          name: string | null;
+          city: string | null;
+          cityWorker: boolean;
+          phone: string | null;
+          address: string | null;
+          avatar: string | null;
+          emailNotifications: boolean;
+          profileVisible: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name?: string | null;
+          city?: string | null;
+          cityWorker?: boolean;
+          phone?: string | null;
+          address?: string | null;
+          avatar?: string | null;
+          emailNotifications?: boolean;
+          profileVisible?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          name?: string | null;
+          city?: string | null;
+          cityWorker?: boolean;
+          phone?: string | null;
+          address?: string | null;
+          avatar?: string | null;
+          emailNotifications?: boolean;
+          profileVisible?: boolean;
+        };
+      };
     };
   };
 }

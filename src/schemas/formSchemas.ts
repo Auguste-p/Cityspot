@@ -92,9 +92,7 @@ export const settingsFormSchema = z.object({
   address: z.string().trim().default(''),
   
   avatar: z.string().default(''),
-  
-  notificationsEnabled: z.boolean().optional().default(true),
-  
+
   emailNotifications: z.boolean().optional().default(true),
 
   profileVisible: z.boolean().optional().default(false),

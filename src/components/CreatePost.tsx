@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { z } from 'zod';
 import { Camera, Check, FileText, Loader2, MapPin, Package, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,7 +13,9 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Button } from './ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { createPostSchema } from '../schemas/formSchemas';
-import { createIssue } from '../services/issuesService';
+import { createIssue, updateIssue } from '../services/issuesService';
+import { useIssue } from '../hooks/useIssues';
+import { useUser } from '../context/UserContext';
 
 type CreatePostFormInput = z.input<typeof createPostSchema>;
 type CreatePostFormOutput = z.output<typeof createPostSchema>;
@@ -299,7 +301,15 @@ function ListSection({
   );
 }
 
-function FormActions({ onCancel, isSubmitting }: { onCancel: () => void; isSubmitting: boolean }) {
+function FormActions({
+  onCancel,
+  isSubmitting,
+  isEditMode,
+}: {
+  onCancel: () => void;
+  isSubmitting: boolean;
+  isEditMode: boolean;
+}) {
   return (
     <div className="flex gap-3 pt-2">
       <button
@@ -318,12 +328,12 @@ function FormActions({ onCancel, isSubmitting }: { onCancel: () => void; isSubmi
         {isSubmitting ? (
           <>
             <Loader2 className="size-5 animate-spin" />
-            Création...
+            {isEditMode ? 'Enregistrement...' : 'Création...'}
           </>
         ) : (
           <>
             <Check className="size-5" />
-            Créer le signalement
+            {isEditMode ? 'Enregistrer les modifications' : 'Créer le signalement'}
           </>
         )}
       </button>
@@ -333,6 +343,10 @@ function FormActions({ onCancel, isSubmitting }: { onCancel: () => void; isSubmi
 
 export function CreatePost() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(id);
+  const { user } = useUser();
+  const { issue: existingPost, loading: existingPostLoading } = useIssue(id);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [propertyDocumentName, setPropertyDocumentName] = useState<string | null>(null);
 
@@ -350,6 +364,32 @@ export function CreatePost() {
       materials: [],
     },
   });
+
+  useEffect(() => {
+    if (!isEditMode || !existingPost) return;
+
+    if (user && existingPost.created_by !== user.id) {
+      toast.error("Vous n'êtes pas autorisé à modifier ce signalement");
+      navigate('/');
+      return;
+    }
+
+    form.reset({
+      title: existingPost.title,
+      description: existingPost.description,
+      address: existingPost.location.address,
+      isPrivateProperty: existingPost.isPrivateProperty ? 'private' : 'public',
+      isOwnProperty: 'yes',
+      propertyDocument: undefined,
+      ownerEmail: existingPost.ownerEmail ?? '',
+      tasks: existingPost.tasks.map((task) => ({ id: task.id, title: task.title })),
+      materials: existingPost.materials.map((title, index) => ({ id: `material-${index}`, title })),
+    });
+    setImagePreview(existingPost.imageUrl);
+    // `user?.id` on purpose, not `user`: the user object gets a new reference
+    // on every auth-state event (token refresh, initial session), which would
+    // otherwise re-run this reset mid-edit and discard in-progress changes.
+  }, [isEditMode, existingPost, user?.id]);
 
   const isAllowedImageFile = (file: File) =>
     file.type.startsWith('image/') && file.size <= MAX_UPLOAD_SIZE;
@@ -395,6 +435,26 @@ export function CreatePost() {
 
   const onSubmit = async (data: CreatePostFormOutput) => {
     try {
+      if (isEditMode && id) {
+        await updateIssue(id, {
+          title: data.title,
+          description: data.description,
+          imageUrl: imagePreview,
+          materials: data.materials.map((material) => material.title),
+          tasks: data.tasks.map((task) => task.title),
+          location: {
+            lat: existingPost?.location.lat ?? 0,
+            lng: existingPost?.location.lng ?? 0,
+            address: data.address,
+          },
+          isPrivateProperty: data.isPrivateProperty === 'private',
+        });
+
+        toast.success('Signalement modifié avec succès !');
+        navigate(`/post/${id}`);
+        return;
+      }
+
       await createIssue({
         title: data.title,
         description: data.description,
@@ -416,17 +476,31 @@ export function CreatePost() {
       toast.success('Signalement créé avec succès ! 🎉');
       navigate('/');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Impossible de créer le signalement');
+      toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer le signalement");
     }
   };
+
+  if (isEditMode && existingPostLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
+          <h2 className="mb-2">Chargement du signalement</h2>
+          <p className="text-sm text-muted-foreground">Récupération des informations à modifier.</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-background">
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="mb-6">
-          <h1 className="mb-2">Nouveau signalement</h1>
+          <h1 className="mb-2">{isEditMode ? 'Modifier le signalement' : 'Nouveau signalement'}</h1>
           <p className="text-muted-foreground">
-            Aidez à embellir votre ville en signalant les dégradations
+            {isEditMode
+              ? 'Mettez à jour les informations de ce signalement'
+              : 'Aidez à embellir votre ville en signalant les dégradations'}
           </p>
         </div>
 
@@ -540,9 +614,10 @@ export function CreatePost() {
               icon={Package}
             />
 
-            <FormActions 
-              onCancel={() => navigate('/')} 
+            <FormActions
+              onCancel={() => navigate(isEditMode && id ? `/post/${id}` : '/')}
               isSubmitting={form.formState.isSubmitting}
+              isEditMode={isEditMode}
             />
           </form>
         </Form>
