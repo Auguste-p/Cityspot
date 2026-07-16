@@ -13,7 +13,6 @@ import { MUNICIPAL_GRADIENT_CLASS, STATUS_MARKER_COLORS, VOTE_GOAL, getActualSta
 import { useIssues, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { FALLBACK_CITY, MAP_STYLE, NOMINATIM_REVERSE_GEOCODE_URL } from '../constants/map';
-import { deleteIssue } from '../services/issuesService';
 
 async function reverseGeocodeCity(lat: number, lng: number) {
   const endpoint = new URL(NOMINATIM_REVERSE_GEOCODE_URL);
@@ -463,16 +462,6 @@ export function MapView() {
                   className="w-full"
                 >
                   Voir les détails
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    deleteIssue(selectedPost.id);
-                    // window.location.reload();
-                  }}
-                  className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Supprimer le signalement
                 </Button>
               </div>
             </Card>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,10 +7,10 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
-import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '../context/UserContext';
-import { signOut } from '../services/authService';
+import { getUserProfile, signOut, updateUserProfile } from '../services/authService';
 import { settingsFormSchema } from '../schemas/formSchemas';
 import { z } from 'zod';
 
@@ -25,18 +26,61 @@ export function Settings() {
       phone: '',
       address: '',
       avatar: user?.avatar ?? '',
-      notificationsEnabled: true,
       emailNotifications: true,
       profileVisible: false,
     },
     mode: 'onBlur',
   });
 
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileLoading(true);
+    getUserProfile(user.id)
+      .then((profile) => {
+        if (!profile) return;
+        form.reset({
+          name: profile.name ?? user.name ?? '',
+          email: user.email ?? '',
+          phone: profile.phone ?? '',
+          address: profile.address ?? '',
+          avatar: profile.avatar ?? user.avatar ?? '',
+          emailNotifications: profile.emailNotifications ?? true,
+          profileVisible: profile.profileVisible ?? false,
+        });
+      })
+      .finally(() => setProfileLoading(false));
+    // `user.id` on purpose: `user` gets a new object reference on every
+    // auth-state event (token refresh, initial session), which would
+    // otherwise re-run this fetch and reset mid-edit, silently discarding
+    // whatever the visitor just toggled.
+  }, [user?.id]);
+
   if (!user) return null;
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
+          <h2 className="mb-2">Chargement des paramètres</h2>
+          <p className="text-sm text-muted-foreground">Récupération de votre profil.</p>
+        </Card>
+      </div>
+    );
+  }
 
   const onSubmit = async (data: z.output<typeof settingsFormSchema>) => {
     try {
-      console.log('Settings data:', data);
+      await updateUserProfile(user.id, {
+        name: data.name,
+        phone: data.phone,
+        address: data.address,
+        avatar: data.avatar,
+        emailNotifications: data.emailNotifications,
+        profileVisible: data.profileVisible,
+      });
       toast.success('Informations mises à jour avec succès !');
     } catch (error) {
       console.error(error);
@@ -118,8 +162,9 @@ export function Settings() {
                         Email
                       </FormLabel>
                       <FormControl>
-                        <Input {...field} type="email" className="bg-input-background" />
+                        <Input {...field} type="email" disabled className="bg-input-background" />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">Géré depuis l'authentification, non modifiable ici.</p>
                       <FormMessage className="text-xs" />
                     </FormItem>
                   )}
@@ -175,26 +220,6 @@ export function Settings() {
                         </FormLabel>
                         <p className="text-xs text-muted-foreground mt-1">
                           Recevoir des mises à jour sur vos signalements
-                        </p>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="notificationsEnabled"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between space-y-0">
-                      <div className="flex-1">
-                        <FormLabel className="text-sm font-medium">
-                          Notifications push
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Alertes pour les nouveaux commentaires
                         </p>
                       </div>
                       <FormControl>

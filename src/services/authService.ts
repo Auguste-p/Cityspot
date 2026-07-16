@@ -1,10 +1,11 @@
 import {getSupabaseClient} from '../lib/supabase';
 
 // 🔑 Sign up
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string, profile: { name: string; city: string }) {
   const { data, error } = await getSupabaseClient()!.auth.signUp({
     email,
     password,
+    options: { data: profile },
   });
 
   if (error) throw error;
@@ -46,4 +47,34 @@ export async function getSession() {
 export async function getAccessToken() {
   const session = await getSession();
   return session?.access_token;
+}
+
+// 🪪 Profil (table public.users)
+export async function getUserProfile(userId: string) {
+  const { data, error } = await getSupabaseClient()!
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export interface UpdateUserProfileInput {
+  name: string;
+  phone?: string;
+  address?: string;
+  avatar?: string;
+  emailNotifications?: boolean;
+  profileVisible?: boolean;
+}
+
+export async function updateUserProfile(userId: string, profile: UpdateUserProfileInput) {
+  const { error } = await getSupabaseClient()!
+    .from('users')
+    .update(profile)
+    .eq('id', userId);
+
+  if (error) throw error;
 }

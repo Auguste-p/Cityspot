@@ -28,6 +28,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "create/:id",
+        lazy: async () => {
+          const { CreatePost } = await import("./components/CreatePost");
+          return { Component: CreatePost };
+        },
+      },
+      {
         path: "post/:id",
         lazy: async () => {
           const { PostDetail } = await import("./components/PostDetail");

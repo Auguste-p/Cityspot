@@ -32,6 +32,7 @@ import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, VOTE_GOAL_LABEL, getActualStatus, 
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { deleteIssue } from '../services/issuesService';
 
 function getVoterIdentity(isMe: boolean, userName?: string) {
   return {
@@ -184,6 +185,17 @@ export function PostDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Supprimer définitivement ce signalement ?')) return;
+    try {
+      await deleteIssue(post.id);
+      toast.success('Signalement supprimé');
+      navigate('/');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Impossible de supprimer le signalement');
+    }
+  };
+
   return (
     <div className="min-h-full bg-background pb-6">
       {/* Header */}
@@ -210,14 +222,26 @@ export function PostDetail() {
                 <Share2 className="size-5" />
               </Button>
               {user?.id === post.created_by && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="p-2 text-muted-foreground hover:text-foreground"
-                  aria-label="Modifier le signalement"
-                >
-                  <Edit className="size-5" />
-                </Button>
+                <>
+                  <Button
+                    onClick={() => navigate(`/create/${post.id}`)}
+                    variant="ghost"
+                    size="sm"
+                    className="p-2 text-muted-foreground hover:text-foreground"
+                    aria-label="Modifier le signalement"
+                  >
+                    <Edit className="size-5" />
+                  </Button>
+                  <Button
+                    onClick={handleDelete}
+                    variant="ghost"
+                    size="sm"
+                    className="p-2 text-destructive hover:text-destructive/80"
+                    aria-label="Supprimer le signalement"
+                  >
+                    <Trash2 className="size-5" />
+                  </Button>
+                </>
               )}
             </div>
           </div>

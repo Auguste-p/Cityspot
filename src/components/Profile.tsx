@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -12,17 +12,39 @@ import {
   Award,
   Vote,
   Loader2,
+  Building2,
 } from 'lucide-react';
 import { PostCard } from './PostCard';
-import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from '../lib/postStatus';
+import { Badge } from './ui/badge';
+import { EMPTY_STATE_LABELS, MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, getNetVotes } from '../lib/postStatus';
 import { useUser } from '../context/UserContext';
 import { useIssues } from '../hooks/useIssues';
+import { getUserProfile } from '../services/authService';
 
 export function Profile() {
   const navigate = useNavigate();
   const { user } = useUser();
-  const { issues: myPosts, loading, error } = useIssues(); // In a real app, filter by user
-  
+  const { issues, loading, error } = useIssues();
+  const myPosts = issues.filter((post) => post.created_by === user?.id);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [cityName, setCityName] = useState<string | null>(null);
+  const [isCityWorker, setIsCityWorker] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getUserProfile(user.id)
+      .then((profile) => {
+        setProfileName(profile?.name ?? null);
+        setCityName(profile?.city ?? null);
+        setIsCityWorker(profile?.cityWorker ?? false);
+      })
+      .catch(() => {
+        setProfileName(null);
+        setCityName(null);
+        setIsCityWorker(false);
+      });
+  }, [user?.id]);
+
   const votingPosts = myPosts.filter(p => {
     const netVotes = getNetVotes(p);
     return p.status === 'pending' && netVotes < VOTE_GOAL;
@@ -78,8 +100,14 @@ export function Profile() {
             <div className="size-20 rounded-full bg-primary-foreground/20 flex items-center justify-center mb-3 backdrop-blur-sm border-2 border-primary-foreground/30">
               <span className="text-2xl">{user?.avatar}</span>
             </div>
-            <h1 className="mb-1">{user?.name}</h1>
-            <p className="text-primary-foreground/80 text-sm mb-4">{user?.email}</p>
+            {isCityWorker && (
+              <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 shadow-lg mb-2`}>
+                <Building2 className="size-3 mr-1" />
+                Mairie
+              </Badge>
+            )}
+            <h1 className="mb-1">{profileName ?? ''}</h1>
+            <p className="text-primary-foreground/80 text-sm mb-4">{cityName ?? ''}</p>
             
             {/* Stats */}
             <div className="flex gap-6 mt-2">
