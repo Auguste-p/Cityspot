@@ -1,0 +1,6 @@
+# TODO: remplacer par le nom de domaine réel du VPS OVH une fois décidé.
+# Caddy obtient et renouvelle automatiquement le certificat Let's Encrypt
+# pour ce domaine dès que le DNS pointe vers le VPS.
+cityspot.example.com {
+    reverse_proxy app:80
+}

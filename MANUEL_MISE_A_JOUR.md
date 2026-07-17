@@ -34,14 +34,16 @@ npm run build            # build de production (vérifie aussi le typage TS via 
 2. Développer en suivant les tests existants comme filet de sécurité — toute modification de composant ou de service devrait garder `npm test` vert. `TESTS.md` détaille ce que chaque fichier de test vérifie.
 3. Si la modification touche une fonctionnalité livrée, mettre à jour le scénario correspondant dans `CAHIER_DE_RECETTES.md` (statut, étapes) plutôt que d'en ouvrir un nouveau en doublon.
 4. Ouvrir une pull request vers `main` : `.github/workflows/ci.yml` exécute automatiquement `npm run test:coverage` puis `npm run build` ; la fusion est bloquée si l'un des deux échoue.
-5. Une fois fusionnée sur `main`, reconstruire et redéployer l'image Docker (`MANUEL_DEPLOIEMENT.md`, §3-4).
+5. Une fois fusionnée sur `main` et la recette validée, poser un tag de version (ci-dessous) — le déploiement en production part de là, automatiquement.
 
 Chaque mise en production est marquée d'un tag Git annoté, suivant SemVer (`vMAJOR.MINOR.PATCH`) :
 
 ```bash
 git tag -a vX.Y.Z -m "Résumé de la version"
-git push origin vX.Y.Z   # si le tag doit être partagé
+git push origin vX.Y.Z
 ```
+
+Pousser ce tag déclenche `.github/workflows/deploy.yml` : build de l'image, publication sur GHCR, puis redéploiement automatique sur le VPS — détail complet dans `MANUEL_DEPLOIEMENT.md` §8. Rien à faire manuellement au-delà du tag, une fois la mise en place initiale du VPS faite.
 
 Le détail de chaque version vit dans [`CHANGELOG.md`](./CHANGELOG.md) ; `PLAN_CORRECTION_BOGUES.md` complète avec le détail des correctifs entre deux versions.
 
