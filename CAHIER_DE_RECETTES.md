@@ -27,7 +27,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 
 ## 3. Environnement de test
 
-- Application lancée en local (`npm run dev`) ou via le conteneur Docker (`docker run -p 8080:80 cityspot`, voir `DOCKER.md`).
+- Application lancée en local (`npm run dev`) ou via le conteneur Docker (`docker run -p 8080:80 cityspot`, voir `MANUEL_DEPLOIEMENT.md`).
 - Base Supabase de test configurée (`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`), ou absence de configuration pour valider le mode de secours en données locales (`hasSupabaseConfig = false`).
 - Migrations appliquées (`supabase db push`) : trigger de synchronisation `public.users` et le reste de l'historique décrit dans `PLAN_CORRECTION_BOGUES.md`.
 - Fonction Edge `delete-issue` déployée avec la version courante du code (`supabase functions deploy delete-issue`) — elle lit désormais `SUPABASE_URL`/`SUPABASE_ANON_KEY`, pas `VITE_SUPABASE_URL`.
