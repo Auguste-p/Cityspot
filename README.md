@@ -40,7 +40,7 @@ Dernière mesure locale (2026-07-17) :
 | `src/components/ui` | 85.15 % |
 | `src/services` | 64.75 % |
 
-Détail fichier par fichier, ce que chaque test vérifie et pourquoi : [`TESTS.md`](./TESTS.md). Référentiel d'accessibilité (RGAA 4.1), méthode et limites : [`ACCESSIBILITE.md`](./ACCESSIBILITE.md).
+Détail fichier par fichier, ce que chaque test vérifie et pourquoi : [`TESTS.md`](./TESTS.md). Référentiel d'accessibilité (RGAA 4.1), méthode et limites : [`ACCESSIBILITE.md`](./ACCESSIBILITE.md). Scénarios de recette exécutés : [`CAHIER_DE_RECETTES.md`](./CAHIER_DE_RECETTES.md). Bogues détectés, corrigés ou en attente de correctif : [`PLAN_CORRECTION_BOGUES.md`](./PLAN_CORRECTION_BOGUES.md).
 
 # Avancée du jour avec IA
 

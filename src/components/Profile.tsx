@@ -23,12 +23,11 @@ import { getUserProfile } from '../services/authService';
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isMunicipalUser } = useUser();
   const { issues, loading, error } = useIssues();
   const myPosts = issues.filter((post) => post.created_by === user?.id);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
-  const [isCityWorker, setIsCityWorker] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -36,12 +35,10 @@ export function Profile() {
       .then((profile) => {
         setProfileName(profile?.name ?? null);
         setCityName(profile?.city ?? null);
-        setIsCityWorker(profile?.cityWorker ?? false);
       })
       .catch(() => {
         setProfileName(null);
         setCityName(null);
-        setIsCityWorker(false);
       });
   }, [user?.id]);
 
@@ -100,7 +97,7 @@ export function Profile() {
             <div className="size-20 rounded-full bg-primary-foreground/20 flex items-center justify-center mb-3 backdrop-blur-sm border-2 border-primary-foreground/30">
               <span className="text-2xl">{user?.avatar}</span>
             </div>
-            {isCityWorker && (
+            {isMunicipalUser && (
               <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 shadow-lg mb-2`}>
                 <Building2 className="size-3 mr-1" />
                 Mairie

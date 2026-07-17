@@ -11,12 +11,19 @@ import { UserProvider, useUser } from './UserContext';
 
 const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
 
-function stubAuth(getUser: () => Promise<{ data: { user: any } }>) {
+function stubAuth(getUser: () => Promise<{ data: { user: any } }>, role?: string) {
   return {
     auth: {
       getUser: vi.fn(getUser),
       onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
     },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: role ? { role } : null, error: null }),
+        }),
+      }),
+    }),
   } as any;
 }
 
@@ -50,11 +57,12 @@ describe('UserProvider', () => {
     expect(screen.getByTestId('municipal').textContent).toBe('false');
   });
 
-  it('flags a municipal user from user_metadata.role', async () => {
+  it('flags a municipal user from public.users.role', async () => {
     mockedGetSupabaseClient.mockReturnValue(
-      stubAuth(async () => ({
-        data: { user: { id: 'u2', email: 'city@x.com', user_metadata: { role: 'municipal' } } },
-      })),
+      stubAuth(
+        async () => ({ data: { user: { id: 'u2', email: 'city@x.com', user_metadata: {} } } }),
+        'municipal',
+      ),
     );
 
     render(<UserProvider><Probe /></UserProvider>);

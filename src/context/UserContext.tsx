@@ -27,23 +27,35 @@ interface UserContextValue {
 
 const UserContext = createContext<UserContextValue | null>(null);
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
+// Source of truth for the municipal role: public.users.role, not
+// auth.users.user_metadata — the app has no write access to auth.users.
+async function fetchRole(userId: string): Promise<UserRole> {
+  const client = getSupabaseClient();
+  if (!client) return 'citizen';
 
-  const toAppUser = (u: User): AppUser => ({
+  const { data } = await client.from('users').select('role').eq('id', userId).maybeSingle();
+  return data?.role === 'municipal' ? 'municipal' : 'citizen';
+}
+
+async function toAppUser(u: User): Promise<AppUser> {
+  return {
     id: u.id,
     email: u.email!,
     name: u.user_metadata?.name || u.email!,
     avatar: u.user_metadata?.avatar || '',
-    role: u.user_metadata?.role || 'citizen',
-  });
+    role: await fetchRole(u.id),
+  };
+}
+
+export function UserProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadUser = async () => {
     setLoading(true);
     try {
       const { data } = await getSupabaseClient()!.auth.getUser();
-      setUser(data.user ? toAppUser(data.user) : null);
+      setUser(data.user ? await toAppUser(data.user) : null);
     } catch {
       setUser(null);
     } finally {
@@ -56,8 +68,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const { data: listener } = getSupabaseClient()!.auth.onAuthStateChange(
       (_event, session) => {
-        setUser(session?.user ? toAppUser(session.user) : null);
-        setLoading(false);
+        if (!session?.user) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        void toAppUser(session.user).then((appUser) => {
+          setUser(appUser);
+          setLoading(false);
+        });
       }
     );
 

@@ -379,7 +379,7 @@ export function CreatePost() {
       description: existingPost.description,
       address: existingPost.location.address,
       isPrivateProperty: existingPost.isPrivateProperty ? 'private' : 'public',
-      isOwnProperty: 'yes',
+      isOwnProperty: existingPost.isOwnProperty === false ? 'no' : 'yes',
       propertyDocument: undefined,
       ownerEmail: existingPost.ownerEmail ?? '',
       tasks: existingPost.tasks.map((task) => ({ id: task.id, title: task.title })),
@@ -448,6 +448,8 @@ export function CreatePost() {
             address: data.address,
           },
           isPrivateProperty: data.isPrivateProperty === 'private',
+          isOwnProperty: data.isOwnProperty === 'yes',
+          ownerEmail: data.ownerEmail,
         });
 
         toast.success('Signalement modifié avec succès !');
@@ -468,6 +470,8 @@ export function CreatePost() {
           address: data.address,
         },
         isPrivateProperty: data.isPrivateProperty === 'private',
+        isOwnProperty: data.isOwnProperty === 'yes',
+        ownerEmail: data.ownerEmail,
         positiveVotes: 0,
         negativeVotes: 0,
         isMunicipalProject: false,
