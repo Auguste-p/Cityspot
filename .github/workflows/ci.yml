@@ -18,5 +18,13 @@ jobs:
 
       # package-lock.json is gitignored (see DOCKER.md), so `npm ci` isn't available here.
       - run: npm install
-      - run: npm test
+      # `test:coverage` runs the full suite (same pass/fail as `npm test`) and
+      # additionally produces the coverage report uploaded below.
+      - run: npm run test:coverage
       - run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30

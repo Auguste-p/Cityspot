@@ -433,7 +433,9 @@ export function PostDetail() {
                   </span>
                 )}
               </div>
-              {actualStatus !== 'pending' && <Progress value={progress} className="h-2" />}
+              {actualStatus !== 'pending' && (
+                <Progress value={progress} className="h-2" aria-label="Progression des tâches" />
+              )}
               
               {!canEditTasks && actualStatus === 'pending' && (
                 <div className="flex items-start gap-2 p-3 mt-3 bg-blue-50 rounded-lg text-sm text-blue-700">

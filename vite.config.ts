@@ -13,6 +13,12 @@
     },
     test: {
       environment: 'node',
+      setupFiles: ['./src/test/setup.ts'],
+      coverage: {
+        provider: 'v8',
+        include: ['src/**'],
+        exclude: ['src/**/*.test.*', 'src/vite-env.d.ts'],
+      },
     },
     build: {
       target: 'esnext',
