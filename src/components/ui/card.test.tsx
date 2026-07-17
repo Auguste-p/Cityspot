@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { expectNoA11yViolations } from '../../test/a11y';
 import { Card } from './card';
 
 afterEach(cleanup);
@@ -34,5 +35,12 @@ describe('Card keyboard accessibility', () => {
     const card = screen.getByRole('button');
     fireEvent.keyDown(card, { key: ' ' });
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Card accessibility (RGAA / axe-core)', () => {
+  it('has no automatically-detectable violation when clickable', async () => {
+    const { container } = render(<Card onClick={() => {}}>Nid de poule rue Victor Hugo</Card>);
+    await expectNoA11yViolations(container);
   });
 });

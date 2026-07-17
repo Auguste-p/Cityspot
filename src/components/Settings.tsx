@@ -104,6 +104,7 @@ export function Settings() {
               variant="ghost"
               size="sm"
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              aria-label="Retour au profil"
             >
               <ArrowLeft className="size-5" />
             </Button>

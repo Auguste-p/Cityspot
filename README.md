@@ -17,7 +17,31 @@ The app expects a public browser-safe key in `.env`:
 - `VITE_SUPABASE_ANON_KEY`
 
 Do not use a service-role or secret key in the browser. If the anon key is missing, the app falls back to local mock data.
-  
+
+## Tests & couverture
+
+```bash
+npm test              # 100 tests (unitaires + accessibilité RGAA)
+npm run test:coverage # idem + rapport de couverture
+```
+
+Exécutés automatiquement sur chaque push/PR vers `main` (`.github/workflows/ci.yml`). Le rapport de couverture (HTML + JSON) est déposé en artefact CI (`coverage-report`, 30 jours de rétention) à chaque run — voir l'onglet *Actions* du dépôt.
+
+Dernière mesure locale (2026-07-17) :
+
+| Dossier | % Lignes couvertes |
+|---|---|
+| **`src` (ensemble)** | **81.27 %** |
+| `src/lib`, `src/constants` | 100 % |
+| `src/context` | 94.23 % |
+| `src/hooks` | 95.04 % |
+| `src/schemas` | 100 % |
+| `src/components` (écrans) | 85.91 % |
+| `src/components/ui` | 85.15 % |
+| `src/services` | 64.75 % |
+
+Détail fichier par fichier, ce que chaque test vérifie et pourquoi : [`TESTS.md`](./TESTS.md). Référentiel d'accessibilité (RGAA 4.1), méthode et limites : [`ACCESSIBILITE.md`](./ACCESSIBILITE.md).
+
 # Avancée du jour avec IA
 
 La conversation a commencé par une analyse globale d’une app React/Vite récupérée depuis Figma, avec un focus sur l’organisation, la lisibilité, la performance et la sécurité. Les problèmes principaux identifiés étaient des logiques dupliquées autour des votes/statuts, un état utilisateur/role câblé en dur, un composant de création de post trop monolithique, un rendu décoratif inutilement lourd sur la vue carte, et quelques imports de dépendances versionnés qui rendaient le code plus fragile.
