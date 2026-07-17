@@ -17,6 +17,8 @@ interface IssueRow {
   location: IssueLocation | null;
   image_url: string | null;
   is_private_property: boolean | null;
+  is_own_property: boolean | null;
+  owner_email: string | null;
   positive_votes: number | null;
   negative_votes: number | null;
   created_at: string | null;
@@ -64,6 +66,8 @@ export interface CreateIssueInput {
     address: string;
   };
   isPrivateProperty?: boolean;
+  isOwnProperty?: boolean;
+  ownerEmail?: string;
   positiveVotes?: number;
   negativeVotes?: number;
   isMunicipalProject?: boolean;
@@ -228,6 +232,8 @@ function normalizeIssue(
     tasks: taskRows.map(normalizeTask),
     materials: materialRows.map((material) => material.name),
     isPrivateProperty: Boolean(row.is_private_property),
+    isOwnProperty: row.is_own_property ?? undefined,
+    ownerEmail: row.owner_email ?? undefined,
     votes: {
       positive: row.positive_votes ?? 0,
       negative: row.negative_votes ?? 0,
@@ -260,6 +266,8 @@ function buildLocalIssue(input: CreateIssueInput): Post {
     })),
     materials: input.materials ?? [],
     isPrivateProperty: input.isPrivateProperty ?? false,
+    isOwnProperty: input.isOwnProperty,
+    ownerEmail: input.ownerEmail?.trim() ? input.ownerEmail : undefined,
     votes: {
       positive: input.positiveVotes ?? 0,
       negative: input.negativeVotes ?? 0,
@@ -394,6 +402,8 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     },
     image_url: input.imageUrl?.trim() ? input.imageUrl : DEFAULT_IMAGE_URL,
     is_private_property: input.isPrivateProperty ?? false,
+    is_own_property: input.isOwnProperty ?? null,
+    owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
     positive_votes: input.positiveVotes ?? 0,
     negative_votes: input.negativeVotes ?? 0,
     status: denormalizePostStatus('pending'),
@@ -491,6 +501,8 @@ export interface UpdateIssueInput {
     address: string;
   };
   isPrivateProperty?: boolean;
+  isOwnProperty?: boolean;
+  ownerEmail?: string;
 }
 
 export async function updateIssue(issueId: string, input: UpdateIssueInput): Promise<Post> {
@@ -515,6 +527,8 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
         completed: false,
       })),
       isPrivateProperty: input.isPrivateProperty ?? localIssuesStore[index].isPrivateProperty,
+      isOwnProperty: input.isOwnProperty ?? localIssuesStore[index].isOwnProperty,
+      ownerEmail: input.ownerEmail?.trim() ? input.ownerEmail : localIssuesStore[index].ownerEmail,
     };
     localIssuesStore[index] = updated;
     return clonePost(updated);
@@ -530,6 +544,8 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       location: input.location,
       image_url: input.imageUrl?.trim() ? input.imageUrl : DEFAULT_IMAGE_URL,
       is_private_property: input.isPrivateProperty ?? false,
+      is_own_property: input.isOwnProperty ?? null,
+      owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
     })
     .eq('id', issueId)
     .select('*')

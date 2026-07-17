@@ -15,6 +15,8 @@ export interface Database {
           location: Json;
           image_url: string | null;
           is_private_property: boolean | null;
+          is_own_property: boolean | null;
+          owner_email: string | null;
           positive_votes: number | null;
           negative_votes: number | null;
           created_at: string | null;
@@ -29,6 +31,8 @@ export interface Database {
           location: Json;
           image_url?: string | null;
           is_private_property?: boolean | null;
+          is_own_property?: boolean | null;
+          owner_email?: string | null;
           positive_votes?: number | null;
           negative_votes?: number | null;
           created_at?: string | null;
@@ -43,6 +47,8 @@ export interface Database {
           location?: Json;
           image_url?: string | null;
           is_private_property?: boolean | null;
+          is_own_property?: boolean | null;
+          owner_email?: string | null;
           positive_votes?: number | null;
           negative_votes?: number | null;
           created_at?: string | null;
@@ -94,18 +100,18 @@ export interface Database {
           created_at: string;
           id_user: string;
           id_issue: string;
-          comments: string;
+          comment: string;
         };
         Insert: {
           id?: string;
           created_at?: string;
           id_user: string;
           id_issue: string;
-          comments: string;
+          comment: string;
         };
         Update: {
           id?: string;
-          comments?: string;
+          comment?: string;
         };
       };
       votes: {
@@ -118,7 +124,7 @@ export interface Database {
           id: string;
           name: string | null;
           city: string | null;
-          cityWorker: boolean;
+          role: string;
           phone: string | null;
           address: string | null;
           avatar: string | null;
@@ -130,7 +136,7 @@ export interface Database {
           id: string;
           name?: string | null;
           city?: string | null;
-          cityWorker?: boolean;
+          role?: string;
           phone?: string | null;
           address?: string | null;
           avatar?: string | null;
@@ -141,7 +147,7 @@ export interface Database {
         Update: {
           name?: string | null;
           city?: string | null;
-          cityWorker?: boolean;
+          role?: string;
           phone?: string | null;
           address?: string | null;
           avatar?: string | null;

@@ -52,7 +52,6 @@ describe('Settings accessibility (RGAA / axe-core)', () => {
       id: CITIZEN.id,
       name: 'Jeanne Dupont',
       city: 'Lyon',
-      cityWorker: false,
       phone: '0601020304',
       address: '1 rue de la Paix',
       avatar: 'J',

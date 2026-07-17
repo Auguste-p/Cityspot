@@ -92,7 +92,6 @@ describe('Profile accessibility (RGAA / axe-core)', () => {
       id: CITIZEN.id,
       name: 'Jeanne Dupont',
       city: 'Lyon',
-      cityWorker: false,
       phone: null,
       address: null,
       avatar: null,
@@ -107,13 +106,12 @@ describe('Profile accessibility (RGAA / axe-core)', () => {
   });
 
   it('a municipal ("Mairie" badge) empty profile has no violation', async () => {
-    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: true, refreshUser: vi.fn() });
     mockedUseIssues.mockReturnValue({ issues: [], loading: false, error: null, reload: vi.fn() });
     mockedGetUserProfile.mockResolvedValue({
       id: CITIZEN.id,
       name: 'Jeanne Dupont',
       city: 'Lyon',
-      cityWorker: true,
       phone: null,
       address: null,
       avatar: null,
