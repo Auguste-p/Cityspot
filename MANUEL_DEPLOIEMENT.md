@@ -2,16 +2,43 @@
 
 ## 1. Objet du document
 
-Ce document décrit comment construire, configurer et déployer City Spot en production (conteneur Docker + nginx), ainsi que le pipeline d'intégration/déploiement continu qui l'automatise. Il répond au critère C2.4.1 de la grille d'évaluation, volet *« manuel de déploiement »*.
+Ce document décrit l'environnement de développement, le protocole de déploiement continu et les critères de qualité/performance de City Spot, ainsi que la construction et le lancement du conteneur Docker en production (nginx). Il répond aux critères C2.1.1, C2.1.2 et C2.4.1 (volet *« manuel de déploiement »*) de la grille d'évaluation.
 
-Pour l'historique des versions et la procédure de mise à jour d'une instance déjà déployée (migrations base de données, redéploiement de la fonction Edge, montée de version des dépendances), voir [`MANUEL_MISE_A_JOUR.md`](./MANUEL_MISE_A_JOUR.md). Pour la prise en main de l'application par un utilisateur final, voir [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md).
+Pour l'historique des versions et la procédure de mise à jour d'une instance déjà déployée, voir [`MANUEL_MISE_A_JOUR.md`](./MANUEL_MISE_A_JOUR.md). Pour la prise en main de l'application par un utilisateur final, voir [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md).
 
-## 2. Prérequis
+## 2. Environnement de développement
+
+| Élément | Choix |
+|---|---|
+| Éditeur de code | Visual Studio Code — extension recommandée `denoland.vscode-deno` pour la fonction Edge (`.vscode/extensions.json`, `.vscode/settings.json`) |
+| Langage | TypeScript |
+| Compilateur / transpileur | SWC (`@vitejs/plugin-react-swc`), intégré au bundler Vite |
+| Bundler / serveur de dev | Vite 6 (`npm run dev`, port 5173 par défaut) |
+| Runtime | Node.js 22 (aligné entre `.github/workflows/ci.yml` et l'image `node:22-alpine` du `Dockerfile`) |
+| Gestionnaire de paquets | npm |
+| Gestion de sources | Git, dépôt distant GitHub (`Auguste-p/Cityspot`) |
+| Tests | Vitest + Testing Library + axe-core |
+
+> ⚠️ **Limite assumée** : il n'y a pas de `tsconfig.json` dédié ni de script `typecheck`/`lint` dans `package.json` à ce jour. SWC transpile le TypeScript sans vérifier les types (il ignore les erreurs de typage, contrairement à `tsc`). Le typage n'est donc pas vérifié automatiquement en CI — seule une exécution manuelle ponctuelle de `tsc` a eu lieu pendant le développement (cf. `README.md`, journal IA). Ajouter un `tsconfig.json` + une étape `tsc --noEmit` en CI est l'amélioration la plus directe si ce point doit être fermé avant l'oral.
+
+## 3. Composants identifiés
+
+| Composant du critère | Outil utilisé dans City Spot |
+|---|---|
+| Compilateur | SWC (via `@vitejs/plugin-react-swc`), orchestré par Vite |
+| Serveur d'application (production) | nginx (`nginx.conf`), image `nginx:alpine-slim` |
+| Serveur d'application (développement) | Vite dev server |
+| Outils de gestion de sources | Git + GitHub, tags SemVer (`CHANGELOG.md`) pour le suivi de version |
+| Gestionnaire de dépendances | npm |
+| Backend / base de données | Supabase (Postgres managé, Auth, Edge Functions Deno) |
+| Conteneurisation | Docker (multi-stage build, cf. §5) |
+
+## 4. Prérequis
 
 - Docker avec BuildKit (par défaut sur Docker récent / OrbStack).
 - Un fichier `.env` à la racine avec `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` (voir `README.md`).
 
-## 3. Build de l'image
+## 5. Build de l'image
 
 Les clés Supabase sont nécessaires **au build** (Vite les intègre dans le bundle JS, pas au runtime). Elles sont passées via `--secret`, jamais en `--build-arg` ni en clair dans la commande — elles n'apparaissent donc ni dans l'historique du shell ni dans `docker history`.
 
@@ -24,7 +51,7 @@ docker build \
   -t cityspot .
 ```
 
-## 4. Lancer le conteneur
+## 6. Lancer le conteneur (local)
 
 ```bash
 docker run -d --name cityspot -p 8080:80 cityspot
@@ -32,27 +59,70 @@ docker run -d --name cityspot -p 8080:80 cityspot
 
 L'app est servie par nginx sur `http://localhost:8080`. Le routing côté client (react-router) fonctionne grâce au fallback SPA défini dans `nginx.conf`.
 
-## 5. Arrêter / nettoyer
-
 ```bash
-docker rm -f cityspot
+docker rm -f cityspot   # arrêter / nettoyer
 ```
 
-## 6. Pipeline d'intégration et de déploiement continu (GitHub Actions)
+## 7. Pipeline d'intégration continue (GitHub Actions)
 
-Chaque push ou pull request vers `main` déclenche `.github/workflows/ci.yml` : installation des dépendances, exécution de la suite de tests avec couverture (`npm run test:coverage`), build de production (`npm run build`), puis dépôt du rapport de couverture en artefact CI (`coverage-report`, 30 jours de rétention). Un build ou des tests en échec bloquent la fusion.
+Chaque push ou pull request vers `main` déclenche `.github/workflows/ci.yml` : installation des dépendances, exécution de la suite de tests avec couverture (`npm run test:coverage`), build de production (`npm run build`), puis dépôt du rapport de couverture en artefact CI (`coverage-report`, 30 jours de rétention). Un test ou un build en échec bloque la fusion.
 
-Le déploiement de l'image Docker en production réutilise les mêmes deux secrets que le build local (§3), définis cette fois dans les *Secrets* du dépôt GitHub et injectés via `docker/build-push-action` :
+Ce pipeline couvre l'intégration continue (test + build) mais ne publie pas l'image Docker — c'est le rôle du pipeline de déploiement continu (§8).
 
-```yaml
-- uses: docker/build-push-action@v6
-  with:
-    context: .
-    secrets: |
-      VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
-```
+## 8. Déploiement continu (GitHub Actions → GHCR → VPS)
 
-## 7. À savoir avant un déploiement VPS
+`.github/workflows/deploy.yml` se déclenche sur le push d'un tag `vX.Y.Z` (les mêmes tags que `CHANGELOG.md`, cf. `MANUEL_MISE_A_JOUR.md` §4) et enchaîne deux jobs :
+
+1. **`build-and-push`** — build l'image Docker (mêmes secrets `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` qu'en local, §5) et la pousse sur le **GitHub Container Registry** (`ghcr.io/auguste-p/cityspot`), taguée à la fois `latest` et avec le numéro de version (`vX.Y.Z`). Authentification via `GITHUB_TOKEN`, généré automatiquement par GitHub Actions — aucun compte ni secret de registre à créer séparément.
+2. **`deploy`** — se connecte en SSH au VPS et relance les conteneurs (`docker compose pull && docker compose up -d`) dans `/opt/cityspot`.
+
+**Sur le VPS**, deux conteneurs tournent en permanence via `docker-compose.yml` (fichier à la racine du repo, à copier sur le VPS) :
+
+- `app` — l'image `cityspot` construite ci-dessus, écoute en HTTP nu en interne (nginx, §6) sans port publié directement.
+- `caddy` — reverse proxy public sur les ports 80/443, obtient et renouvelle automatiquement un certificat Let's Encrypt pour le domaine défini dans `Caddyfile`, puis relaie vers `app`.
+
+### 8.1 Secrets GitHub requis
+
+| Secret | Rôle |
+|---|---|
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Déjà utilisés pour le build (§5) |
+| `VPS_HOST` | IP ou nom d'hôte du VPS OVH |
+| `VPS_USER` | Utilisateur SSH sur le VPS |
+| `VPS_SSH_KEY` | Clé privée SSH (le VPS doit avoir la clé publique correspondante dans `~/.ssh/authorized_keys`) |
+
+`GITHUB_TOKEN` (accès GHCR) est fourni automatiquement par GitHub Actions, pas besoin de le créer.
+
+### 8.2 Mise en place initiale du VPS (une seule fois)
+
+⚠️ **À compléter une fois le VPS OVH commandé — OS et nom de domaine non connus à ce jour.**
+
+1. `[TODO: OS du VPS]` — installer Docker Engine + le plugin `docker compose`.
+2. Créer `/opt/cityspot/`, y copier `docker-compose.yml` et `Caddyfile`.
+3. Dans `Caddyfile`, remplacer `cityspot.example.com` par le vrai nom de domaine `[TODO]`, et pointer son enregistrement DNS (A/AAAA) vers l'IP du VPS.
+4. Rendre le package `ghcr.io/auguste-p/cityspot` public dans les paramètres GitHub (Packages) pour que `docker compose pull` fonctionne sur le VPS sans authentification — sinon, faire un `docker login ghcr.io` une fois sur le VPS avec un token en lecture seule.
+5. Ajouter la clé publique SSH correspondant à `VPS_SSH_KEY` dans `~/.ssh/authorized_keys` sur le VPS.
+6. `cd /opt/cityspot && docker compose up -d` une première fois manuellement pour vérifier que tout démarre, avant de laisser `deploy.yml` s'en charger.
+
+### 8.3 Séquence de déploiement (une fois l'installation initiale faite)
+
+1. Recette validée (`CAHIER_DE_RECETTES.md`), tag `vX.Y.Z` posé et poussé sur `main` (`CHANGELOG.md`).
+2. `deploy.yml` construit l'image, la pousse sur GHCR.
+3. `deploy.yml` se connecte en SSH au VPS, tire la nouvelle image et relance les conteneurs — l'ancien conteneur `app` est remplacé, `caddy` n'est pas interrompu (pas de coupure TLS).
+4. Vérification post-déploiement : accès HTTPS au domaine, `docker compose logs app` sans erreur.
+
+## 9. Critères de qualité et de performance
+
+| Axe | Critère | Mesure actuelle | Outil |
+|---|---|---|---|
+| Qualité — tests | Couverture de lignes ≥ 80 % | 81,27 % (`src` global) | Vitest + `@vitest/coverage-v8`, détail dans `TESTS.md` |
+| Qualité — build | Le build de production doit réussir sans erreur | ✅ vérifié à chaque push/PR | `npm run build` en CI |
+| Qualité — non-régression | La suite de tests doit être verte avant toute fusion sur `main` | ✅ appliqué | `.github/workflows/ci.yml` |
+| Qualité — accessibilité | Conformité RGAA 4.1 sur tous les écrans | Détail dans `ACCESSIBILITE.md` | axe-core (Vitest) |
+| Qualité — sécurité | Couverture OWASP Top 10 | Détail dans `SECURITE.md` | Revue manuelle + `CAHIER_DE_RECETTES.md` (SEC-01 à SEC-11) |
+| Performance — taille du bundle | Limiter le poids du chunk principal | ~270 kB (contre 511 kB avant code-splitting par route) | Optimisation manuelle ponctuelle (`README.md`, journal IA) — **pas de budget chiffré ni d'outil automatisé en CI à ce jour** |
+
+> ⚠️ **Limite assumée** : la mesure de performance (taille de bundle) a été faite une fois, manuellement, pas de façon continue. Aucun outil de type Lighthouse CI ou `bundlesize` n'est branché sur le pipeline. À ajouter si un suivi de performance continu est exigé par le jury.
+
+## 10. À savoir avant un déploiement VPS
 
 `package-lock.json` est dans `.gitignore` — un `git clone` frais n'aura pas ce fichier. Le `Dockerfile` utilise `npm install` (pas `npm ci`) pour cette raison. Committer le lockfile permettrait de repasser sur `npm ci`, plus rapide et déterministe.
