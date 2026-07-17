@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
 
-      # package-lock.json is gitignored (see DOCKER.md), so `npm ci` isn't available here.
+      # package-lock.json is gitignored (see MANUEL_DEPLOIEMENT.md), so `npm ci` isn't available here.
       - run: npm install
       # `test:coverage` runs the full suite (same pass/fail as `npm test`) and
       # additionally produces the coverage report uploaded below.
