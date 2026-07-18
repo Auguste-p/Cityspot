@@ -6,6 +6,10 @@ RUN npm install
 
 COPY . .
 
+# DSN Sentry : pas un secret (conçu pour être public côté client), simple build arg.
+ARG VITE_SENTRY_DSN
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+
 RUN --mount=type=secret,id=VITE_SUPABASE_URL,required=true \
     --mount=type=secret,id=VITE_SUPABASE_ANON_KEY,required=true \
     sh -c 'export VITE_SUPABASE_URL=$(cat /run/secrets/VITE_SUPABASE_URL); \

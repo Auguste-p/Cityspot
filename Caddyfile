@@ -1,5 +1,0 @@
-# Caddy obtient et renouvelle automatiquement le certificat Let's Encrypt
-# pour ce domaine dès que le DNS pointe vers le VPS.
-projet-cityspot.fr {
-    reverse_proxy app:80
-}
