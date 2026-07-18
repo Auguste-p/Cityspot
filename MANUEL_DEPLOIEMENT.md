@@ -76,10 +76,14 @@ Ce pipeline couvre l'intégration continue (test + build) mais ne publie pas l'i
 1. **`build-and-push`** — build l'image Docker (mêmes secrets `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` qu'en local, §5) et la pousse sur le **GitHub Container Registry** (`ghcr.io/auguste-p/cityspot`), taguée à la fois `latest` et avec le numéro de version (`vX.Y.Z`). Authentification via `GITHUB_TOKEN`, généré automatiquement par GitHub Actions — aucun compte ni secret de registre à créer séparément.
 2. **`deploy`** — se connecte en SSH au VPS et relance les conteneurs (`docker compose pull && docker compose up -d`) dans `/opt/cityspot`.
 
-**Sur le VPS**, deux conteneurs tournent en permanence via `docker-compose.yml` (fichier à la racine du repo, à copier sur le VPS) :
+**Sur le VPS**, plusieurs conteneurs tournent en permanence via `docker-compose.yml` (fichier à la racine du repo, à copier sur le VPS) :
 
 - `app` — l'image `cityspot` construite ci-dessus, écoute en HTTP nu en interne (nginx, §6) sans port publié directement.
-- `caddy` — reverse proxy public sur les ports 80/443, obtient et renouvelle automatiquement un certificat Let's Encrypt pour le domaine défini dans `Caddyfile`, puis relaie vers `app`.
+- `traefik` — reverse proxy public sur les ports 80/443, découvre les services à router via les labels Docker de chaque conteneur (pas de fichier de config central à éditer par domaine), obtient et renouvelle automatiquement un certificat Let's Encrypt par domaine routé.
+- `prometheus` / `node-exporter` / `cadvisor` / `grafana` — supervision infra (§8.4).
+- `matomo` / `matomo-db` — analytics web auto-hébergées (§8.4).
+
+⚠️ **Historique** : la v1.0.1 utilisait Caddy (`Caddyfile`, config statique par domaine). Passage à Traefik en v1.1.0 pour router plusieurs sous-domaines (monitoring, analytics) via labels Docker sans fichier central à maintenir à chaque ajout de service — voir `CHANGELOG.md`.
 
 ### 8.1 Secrets GitHub requis
 
@@ -97,18 +101,33 @@ Ce pipeline couvre l'intégration continue (test + build) mais ne publie pas l'i
 VPS OVH commandé : Debian, domaine `projet-cityspot.fr`.
 
 1. Debian — Docker Engine + plugin `docker compose` installés.
-2. Créer `/opt/cityspot/`, y copier `docker-compose.yml` et `Caddyfile`.
-3. `Caddyfile` : domaine `projet-cityspot.fr`, enregistrement DNS A pointé vers l'IP du VPS.
+2. Créer `/opt/cityspot/`, y copier `docker-compose.yml`, `prometheus.yml` et le dossier `grafana/provisioning/`.
+3. Enregistrements DNS A vers l'IP du VPS pour `projet-cityspot.fr`, `grafana.projet-cityspot.fr`, `matomo.projet-cityspot.fr`.
 4. Rendre le package `ghcr.io/auguste-p/cityspot` public dans les paramètres GitHub (Packages) pour que `docker compose pull` fonctionne sur le VPS sans authentification — sinon, faire un `docker login ghcr.io` une fois sur le VPS avec un token en lecture seule.
 5. Ajouter la clé publique SSH correspondant à `VPS_SSH_KEY` dans `~/.ssh/authorized_keys` sur le VPS.
-6. `cd /opt/cityspot && docker compose up -d` une première fois manuellement pour vérifier que tout démarre, avant de laisser `deploy.yml` s'en charger.
+6. Créer `/opt/cityspot/.env` (non versionné) avec `GRAFANA_ADMIN_PASSWORD`, `MATOMO_DB_PASSWORD`, `MATOMO_DB_ROOT_PASSWORD` — valeurs générées (`openssl rand -base64 18`), jamais commitées.
+7. `cd /opt/cityspot && docker compose up -d` une première fois manuellement pour vérifier que tout démarre, avant de laisser `deploy.yml` s'en charger.
 
 ### 8.3 Séquence de déploiement (une fois l'installation initiale faite)
 
 1. Recette validée (`CAHIER_DE_RECETTES.md`), tag `vX.Y.Z` posé et poussé sur `main` (`CHANGELOG.md`).
 2. `deploy.yml` construit l'image, la pousse sur GHCR.
-3. `deploy.yml` se connecte en SSH au VPS, tire la nouvelle image et relance les conteneurs — l'ancien conteneur `app` est remplacé, `caddy` n'est pas interrompu (pas de coupure TLS).
+3. `deploy.yml` se connecte en SSH au VPS, tire la nouvelle image et relance les conteneurs — seul le conteneur `app` est remplacé, `traefik` n'est pas interrompu (pas de coupure TLS).
 4. Vérification post-déploiement : accès HTTPS au domaine, `docker compose logs app` sans erreur.
+
+### 8.4 Supervision, analytics et erreurs applicatives
+
+Ferme le point ouvert §10.4/A09 (aucune supervision en prod) de la session précédente.
+
+| Service | Rôle | Accès |
+|---|---|---|
+| `prometheus` + `node-exporter` + `cadvisor` | Collecte métriques hôte (CPU/RAM/disque) et conteneurs Docker | Interne uniquement, pas de routeur Traefik — accès via `docker exec` ou en ajoutant temporairement un label si besoin de debug |
+| `grafana` | Dashboards sur les métriques Prometheus (datasource pré-provisionnée, `grafana/provisioning/datasources/prometheus.yml`) | `https://grafana.projet-cityspot.fr`, identifiants dans `/opt/cityspot/.env` |
+| `matomo` + `matomo-db` | Analytics web auto-hébergées (alternative à Google Analytics, aucune donnée envoyée à un tiers) | `https://matomo.projet-cityspot.fr`, assistant d'installation web au premier accès |
+| Sentry (SaaS, pas de conteneur) | Tracking d'erreurs frontend (`@sentry/react`, `src/lib/sentry.ts`) | Compte gratuit sentry.io — DSN passé en variable de build `VITE_SENTRY_DSN` (secret GitHub), pas un secret sensible (conçu pour être public côté client) |
+| `fail2ban` | Anti brute-force SSH, installé directement sur l'hôte Debian (apt, hors Docker — a besoin d'un accès direct à `iptables` et aux logs système) | `sudo fail2ban-client status sshd` sur le VPS |
+
+⚠️ **Limite assumée** : self-hébergement de Sentry écarté volontairement — le stack officiel `getsentry/self-hosted` recommande 16 Go RAM, hors de portée du VPS (4 Go). Le tier gratuit SaaS (5k erreurs/mois) est largement suffisant pour ce volume de trafic.
 
 ## 9. Critères de qualité et de performance
 
