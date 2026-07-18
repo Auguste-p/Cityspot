@@ -94,11 +94,11 @@ Ce pipeline couvre l'intégration continue (test + build) mais ne publie pas l'i
 
 ### 8.2 Mise en place initiale du VPS (une seule fois)
 
-⚠️ **À compléter une fois le VPS OVH commandé — OS et nom de domaine non connus à ce jour.**
+VPS OVH commandé : Debian, domaine `projet-cityspot.fr`.
 
-1. `[TODO: OS du VPS]` — installer Docker Engine + le plugin `docker compose`.
+1. Debian — Docker Engine + plugin `docker compose` installés.
 2. Créer `/opt/cityspot/`, y copier `docker-compose.yml` et `Caddyfile`.
-3. Dans `Caddyfile`, remplacer `cityspot.example.com` par le vrai nom de domaine `[TODO]`, et pointer son enregistrement DNS (A/AAAA) vers l'IP du VPS.
+3. `Caddyfile` : domaine `projet-cityspot.fr`, enregistrement DNS A pointé vers l'IP du VPS.
 4. Rendre le package `ghcr.io/auguste-p/cityspot` public dans les paramètres GitHub (Packages) pour que `docker compose pull` fonctionne sur le VPS sans authentification — sinon, faire un `docker login ghcr.io` une fois sur le VPS avec un token en lecture seule.
 5. Ajouter la clé publique SSH correspondant à `VPS_SSH_KEY` dans `~/.ssh/authorized_keys` sur le VPS.
 6. `cd /opt/cityspot && docker compose up -d` une première fois manuellement pour vérifier que tout démarre, avant de laisser `deploy.yml` s'en charger.
