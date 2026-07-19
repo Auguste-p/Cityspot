@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router';
@@ -16,6 +16,10 @@ import { createPostSchema } from '../schemas/formSchemas';
 import { createIssue, updateIssue } from '../services/issuesService';
 import { useIssue } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
+import { searchAddress, type GeocodeResult } from '../lib/geocode';
+import { FALLBACK_CITY } from '../constants/map';
+
+const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
 
 type CreatePostFormInput = z.input<typeof createPostSchema>;
 type CreatePostFormOutput = z.output<typeof createPostSchema>;
@@ -349,6 +353,10 @@ export function CreatePost() {
   const { issue: existingPost, loading: existingPostLoading } = useIssue(id);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [propertyDocumentName, setPropertyDocumentName] = useState<string | null>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<GeocodeResult[]>([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const addressSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
   const form = useForm<CreatePostFormInput, undefined, CreatePostFormOutput>({
     resolver: zodResolver(createPostSchema),
@@ -386,10 +394,32 @@ export function CreatePost() {
       materials: existingPost.materials.map((title, index) => ({ id: `material-${index}`, title })),
     });
     setImagePreview(existingPost.imageUrl);
+    setSelectedLocation(null);
     // `user?.id` on purpose, not `user`: the user object gets a new reference
     // on every auth-state event (token refresh, initial session), which would
     // otherwise re-run this reset mid-edit and discard in-progress changes.
   }, [isEditMode, existingPost, user?.id]);
+
+  useEffect(() => {
+    return () => clearTimeout(addressSearchTimeout.current);
+  }, []);
+
+  const handleAddressChange = (value: string) => {
+    setSelectedLocation(null);
+    clearTimeout(addressSearchTimeout.current);
+
+    addressSearchTimeout.current = setTimeout(async () => {
+      const results = await searchAddress(value);
+      setAddressSuggestions(results);
+      setSuggestionsOpen(results.length > 0);
+    }, ADDRESS_SEARCH_DEBOUNCE_MS);
+  };
+
+  const handleAddressSelect = (suggestion: GeocodeResult) => {
+    form.setValue('address', suggestion.label);
+    setSelectedLocation({ lat: suggestion.lat, lng: suggestion.lng });
+    setSuggestionsOpen(false);
+  };
 
   const isAllowedImageFile = (file: File) =>
     file.type.startsWith('image/') && file.size <= MAX_UPLOAD_SIZE;
@@ -436,6 +466,11 @@ export function CreatePost() {
   const onSubmit = async (data: CreatePostFormOutput) => {
     try {
       if (isEditMode && id) {
+        const addressChanged = data.address !== existingPost?.location.address;
+        const coords =
+          selectedLocation ??
+          (addressChanged ? (await searchAddress(data.address))[0] ?? null : null);
+
         await updateIssue(id, {
           title: data.title,
           description: data.description,
@@ -443,8 +478,8 @@ export function CreatePost() {
           materials: data.materials.map((material) => material.title),
           tasks: data.tasks.map((task) => task.title),
           location: {
-            lat: existingPost?.location.lat ?? 0,
-            lng: existingPost?.location.lng ?? 0,
+            lat: coords?.lat ?? existingPost?.location.lat ?? FALLBACK_CITY.lat,
+            lng: coords?.lng ?? existingPost?.location.lng ?? FALLBACK_CITY.lng,
             address: data.address,
           },
           isPrivateProperty: data.isPrivateProperty === 'private',
@@ -457,6 +492,11 @@ export function CreatePost() {
         return;
       }
 
+      // Pas de suggestion sélectionnée dans la liste : on tente quand même de
+      // géolocaliser le texte saisi avant de retomber sur la ville de repli,
+      // pour ne jamais créer un signalement à (0, 0).
+      const coords = selectedLocation ?? (await searchAddress(data.address))[0] ?? null;
+
       await createIssue({
         title: data.title,
         description: data.description,
@@ -465,8 +505,8 @@ export function CreatePost() {
         materials: data.materials.map((material) => material.title),
         tasks: data.tasks.map((task) => task.title),
         location: {
-          lat: 0,
-          lng: 0,
+          lat: coords?.lat ?? FALLBACK_CITY.lat,
+          lng: coords?.lng ?? FALLBACK_CITY.lng,
           address: data.address,
         },
         isPrivateProperty: data.isPrivateProperty === 'private',
@@ -573,17 +613,54 @@ export function CreatePost() {
                       <MapPin className="size-4 text-primary" />
                       Localisation
                     </Label>
-                    <FormControl>
-                      <Input
-                        id="address"
-                        {...field}
-                        placeholder="Adresse ou lieu précis"
-                        className="bg-input-background"
-                      />
-                    </FormControl>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          id="address"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            handleAddressChange(e.target.value);
+                          }}
+                          onFocus={() => setSuggestionsOpen(addressSuggestions.length > 0)}
+                          onBlur={() => {
+                            field.onBlur();
+                            setTimeout(() => setSuggestionsOpen(false), 150);
+                          }}
+                          placeholder="Rechercher une adresse, une rue ou un lieu..."
+                          className="bg-input-background"
+                          autoComplete="off"
+                          role="combobox"
+                          aria-autocomplete="list"
+                          aria-expanded={suggestionsOpen}
+                          aria-controls="address-suggestions"
+                        />
+                      </FormControl>
+                      {suggestionsOpen && addressSuggestions.length > 0 && (
+                        <ul
+                          id="address-suggestions"
+                          role="listbox"
+                          aria-label="Suggestions d'adresse"
+                          className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-background shadow-lg"
+                        >
+                          {addressSuggestions.map((suggestion, index) => (
+                            <li key={`${suggestion.lat}-${suggestion.lng}-${index}`} role="option" aria-selected={false}>
+                              <button
+                                type="button"
+                                onMouseDown={() => handleAddressSelect(suggestion)}
+                                className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                              >
+                                <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                                {suggestion.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground mt-2">
-                      Soyez le plus précis possible pour faciliter l'intervention
+                      Choisissez une suggestion dans la liste pour un positionnement précis sur la carte
                     </p>
                   </FormItem>
                 </Card>
