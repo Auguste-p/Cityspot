@@ -1,5 +1,5 @@
 import {getSupabaseClient, type IssueStatus} from '../lib/supabase';
-import { getAccessToken } from './authService';
+import { logSecurityEvent } from '../lib/sentry';
 import type { Post, PostCategory, Task } from '../types/Post';
 
 type DatabaseIssueStatus = IssueStatus;
@@ -552,6 +552,11 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
     .single();
 
   if (issueError) {
+    // PGRST116 : la RLS a filtré la ligne (0 résultat pour `.single()`) — soit
+    // l'id n'existe pas, soit l'appelant n'est pas le propriétaire.
+    if (issueError.code === 'PGRST116') {
+      logSecurityEvent('Modification refusée par la RLS (0 ligne retournée)', { issueId });
+    }
     throw new Error(issueError.message);
   }
 
@@ -609,26 +614,34 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
 }
 
 export async function deleteIssue(issueId: string) {
-  const anon_key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const token = await getAccessToken();
+  const client = getSupabaseClient();
 
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-issue`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': anon_key,
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ issueId }),
+  if (!client) {
+    const index = localIssuesStore.findIndex((post) => post.id === issueId);
+    if (index === -1) {
+      throw new Error('Signalement introuvable');
     }
-  );
+    localIssuesStore.splice(index, 1);
+    return true;
+  }
 
-  const data = await response.json();
+  // RLS sur `issues` restreint le DELETE au créateur (auth.uid() = created_by,
+  // cf. PLAN_CORRECTION_BOGUES.md BUG-10) : un non-propriétaire reçoit un 200
+  // avec 0 ligne supprimée plutôt qu'une erreur explicite — d'où le .select()
+  // pour distinguer "supprimé" de "silencieusement refusé par la RLS".
+  const { data, error } = await client
+    .from('issues')
+    .delete()
+    .eq('id', issueId)
+    .select('id');
 
-  if (!response.ok) {
-    throw new Error(data.error);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data || data.length === 0) {
+    logSecurityEvent('Suppression refusée par la RLS (0 ligne supprimée)', { issueId });
+    throw new Error("Vous n'êtes pas autorisé à supprimer ce signalement");
   }
 
   return true;

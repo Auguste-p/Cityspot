@@ -4,15 +4,9 @@ vi.mock('../lib/supabase', () => ({
   getSupabaseClient: vi.fn(),
 }));
 
-vi.mock('./authService', () => ({
-  getAccessToken: vi.fn(),
-}));
-
 import { getSupabaseClient } from '../lib/supabase';
-import { getAccessToken } from './authService';
 
 const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
-const mockedGetAccessToken = vi.mocked(getAccessToken);
 
 // Minimal chainable stand-in for the Supabase query builder: every intermediate
 // call (select/eq/in/order/insert/update/delete) returns the same thenable, and
@@ -34,7 +28,6 @@ function fakeClient(tables: Record<string, { data: unknown; error: unknown }>) {
 
 afterEach(() => {
   mockedGetSupabaseClient.mockReset();
-  mockedGetAccessToken.mockReset();
 });
 
 describe('local fallback (no Supabase configured)', () => {
@@ -210,39 +203,37 @@ describe('comments and votes', () => {
   });
 });
 
-describe('deleteIssue (delete-issue edge function)', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('resolves true when the edge function confirms deletion', async () => {
+describe('deleteIssue (RLS directe sur `issues`)', () => {
+  it('resolves true when the row is actually deleted (owner)', async () => {
     const { deleteIssue } = await import('./issuesService');
-    mockedGetAccessToken.mockResolvedValue('tok');
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ success: true }) } as Response);
-
-    await expect(deleteIssue('issue-1')).resolves.toBe(true);
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/delete-issue'),
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
-        body: JSON.stringify({ issueId: 'issue-1' }),
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: { data: [{ id: 'issue-1' }], error: null },
       }),
     );
+
+    await expect(deleteIssue('issue-1')).resolves.toBe(true);
   });
 
-  it('throws the server error message on a non-owner deletion attempt (SEC-02/03)', async () => {
+  it('throws when RLS silently blocks a non-owner (0 row returned, SEC-02/03)', async () => {
     const { deleteIssue } = await import('./issuesService');
-    mockedGetAccessToken.mockResolvedValue(undefined);
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-      json: async () => ({ error: "Vous n'êtes pas autorisé à supprimer ce signalement" }),
-    } as Response);
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: { data: [], error: null },
+      }),
+    );
 
     await expect(deleteIssue('issue-1')).rejects.toThrow("Vous n'êtes pas autorisé à supprimer ce signalement");
+  });
+
+  it('throws the database error message on a real error', async () => {
+    const { deleteIssue } = await import('./issuesService');
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: { data: null, error: new Error('connection lost') },
+      }),
+    );
+
+    await expect(deleteIssue('issue-1')).rejects.toThrow('connection lost');
   });
 });

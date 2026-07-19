@@ -38,19 +38,6 @@ export async function getCurrentUser() {
   return data.user;
 }
 
-// 🎟️ Session (important pour Edge Functions)
-export async function getSession() {
-  const { data, error } = await getSupabaseClient()!.auth.getSession();
-  if (error) throw error;
-  return data.session;
-}
-
-// 🔑 Token JWT
-export async function getAccessToken() {
-  const session = await getSession();
-  return session?.access_token;
-}
-
 // 🪪 Profil (table public.users)
 export async function getUserProfile(userId: string) {
   const { data, error } = await getSupabaseClient()!

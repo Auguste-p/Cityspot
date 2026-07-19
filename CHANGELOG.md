@@ -10,6 +10,13 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### v1.1.1 — 2026-07-19 — Correctif Sentry + suppression de la fonction serveur `delete-issue`
+
+- **BUG-15** (`PLAN_CORRECTION_BOGUES.md`) : `getCurrentUser()` ne relance plus `AuthSessionMissingError` — un visiteur anonyme sur `/login` ne déclenche plus de faux positif Sentry.
+- **Suppression de l'Edge Function `delete-issue`** : devenue redondante depuis que la RLS sur `issues` couvre `DELETE` (BUG-10, même règle `auth.uid() = created_by` que pour `UPDATE`) — la fonction ne faisait plus rien que la base ne fasse déjà nativement. `issuesService.deleteIssue()` appelle désormais directement `.from('issues').delete()` ; l'absence de ligne supprimée (RLS qui filtre) est détectée côté client pour préserver le même message d'erreur qu'avant. Détail : `ARCHITECTURE.md` §4, `GRILLE_EVALUATION.md`.
+- Impact recette : SEC-02/SEC-03 (`CAHIER_DE_RECETTES.md`) à rejouer contre le nouveau mécanisme, l'ancienne vérification (HTTP 403/401 explicites de la fonction) ne s'applique plus.
+- **Télémétrie applicative de sécurité (A09)** : `logSecurityEvent()` (`src/lib/sentry.ts`) envoie un événement Sentry `warning` à chaque refus d'autorisation métier — garde de route `/municipal` (`Layout.tsx`), suppression/modification bloquée par la RLS (`issuesService.ts`, `deleteIssue`/`updateIssue`). Ferme la majeure partie du point A09 resté ouvert depuis la v1.1.0 (reste : logs de requêtes côté Supabase, alerte sur seuil — cf. `SECURITE.md` §3).
+
 ### v1.1.0 — 2026-07-19 — Supervision, analytics et tracking d'erreurs
 
 Remplacement de Caddy par Traefik (routage par labels Docker), ajout d'une stack de supervision et d'analytics auto-hébergées.

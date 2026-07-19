@@ -2,7 +2,7 @@
 
 ## 1. Objet du document
 
-Ce document décrit comment faire évoluer City Spot une fois déployé : mettre à jour le code, la base de données, la fonction serveur, les dépendances, et attribuer des rôles. Il répond au critère C2.4.1 de la grille d'évaluation, volet *« manuel de mise à jour »*.
+Ce document décrit comment faire évoluer City Spot une fois déployé : mettre à jour le code, la base de données, les dépendances, et attribuer des rôles. Il répond au critère C2.4.1 de la grille d'évaluation, volet *« manuel de mise à jour »*.
 
 Pour le déploiement initial, voir [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMENT.md). Pour l'usage fonctionnel de l'application, voir [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md).
 
@@ -12,7 +12,6 @@ Pour le déploiement initial, voir [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMEN
 |---|---|---|
 | Frontend | React 19 + Vite + TypeScript | `src/` |
 | Base de données + auth | Supabase (Postgres + RLS) | `supabase/migrations/` |
-| Fonction serveur | Supabase Edge Function (Deno) | `supabase/functions/delete-issue/` |
 | Hébergement | Docker (build Vite) + nginx | `Dockerfile`, `nginx.conf` |
 | CI | GitHub Actions | `.github/workflows/ci.yml` |
 
@@ -64,17 +63,9 @@ Pour une nouvelle migration :
 3. `supabase db push`.
 4. Vérifier avec une sonde REST directe (avec et sans authentification, avec un compte tiers) que les policies bloquent bien l'accès non autorisé — méthode utilisée pour SEC-10/SEC-11 dans `CAHIER_DE_RECETTES.md`.
 
-## 6. Redéployer la fonction Edge (`delete-issue`)
+## 6. Tâches d'administration courantes
 
-```bash
-supabase functions deploy delete-issue
-```
-
-À refaire après toute modification de `supabase/functions/delete-issue/index.ts`. La fonction lit `SUPABASE_URL` / `SUPABASE_ANON_KEY` (variables réservées, auto-injectées par la plateforme) — ne pas utiliser les noms `VITE_*`, qui sont propres au bundling client et n'existent pas dans ce runtime (cf. `PLAN_CORRECTION_BOGUES.md`, BUG-02).
-
-## 7. Tâches d'administration courantes
-
-### 7.1 Attribuer le rôle municipal à un compte
+### 6.1 Attribuer le rôle municipal à un compte
 
 Le rôle municipal se lit exclusivement dans `public.users.role` (source de vérité unique depuis la migration `20260717070000_add_users_role.sql` — voir `PLAN_CORRECTION_BOGUES.md`, BUG-12). Il n'existe pas d'interface pour le changer soi-même ; c'est une opération d'administration en base :
 
@@ -84,7 +75,7 @@ update public.users set role = 'municipal' where id = '<uuid-du-compte>';
 
 Le compte obtient alors l'accès à `/municipal`, le bouton de navigation dédié et le badge "Mairie" sur son profil, sans étape supplémentaire.
 
-### 7.2 Mettre à jour les dépendances
+### 6.2 Mettre à jour les dépendances
 
 ```bash
 npm outdated
@@ -95,11 +86,11 @@ npm run build && npm test  # valider qu'une montée de version n'a rien cassé
 
 `package-lock.json` est volontairement dans `.gitignore` (voir `MANUEL_DEPLOIEMENT.md`, §7) : chaque installation régénère ses propres versions verrouillées dans les bornes de `package.json`. Committer le lockfile est une évolution possible si des versions figées deviennent nécessaires.
 
-### 7.3 Rotation d'une clé Supabase
+### 6.3 Rotation d'une clé Supabase
 
 Régénérer la clé anonyme depuis le tableau de bord Supabase, mettre à jour `.env` et les secrets GitHub Actions (`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`), puis reconstruire l'image (`MANUEL_DEPLOIEMENT.md`, §3). Ne jamais placer de clé `service-role`/secrète côté client : `getSupabaseClient()` la rejette explicitement au démarrage si elle commence par `sb_secret_` (test couvrant ce comportement : `src/services/*` — voir `TESTS.md`).
 
-## 8. Où regarder en cas de régression
+## 7. Où regarder en cas de régression
 
 | Symptôme après une mise à jour | Piste |
 |---|---|

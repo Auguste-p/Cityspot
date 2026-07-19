@@ -4,6 +4,7 @@ import { Map, Plus, User, Building2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useUser } from '../context/UserContext';
 import { toast } from 'sonner';
+import { logSecurityEvent } from '../lib/sentry';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export function Layout() {
     }
 
     if (!isMunicipalUser && location.pathname.startsWith('/municipal')) {
+      logSecurityEvent('Tentative d\'accès à /municipal par un compte non municipal', { userId: user.id });
       toast.error('Accès réservé aux comptes municipaux');
       navigate('/', { replace: true });
     }

@@ -6,7 +6,6 @@ vi.mock('../lib/supabase', () => ({
 
 import { getSupabaseClient } from '../lib/supabase';
 import {
-  getAccessToken,
   getCurrentUser,
   getUserProfile,
   signIn,
@@ -109,24 +108,6 @@ describe('getCurrentUser', () => {
     } as any);
 
     await expect(getCurrentUser()).rejects.toThrow('network error');
-  });
-});
-
-describe('getAccessToken', () => {
-  it('forwards the session access token', async () => {
-    mockedGetSupabaseClient.mockReturnValue({
-      auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } }, error: null }) },
-    } as any);
-
-    await expect(getAccessToken()).resolves.toBe('tok');
-  });
-
-  it('resolves undefined when there is no active session', async () => {
-    mockedGetSupabaseClient.mockReturnValue({
-      auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }) },
-    } as any);
-
-    await expect(getAccessToken()).resolves.toBeUndefined();
   });
 });
 

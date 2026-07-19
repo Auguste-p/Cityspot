@@ -44,11 +44,13 @@ Détail fichier par fichier, ce que chaque test vérifie et pourquoi : [`TESTS.m
 
 ## Documentation
 
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — composants, flux de données, frontières de confiance.
 - [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMENT.md) — build et déploiement de l'image Docker, pipeline CI/CD.
 - [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md) — prise en main de l'application pour un utilisateur (citoyen ou agent municipal).
 - [`MANUEL_MISE_A_JOUR.md`](./MANUEL_MISE_A_JOUR.md) — faire évoluer le logiciel : migrations base de données, dépendances, redéploiement.
 - [`SECURITE.md`](./SECURITE.md) — mapping des mesures de sécurité à l'OWASP Top 10.
 - [`CHANGELOG.md`](./CHANGELOG.md) — historique des versions (tags Git), traçabilité des évolutions du prototype.
+- [`GRILLE_EVALUATION.md`](./GRILLE_EVALUATION.md) — index : quel document répond à quel critère de la grille d'évaluation.
 
 # Avancée du jour avec IA
 

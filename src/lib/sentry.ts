@@ -9,3 +9,14 @@ export function initSentry() {
 
   Sentry.init({ dsn, tracesSampleRate: 0 });
 }
+
+// Refus d'autorisation métier (RLS, garde de route) : pas des bugs, mais des
+// événements de sécurité (A09) — sans ça, un contournement RLS ou une
+// tentative d'accès à /municipal ne laisse aucune trace.
+export function logSecurityEvent(message: string, extra?: Record<string, unknown>) {
+  if (!dsn) {
+    return;
+  }
+
+  Sentry.captureMessage(message, { level: 'warning', extra });
+}
