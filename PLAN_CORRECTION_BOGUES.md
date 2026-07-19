@@ -138,6 +138,14 @@ Chaque entrée précise : comment le bogue a été détecté, sa cause racine, l
 - **Vérification** : pour un signalement "pas propriétaire", réouvrir en édition affiche désormais le bon radio ("Non") et le bon champ (email, préchargé avec la bonne valeur) ; pour un signalement "propriétaire", le radio "Oui" et la section document s'affichent correctement. Les deux cas survivent à une resoumission sans perte.
 - **Statut** : ✅ Corrigé et vérifié (2026-07-17)
 
+### BUG-15 — Faux positifs Sentry : `AuthSessionMissingError` à chaque visite anonyme de `/login`
+- **Sévérité** : Mineur (aucun impact utilisateur — la page fonctionne normalement — mais pollue le suivi d'erreurs et masque de vrais incidents dans le bruit)
+- **Détecté par** Sentry (mise en place cette session) : 3 alertes email reçues en production avec la stack `authService → supabase.auth.getUser() → AuthSessionMissingError`
+- **Cause racine** : `LoginPage.tsx` appelle `getCurrentUser()` (`authService.ts`) dans un `useEffect` au montage, sans `.catch()`, pour rediriger un utilisateur déjà connecté. Or l'API Supabase `auth.getUser()` ne renvoie pas `{ user: null, error: null }` en l'absence de session — elle renvoie une erreur nommée `AuthSessionMissingError`. `getCurrentUser()` la relançait comme n'importe quelle autre erreur (`if (error) throw error`), ce qui produisait une promesse rejetée non interceptée à chaque visite de `/login` par un visiteur non authentifié — le cas normal, pas un cas d'erreur.
+- **Correctif appliqué** : `getCurrentUser()` (`authService.ts`) intercepte spécifiquement `error?.name === 'AuthSessionMissingError'` et renvoie `null` (comportement identique à "aucun utilisateur connecté"), avant le `if (error) throw error` général qui reste inchangé pour les vraies erreurs (réseau, etc.).
+- **Vérification** : tests unitaires ajoutés dans `authService.test.ts` — `getCurrentUser()` résout `null` (et ne rejette pas) quand Supabase renvoie `AuthSessionMissingError`, et continue de rejeter sur une autre erreur (ex. réseau). Suite complète rejouée (`npx vitest run src/services/authService.test.ts`) → 14/14 passants.
+- **Statut** : ✅ Corrigé et vérifié (2026-07-19)
+
 ---
 
 ## 4. Synthèse
@@ -146,7 +154,7 @@ Chaque entrée précise : comment le bogue a été détecté, sa cause racine, l
 |---|---|---|
 | Critique | 5 (BUG-01, BUG-05, BUG-09, BUG-10, BUG-13) | 0 |
 | Majeur | 6 (BUG-02, BUG-03, BUG-04, BUG-06, BUG-11, BUG-14) | 0 |
-| Mineur | 3 (BUG-07, BUG-08, BUG-12) | 0 |
-| **Total** | **14** | **0** |
+| Mineur | 4 (BUG-07, BUG-08, BUG-12, BUG-15) | 0 |
+| **Total** | **15** | **0** |
 
-Les 14 bogues identifiés durant cette session sont tous corrigés et re-vérifiés — par sonde REST directe pour les bogues de sécurité, par un parcours de bout en bout dans un navigateur piloté pour les bogues fonctionnels (BUG-11, BUG-14 : création, rechargement complet depuis la base, cycle d'édition), et par les tests d'accessibilité automatisés pour BUG-07/BUG-08. BUG-12 attendait une décision produit (Option A retenue : source de vérité unique) avant de recevoir son correctif. **Aucun bogue ouvert à ce jour.**
+Les 15 bogues identifiés sont tous corrigés et re-vérifiés — par sonde REST directe pour les bogues de sécurité, par un parcours de bout en bout dans un navigateur piloté pour les bogues fonctionnels (BUG-11, BUG-14 : création, rechargement complet depuis la base, cycle d'édition), par les tests d'accessibilité automatisés pour BUG-07/BUG-08, et par Sentry en production pour BUG-15 (premier bogue détecté via le monitoring d'erreurs mis en place cette session, plutôt que par revue de code ou remontée utilisateur). BUG-12 attendait une décision produit (Option A retenue : source de vérité unique) avant de recevoir son correctif. **Aucun bogue ouvert à ce jour.**

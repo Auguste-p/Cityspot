@@ -89,6 +89,27 @@ describe('getCurrentUser', () => {
 
     await expect(getCurrentUser()).resolves.toEqual({ id: 'u1' });
   });
+
+  it('resolves null instead of throwing when there is no session (anonymous visitor)', async () => {
+    mockedGetSupabaseClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { name: 'AuthSessionMissingError', message: 'Auth session missing!' },
+        }),
+      },
+    } as any);
+
+    await expect(getCurrentUser()).resolves.toBeNull();
+  });
+
+  it('still throws on other auth errors', async () => {
+    mockedGetSupabaseClient.mockReturnValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: null, error: new Error('network error') }) },
+    } as any);
+
+    await expect(getCurrentUser()).rejects.toThrow('network error');
+  });
 });
 
 describe('getAccessToken', () => {

@@ -32,6 +32,8 @@ export async function signOut() {
 // 👤 User courant
 export async function getCurrentUser() {
   const { data, error } = await getSupabaseClient()!.auth.getUser();
+  // Pas de session (visiteur anonyme) : état normal, pas une erreur.
+  if (error?.name === 'AuthSessionMissingError') return null;
   if (error) throw error;
   return data.user;
 }
