@@ -30,7 +30,7 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 **Statut** : ✅ — écart mineur assumé : pas de `tsc --noEmit` ni de lint en CI (SWC transpile sans vérifier les types). `npm audit --audit-level=high` rejoué à chaque push/PR depuis le 2026-07-19 (cf. §4).
 
 ### 3.3 C2.2.1 — Architecture présentée
-**Document** : `ARCHITECTURE.md` — vue d'ensemble (schéma Mermaid composants/flux), frontend (structure `src/`, routage), backend Supabase (RLS table par table, y compris `DELETE` depuis le retrait de l'Edge Function `delete-issue` — cf. `CHANGELOG.md` v1.1.1), déploiement/infra (Docker, Traefik, supervision, CI/CD), frontières de confiance.
+**Document** : `ARCHITECTURE.md` — vue d'ensemble (schéma Mermaid composants/flux), frontend (structure `src/`, routage), backend Supabase (RLS table par table, y compris `DELETE` depuis le retrait de l'Edge Function `delete-issue` — cf. `CHANGELOG.md` v1.2.0), déploiement/infra (Docker, Traefik, supervision, CI/CD), frontières de confiance.
 **Statut** : ✅ — closes l'écart précédemment documenté ici (contenu qui existait dispersé entre `README.md`, `MANUEL_DEPLOIEMENT.md` et `SECURITE.md`, désormais consolidé sans duplication : `ARCHITECTURE.md` renvoie vers ces trois documents pour le détail plutôt que de le répéter).
 
 ### 3.4 C2.2.2 — Tests unitaires couvrent la majorité du code développé

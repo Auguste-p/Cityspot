@@ -10,8 +10,9 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
-### v1.1.1 — 2026-07-19 — Correctif Sentry + suppression de la fonction serveur `delete-issue`
+### v1.2.0 — 2026-07-20 — Recherche d'adresse précise à la création d'un signalement
 
+- **Recherche d'adresse avec suggestions** (`src/lib/geocode.ts`, `CreatePost.tsx`) : le champ "Localisation" propose désormais une liste de suggestions au fil de la frappe (debounce 400 ms), via l'API Photon (mêmes données OSM que le reverse-geocoding déjà utilisé dans `MapView`, mais pensée pour l'autocomplétion — rues, numéros, lieux nommés, pas seulement des villes). Corrige un bogue réel : tout nouveau signalement était créé avec `lat: 0, lng: 0` (marqueur sur Null Island) ; le marqueur apparaît désormais à la position réelle du lieu choisi. Si aucune suggestion n'est sélectionnée, une géolocalisation de secours du texte saisi est tentée à la soumission avant de retomber sur la ville par défaut.
 - **BUG-15** (`PLAN_CORRECTION_BOGUES.md`) : `getCurrentUser()` ne relance plus `AuthSessionMissingError` — un visiteur anonyme sur `/login` ne déclenche plus de faux positif Sentry.
 - **Suppression de l'Edge Function `delete-issue`** : devenue redondante depuis que la RLS sur `issues` couvre `DELETE` (BUG-10, même règle `auth.uid() = created_by` que pour `UPDATE`) — la fonction ne faisait plus rien que la base ne fasse déjà nativement. `issuesService.deleteIssue()` appelle désormais directement `.from('issues').delete()` ; l'absence de ligne supprimée (RLS qui filtre) est détectée côté client pour préserver le même message d'erreur qu'avant. Détail : `ARCHITECTURE.md` §4, `GRILLE_EVALUATION.md`.
 - Impact recette : SEC-02/SEC-03 (`CAHIER_DE_RECETTES.md`) rejoués contre le nouveau mécanisme par sonde REST directe (2 comptes réels) — confirmés ✅, l'ancienne vérification (HTTP 403/401 explicites de la fonction) ne s'appliquait plus.
