@@ -12,33 +12,33 @@ Ce document liste les tests unitaires du projet, explique ce que chacun vérifie
 - **Accessibilité** : `axe-core`, exécuté directement dans les tests de composants (voir `src/test/a11y.ts` et `ACCESSIBILITE.md`).
 
 ```bash
-npm test              # exécute les 100 tests
+npm test              # exécute les 105 tests
 npm run test:coverage # exécute les tests + génère le rapport de couverture (table ci-dessous)
 ```
 
 La couverture est calculée uniquement sur `src/**` (le dossier `build/`, qui contient le bundle compilé, est explicitement exclu de la configuration — l'inclure aurait fait chuter le pourcentage sans rapport avec le code réellement écrit). Voir `vite.config.ts`, clé `test.coverage`.
 
-**En CI** (`.github/workflows/ci.yml`, C2.1.2) : `npm run test:coverage` s'exécute sur chaque push/PR vers `main` — mêmes 100 tests que `npm test` (le build échoue pareillement si l'un d'eux casse), plus le rapport de couverture, déposé en artefact `coverage-report` (HTML + JSON, 30 jours) consultable depuis l'onglet *Actions* du dépôt. Le résumé est aussi recopié dans `README.md` (§ Tests & couverture).
+**En CI** (`.github/workflows/ci.yml`, C2.1.2) : `npm run test:coverage` s'exécute sur chaque push/PR vers `main` — mêmes 105 tests que `npm test` (le build échoue pareillement si l'un d'eux casse), plus le rapport de couverture, déposé en artefact `coverage-report` (HTML + JSON, 30 jours) consultable depuis l'onglet *Actions* du dépôt. Le résumé est aussi recopié dans `README.md` (§ Tests & couverture).
 
 ## 3. Couverture globale
 
-Mesurée le 2026-07-17 avec `npm run test:coverage` (100 tests, 19 fichiers de test, tous verts).
+Mesurée le 2026-07-19 avec `npm run test:coverage` (105 tests, 20 fichiers de test, tous verts).
 
 | Dossier | % Instructions | % Branches | % Fonctions | % Lignes |
 |---|---|---|---|---|
-| **`src` (ensemble)** | **81.27 %** | 71.51 % | 58.89 % | **81.27 %** |
+| **`src` (ensemble)** | **80.88 %** | 70.42 % | 59.14 % | **80.88 %** |
 | `src/lib` | 100 % | 100 % | 100 % | 100 % |
 | `src/constants` | 100 % | 100 % | 100 % | 100 % |
-| `src/context` | 94.23 % | 100 % | 100 % | 94.23 % |
+| `src/context` | 85.5 % | 94.44 % | 100 % | 85.5 % |
 | `src/hooks` | 95.04 % | 78.57 % | 100 % | 95.04 % |
 | `src/schemas` | 100 % | 75 % | 100 % | 100 % |
-| `src/components` (écrans) | 85.91 % | 76.75 % | 29.87 % | 85.91 % |
+| `src/components` (écrans) | 85.74 % | 76.38 % | 29.87 % | 85.74 % |
 | `src/components/ui` | 85.15 % | 80.95 % | 75.67 % | 85.15 % |
-| `src/services` | 64.75 % | 47.96 % | 96.29 % | 64.75 % |
+| `src/services` | 63.52 % | 46.04 % | 96 % | 63.52 % |
 | `src/test` (helper `a11y.ts`) | 75 % | 66.66 % | 100 % | 75 % |
 | `src` racine (`App.tsx`, `main.tsx`, `routes.ts`), `src/types` | 0 % | — | — | 0 % |
 
-**Lecture** : le critère C2.2.2 (« majorité du code développé ») est désormais dépassé — **81 % des lignes de `src`** sont exercées par au moins un test. Tous les écrans (`MapView`, `CreatePost`, `PostDetail`, `MunicipalView`, `Profile`, `Settings`, `Layout`, `LoginPage`, `VoteDialog`, `PostCard`) ont maintenant des tests, chacun sous l'angle accessibilité (§5) — ce qui, en exerçant le rendu complet de chaque écran, a couvert la logique de rendu et les branches conditionnelles au passage. La colonne « % Fonctions » reste plus basse (58.89 %) : beaucoup de gestionnaires d'événements (`onSubmit`, `handleDelete`, `handleShare`…) ne sont pas déclenchés par un simple audit d'accessibilité, qui rend l'écran mais ne simule pas toutes les interactions. Ce qui reste à 0 % (`App.tsx`, `main.tsx`, `routes.ts`, `src/types`) est du câblage/bootstrap sans logique propre — voir §6.
+**Lecture** : le critère C2.2.2 (« majorité du code développé ») est désormais dépassé — **81 % des lignes de `src`** sont exercées par au moins un test. `src/lib` est passé à 100 % avec l'ajout des tests d'`initSentry`/`logSecurityEvent` (§4.22). Tous les écrans (`MapView`, `CreatePost`, `PostDetail`, `MunicipalView`, `Profile`, `Settings`, `Layout`, `LoginPage`, `VoteDialog`, `PostCard`) ont des tests, chacun sous l'angle accessibilité (§5) — ce qui, en exerçant le rendu complet de chaque écran, a couvert la logique de rendu et les branches conditionnelles au passage. La colonne « % Fonctions » reste plus basse (59.14 %) : beaucoup de gestionnaires d'événements (`onSubmit`, `handleDelete`, `handleShare`…) ne sont pas déclenchés par un simple audit d'accessibilité, qui rend l'écran mais ne simule pas toutes les interactions. Ce qui reste à 0 % (`App.tsx`, `main.tsx`, `routes.ts`, `src/types`) est du câblage/bootstrap sans logique propre — voir §6.
 
 ## 4. Détail par fichier de test
 
@@ -57,12 +57,12 @@ Teste `hasSupabaseConfig` et `getSupabaseClient()` : absence de config → clien
 ### 4.5 `src/services/authService.test.ts` (nouveau — 12 tests)
 Teste chaque fonction du service d'authentification (`signUp`, `signIn`, `signOut`, `getCurrentUser`, `getUserProfile`, `updateUserProfile`) : cas de succès (bon appel à Supabase, bonne donnée renvoyée) et cas d'erreur (l'erreur Supabase est bien propagée via `throw`, pas avalée — sauf `AuthSessionMissingError` sur `getCurrentUser()`, qui résout `null`, cf. `PLAN_CORRECTION_BOGUES.md` BUG-15). Le client Supabase est mocké (`vi.mock('../lib/supabase')`) — aucun appel réseau réel. Intérêt : ce service est sur le chemin critique de toutes les pages protégées (AUTH-01 à AUTH-08).
 
-### 4.6 `src/services/issuesService.test.ts` (nouveau — 12 tests)
-Le fichier le plus volumineux du projet (711 lignes), testé sous trois angles :
+### 4.6 `src/services/issuesService.test.ts` (nouveau — 13 tests)
+Le fichier le plus volumineux du projet, testé sous trois angles :
 - **Mode local (fallback sans Supabase configuré)** : `createIssue` → `listIssues` → `getIssueById` → `updateIssue` sur le store en mémoire, y compris le cas « signalement introuvable ». Ce mode est celui qui tourne si `.env` est absent — donc celui que verra un correcteur qui clone le repo sans configurer Supabase.
 - **Mode Supabase (lectures)** : `listIssues`/`getIssueById` avec un faux client Supabase chaînable (`.from().select().eq()...`), y compris la vérification que `status: 'resolved'` (base) devient bien `status: 'completed'` (app) — le mapping `normalizeIssueStatus` — et la propagation d'une erreur base de données.
 - **Commentaires / votes** : mapping correct des lignes `comments`/`votes` vers les types exposés à l'UI.
-- **`deleteIssue`** (fonction Edge) : succès, et surtout le cas **suppression refusée** avec le message d'erreur du serveur propagé — couvre **SEC-02/SEC-03** du cahier de recettes (suppression par un non-propriétaire / sans authentification).
+- **`deleteIssue`** (RLS directe sur `issues`, depuis le retrait de l'Edge Function `delete-issue` — cf. `CHANGELOG.md` v1.1.1) : 3 cas — suppression réussie par le propriétaire (ligne renvoyée par `.select('id')`), refus silencieux par la RLS pour un non-propriétaire (tableau vide → `deleteIssue()` lève l'erreur "Vous n'êtes pas autorisé..."), et propagation d'une vraie erreur base de données. Couvre **SEC-02/SEC-03** du cahier de recettes (suppression par un non-propriétaire / sans authentification).
 
 ### 4.7 `src/hooks/useIssues.test.tsx` (nouveau — 7 tests)
 Teste `useIssues`, `useIssue`, `useComments`, `useVotes` avec `renderHook` (`@testing-library/react`) et le service `issuesService` mocké : état `loading` initial puis résolu, erreur capturée sans crash, `reload()` qui refetch, ajout local d'un commentaire/vote après résolution de la promesse. Intérêt : ces hooks pilotent le chargement de données sur `MapView`, `PostDetail`, `MunicipalView` — une régression ici casserait l'affichage sur plusieurs écrans à la fois.
@@ -108,6 +108,9 @@ Audite la boîte de dialogue de vote (Radix `Dialog`, rendue dans un portail att
 
 ### 4.21 `src/components/MapView.test.tsx` (nouveau — 4 tests)
 Audite la carte interactive : chargement, erreur, vue par défaut (carte + liste de signalements, aucune sélection), et panneau de détail après sélection d'un signalement municipal/privé/en cours. `maplibre-gl` est entièrement mocké (`Map`/`Marker`/`NavigationControl` factices) — jsdom n'a pas de contexte WebGL, la vraie librairie planterait au montage. `useIssues`, `useVotes` et `useUser` sont mockés.
+
+### 4.22 `src/lib/sentry.test.ts` (nouveau — 4 tests)
+Teste `initSentry()` (n'appelle `Sentry.init` que si `VITE_SENTRY_DSN` est configuré, avec `tracesSampleRate: 0`) et `logSecurityEvent()` (même garde ; envoie un événement `warning` tagué `security_event: true` quand un DSN est présent). `@sentry/react` est mocké (`vi.mock`), aucun appel réseau réel — chaque cas relit le module dynamiquement après `vi.stubEnv` pour que la constante `dsn`, lue une fois au chargement du module, reflète l'environnement du test. Intérêt : c'est cette fonction qui ferme le volet applicatif d'A09 (`SECURITE.md`) — un refus d'autorisation métier (garde `/municipal`, suppression/modification bloquée par la RLS) doit remonter, un test qui casserait `logSecurityEvent` le ferait disparaître silencieusement.
 
 ## 5. Accessibilité (RGAA)
 

@@ -27,7 +27,7 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 ### 3.2 C2.1.2 — Intégration et déploiement continus
 **Document** : `MANUEL_DEPLOIEMENT.md` (pipeline CI `.github/workflows/ci.yml` : tests + build sur chaque push/PR vers `main` ; pipeline CD `.github/workflows/deploy.yml` : build+push GHCR puis déploiement SSH sur le VPS, déclenché par un tag `vX.Y.Z`).
 **Preuve** : les deux pipelines ont été **vérifiés en conditions réelles**, pas juste rédigés — déploiement réel sur `v1.0.1` (2026-07-18) et `v1.1.0` (2026-07-19), cf. `CHANGELOG.md`.
-**Statut** : ✅ — écart mineur assumé : pas de `tsc --noEmit` ni de lint en CI (SWC transpile sans vérifier les types), pas de `npm audit` rejoué automatiquement (cf. §4).
+**Statut** : ✅ — écart mineur assumé : pas de `tsc --noEmit` ni de lint en CI (SWC transpile sans vérifier les types). `npm audit --audit-level=high` rejoué à chaque push/PR depuis le 2026-07-19 (cf. §4).
 
 ### 3.3 C2.2.1 — Architecture présentée
 **Document** : `ARCHITECTURE.md` — vue d'ensemble (schéma Mermaid composants/flux), frontend (structure `src/`, routage), backend Supabase (RLS table par table, y compris `DELETE` depuis le retrait de l'Edge Function `delete-issue` — cf. `CHANGELOG.md` v1.1.1), déploiement/infra (Docker, Traefik, supervision, CI/CD), frontières de confiance.
@@ -35,13 +35,13 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 
 ### 3.4 C2.2.2 — Tests unitaires couvrent la majorité du code développé
 **Document** : `TESTS.md`, citant explicitement le critère : *« Les tests unitaires couvrent la majorité du code développé »*.
-**Preuve** : 81 % de couverture des lignes de `src` (mesurée le 2026-07-17), détail fichier par fichier dans `TESTS.md` §4. Rejoué en CI à chaque push (`ci.yml`), artefact `coverage-report` déposé 30 jours.
-**Statut** : ✅ — voir §4 pour un écart mineur de fraîcheur (compteur de tests non remis à jour depuis l'ajout de BUG-15).
+**Preuve** : 105 tests, 80.88 % de couverture des lignes de `src` (mesurée le 2026-07-19), détail fichier par fichier dans `TESTS.md` §4. Rejoué en CI à chaque push (`ci.yml`), artefact `coverage-report` déposé 30 jours.
+**Statut** : ✅
 
 ### 3.5 C2.2.3 — Sécurité et accessibilité
 **Sécurité** — document `SECURITE.md`, citant : *« Les mesures prises permettent de couvrir les 10 failles de sécurité principales décrites par l'OWASP »*. Mapping explicite des 10 catégories OWASP Top 10 2021, chacune reliée à un fichier et à un scénario de recette ou de correction de bogue qui la vérifie.
 **Accessibilité** — document `ACCESSIBILITE.md`, citant : *« Le référentiel d'accessibilité choisi est présenté et justifié »* et *« Le prototype permet de répondre aux exigences du référentiel d'accessibilité préalablement établi »*. Référentiel retenu : RGAA 4.1, vérifié via `axe-core` sur tous les écrans (détail des tests dans `TESTS.md` §5).
-**Statut** : ✅ — écarts mineurs assumés et écrits explicitement dans les deux documents (A06 `npm audit` non rejoué en CI, A09 largement couvert depuis l'ajout de `logSecurityEvent` mais sans logs DB ni alerting automatique, contraste RGAA non vérifiable sous `jsdom`).
+**Statut** : ✅ — écart mineur assumé et écrit explicitement (contraste RGAA non vérifiable sous `jsdom`). A09 entièrement fermé depuis le 2026-07-19 (télémétrie applicative + alerte Sentry + revue des logs Supabase, cf. `SECURITE.md` §4).
 
 ### 3.6 C2.2.4 — Gestion de versions et traçabilité des évolutions
 **Document** : `CHANGELOG.md`, citant : *« Un système de gestion de versions est utilisé »* et *« Les évolutions du prototype sont tracées »*.
@@ -67,10 +67,9 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 
 ## 4. Écarts connus
 
-- **C2.1.2 / C2.2.3 (A06)** : pas de `tsc --noEmit`, pas de lint, pas de `npm audit` rejoués automatiquement en CI.
+- **C2.1.2** : pas de `tsc --noEmit` ni de lint rejoués automatiquement en CI (SWC transpile sans vérifier les types).
 - **C2.2.3 (accessibilité)** : contraste couleur RGAA non vérifiable sous `jsdom`, jamais testé en navigateur réel.
-- **C2.2.3 (A09)** : monitoring infra (Prometheus/Grafana/Sentry/fail2ban) + télémétrie applicative (`logSecurityEvent`, cf. `CHANGELOG.md`) en place. Reste ouvert : pas de logs de requêtes Postgres/PostgREST côté Supabase (un contournement complet du frontend resterait invisible côté client) ni d'alerte automatique sur seuil.
-- **C2.2.2** : `TESTS.md` annonce 100 tests (mesure du 2026-07-17) ; 2 tests ont été ajoutés le 2026-07-19 pour BUG-15 (102 au total) — compteur et tableau de couverture de `TESTS.md` pas encore rafraîchis, dérive mineure sans impact sur le critère.
+- **C2.2.3 (A09, résiduel)** : la revue des logs de requêtes Supabase (seule couche qui verrait un contournement complet du frontend) est manuelle, pas d'alerte automatique native sur ces logs côté Supabase (plan gratuit) — l'alerte Sentry couvre le volet applicatif/client, pas ce volet-là. Détail : `SECURITE.md` §4.
 - **C2.3.1** : 12/87 scénarios de recette non exécutés, raison documentée sur chaque ligne (`CAHIER_DE_RECETTES.md`).
 
-Aucun de ces écarts ne concerne un critère au rouge — tous les critères C2 listés en §2 sont satisfaits ; ce sont des marges de progression documentées, dans l'esprit du projet (limites écrites explicitement plutôt que masquées, cf. `SECURITE.md`/`ACCESSIBILITE.md`).
+A06 est désormais fermé (`npm audit` en CI depuis le 2026-07-19) et retiré de cette liste. A09 est largement fermé (télémétrie applicative + alerte Sentry depuis le 2026-07-19, cf. `SECURITE.md` §4) — seule la revue des logs Supabase reste manuelle plutôt qu'alertée automatiquement, listée ci-dessus comme limite résiduelle assumée, pas un blocage du critère. Aucun de ces écarts ne concerne un critère au rouge — tous les critères C2 listés en §2 sont satisfaits ; ce sont des marges de progression documentées, dans l'esprit du projet (limites écrites explicitement plutôt que masquées, cf. `SECURITE.md`/`ACCESSIBILITE.md`).

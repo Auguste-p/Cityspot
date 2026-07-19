@@ -12,6 +12,29 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe('initSentry', () => {
+  it('does not initialize Sentry without a configured DSN', async () => {
+    vi.stubEnv('VITE_SENTRY_DSN', '');
+    const { initSentry } = await import('./sentry');
+
+    initSentry();
+
+    expect(Sentry.init).not.toHaveBeenCalled();
+  });
+
+  it('initializes Sentry with the configured DSN and no tracing', async () => {
+    vi.stubEnv('VITE_SENTRY_DSN', 'https://fake@sentry.example/1');
+    const { initSentry } = await import('./sentry');
+
+    initSentry();
+
+    expect(Sentry.init).toHaveBeenCalledWith({
+      dsn: 'https://fake@sentry.example/1',
+      tracesSampleRate: 0,
+    });
+  });
+});
+
 describe('logSecurityEvent', () => {
   it('does nothing without a configured DSN', async () => {
     vi.stubEnv('VITE_SENTRY_DSN', '');
@@ -30,6 +53,7 @@ describe('logSecurityEvent', () => {
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith('tentative refusée', {
       level: 'warning',
+      tags: { security_event: true },
       extra: { issueId: 'i1' },
     });
   });

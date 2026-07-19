@@ -22,14 +22,14 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | Vue municipale | `MunicipalView.tsx` |
 | Profil utilisateur | `Profile.tsx`, `authService.ts` (`getUserProfile`) |
 | Paramètres du compte | `Settings.tsx` |
-| Base de données (schéma & sécurité) | `supabase/migrations/` — historique complet dans `PLAN_CORRECTION_BOGUES.md` (trigger `public.users`, champs `Settings`, contrainte d'unicité `votes`, RLS `issues`/`tasks`/`materials`/`comments`/`votes`, `owner_email`, `is_own_property`, retrait de `cityWorker`). ⚠️ Les migrations déjà appliquées sont régulièrement supprimées du disque une fois poussées — le dossier local n'est donc pas l'historique fiable, seul `PLAN_CORRECTION_BOGUES.md` et le projet Supabase le sont. |
+| Base de données (schéma & sécurité) | `supabase/migrations/` — historique complet dans `PLAN_CORRECTION_BOGUES.md` (trigger `public.users`, champs `Settings`, contrainte d'unicité `votes`, RLS `issues`/`tasks`/`materials`/`comments`/`votes`, `owner_email`, `is_own_property`, retrait de `cityWorker`). |
 
 ## 3. Environnement de test
 
 - Application lancée en local (`npm run dev`) ou via le conteneur Docker (`docker run -p 8080:80 cityspot`, voir `MANUEL_DEPLOIEMENT.md`).
 - Base Supabase de test configurée (`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`), ou absence de configuration pour valider le mode de secours en données locales (`hasSupabaseConfig = false`).
 - Migrations appliquées (`supabase db push`) : trigger de synchronisation `public.users` et le reste de l'historique décrit dans `PLAN_CORRECTION_BOGUES.md`.
-- Deux comptes de test au minimum : un `role = citizen`, un `role = municipal` (`user_metadata.role`, seule source de vérité du statut municipal depuis la résolution de BUG-12).
+- Deux comptes de test au minimum : un `role = citizen`, un `role = municipal` (`public.users.role`, seule source de vérité du statut municipal depuis la résolution de BUG-12 — pas `auth.users.user_metadata`, abandonné).
 - Navigateur desktop + un test sur viewport mobile (< 480px).
 
 ## 4. Légende
@@ -101,7 +101,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | DET-10 | F | Mineur | Signalement introuvable | Accéder à `/post/id-inexistant` | Message "Signalement introuvable" avec retour à la carte | ✅ *(exécuté 2026-07-17)* |
 | DET-11 | F | Mineur | Liste des votants | Cliquer sur le badge de score | Modale listant chaque votant avec son choix (Pour/Contre) | ✅ *(exécuté 2026-07-17)* |
 | DET-12 | F | Majeur | Suppression par le créateur | Ouvrir un signalement créé par soi-même, cliquer sur l'icône poubelle, confirmer la boîte de dialogue | Toast "Signalement supprimé", redirection vers `/`, le signalement disparaît de la carte et des listes | ✅ *(exécuté 2026-07-17, confirmation acceptée, disparition vérifiée)* |
-| DET-13 | F | Mineur | Annulation de la suppression | Cliquer sur l'icône poubelle puis annuler la confirmation (`window.confirm`) | Aucun appel à `deleteIssue`, le signalement reste inchangé | ✅ *(exécuté 2026-07-17 — vérifié précisément qu'aucune requête `delete-issue` n'est envoyée quand la boîte de dialogue est annulée ; un premier test avait semblé indiquer le contraire mais c'était un délai réseau mal mesuré, pas une suppression réelle)* |
+| DET-13 | F | Mineur | Annulation de la suppression | Cliquer sur l'icône poubelle puis annuler la confirmation (`window.confirm`) | Aucun appel à `deleteIssue`, le signalement reste inchangé | ✅ *(exécuté 2026-07-17 — vérifié précisément qu'aucune requête de suppression n'est envoyée quand la boîte de dialogue est annulée ; un premier test avait semblé indiquer le contraire mais c'était un délai réseau mal mesuré, pas une suppression réelle. Mécanisme de suppression changé depuis — RLS directe sur `issues`, plus d'Edge Function — le comportement d'annulation lui-même est inchangé)* |
 | DET-14 | F | Majeur | Modification par le créateur | Cliquer sur l'icône crayon d'un signalement créé par soi-même, modifier titre/description/tâches/matériel, enregistrer | Formulaire `/create/:id` pré-rempli avec les données existantes, `updateIssue` appelé (remplace tâches/matériel), toast "Signalement modifié avec succès !", redirection vers `/post/:id` avec les changements visibles | ✅ *(exécuté 2026-07-17, titre modifié avec succès, changement visible après redirection)* |
 | DET-15 | SEC | Majeur | Modification par un non-créateur (accès direct URL) | Naviguer directement vers `/create/:id` d'un signalement créé par un autre utilisateur | Toast "Vous n'êtes pas autorisé à modifier ce signalement", redirection vers `/` (garde côté client dans `CreatePost.tsx`) | ✅ *(garde côté client confirmée 2026-07-17 — redirection effective ; la protection serveur, absente au moment de ce test, a depuis été ajoutée — cf. SEC-10)* |
 | DET-16 | F | Majeur | Édition non interrompue par un événement d'auth | Ouvrir `/create/:id` en édition, modifier un champ dans les toutes premières secondes après le chargement | La modification reste affichée, rien ne revient à la valeur d'origine | ✅ *(aucun retour en arrière observé lors de DET-14, malgré plusieurs secondes d'interaction multi-étapes après le chargement — cohérent avec le correctif `user?.id`)* |
@@ -223,4 +223,4 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 **Point restant, assumé (pas un bug)** :
 - Le changement d'email n'est pas implémenté (champ désactivé dans `/settings`, cf. SET-06) : nécessiterait un flux `auth.updateUser` dédié avec confirmation, volontairement laissé hors périmètre.
 
-**Aucun bogue ouvert à ce jour** — les 14 bogues détectés durant cette session sont tous corrigés et vérifiés. Détail complet : `PLAN_CORRECTION_BOGUES.md`.
+**Aucun bogue ouvert à ce jour** — les 14 bogues détectés durant cette session de recette (2026-07-17) sont tous corrigés et vérifiés. Un 15e bogue (BUG-15) a depuis été détecté en production via Sentry (pas via un scénario de ce cahier) et corrigé le 2026-07-19 — détail complet et total à jour : `PLAN_CORRECTION_BOGUES.md`.

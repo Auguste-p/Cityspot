@@ -18,5 +18,7 @@ export function logSecurityEvent(message: string, extra?: Record<string, unknown
     return;
   }
 
-  Sentry.captureMessage(message, { level: 'warning', extra });
+  // Tag dédié : permet à une règle d'alerte Sentry de cibler uniquement ces
+  // événements (volume anormal de refus), sans les confondre avec un crash JS.
+  Sentry.captureMessage(message, { level: 'warning', tags: { security_event: true }, extra });
 }

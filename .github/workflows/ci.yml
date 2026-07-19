@@ -18,6 +18,8 @@ jobs:
 
       # package-lock.json is gitignored (see MANUEL_DEPLOIEMENT.md), so `npm ci` isn't available here.
       - run: npm install
+      # Fails the build on high/critical vulnerabilities (OWASP A06, see SECURITE.md).
+      - run: npm audit --audit-level=high
       # `test:coverage` runs the full suite (same pass/fail as `npm test`) and
       # additionally produces the coverage report uploaded below.
       - run: npm run test:coverage
