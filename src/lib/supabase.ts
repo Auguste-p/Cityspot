@@ -56,6 +56,7 @@ export interface Database {
           is_municipal_project?: boolean | null;
           category?: string | null;
         };
+        Relationships: [];
       };
       tasks: {
         Row: {
@@ -76,6 +77,7 @@ export interface Database {
           title?: string;
           completed?: boolean | null;
         };
+        Relationships: [];
       };
       materials: {
         Row: {
@@ -93,6 +95,7 @@ export interface Database {
           issue_id?: string;
           name?: string;
         };
+        Relationships: [];
       };
       comments: {
         Row: {
@@ -113,17 +116,21 @@ export interface Database {
           id?: string;
           comment?: string;
         };
+        Relationships: [];
       };
       votes: {
         Row: { id: string; created_at: string; id_user: string; id_issue: string; yes: boolean; };
         Insert: { id?: string; created_at?: string; id_user: string; id_issue: string; yes: boolean; };
         Update: { id?: string; yes: boolean; };
+        Relationships: [];
       };
       users: {
         Row: {
           id: string;
           name: string | null;
           city: string | null;
+          cityLat: number | null;
+          cityLng: number | null;
           role: string;
           phone: string | null;
           address: string | null;
@@ -136,6 +143,8 @@ export interface Database {
           id: string;
           name?: string | null;
           city?: string | null;
+          cityLat?: number | null;
+          cityLng?: number | null;
           role?: string;
           phone?: string | null;
           address?: string | null;
@@ -147,6 +156,8 @@ export interface Database {
         Update: {
           name?: string | null;
           city?: string | null;
+          cityLat?: number | null;
+          cityLng?: number | null;
           role?: string;
           phone?: string | null;
           address?: string | null;
@@ -154,6 +165,14 @@ export interface Database {
           emailNotifications?: boolean;
           profileVisible?: boolean;
         };
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: {
+      email_exists: {
+        Args: { check_email: string };
+        Returns: boolean;
       };
     };
   };

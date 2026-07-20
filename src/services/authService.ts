@@ -1,7 +1,30 @@
 import {getSupabaseClient} from '../lib/supabase';
 
 // 🔑 Sign up
-export async function signUp(email: string, password: string, profile: { name: string; city: string }) {
+export interface SignUpProfile {
+  name: string;
+  city: string;
+  cityLat?: number;
+  cityLng?: number;
+}
+
+export async function signUp(email: string, password: string, profile: SignUpProfile) {
+  // Garde-fou : auth.users est la source canonique de l'email (public.users
+  // n'en garde pas de copie) — une ligne public.users supprimée à la main
+  // sans supprimer la ligne auth.users correspondante laisserait sinon
+  // `auth.signUp()` échouer ou se comporter de façon confuse sans message clair.
+  const { data: emailTaken, error: checkError } = await getSupabaseClient()!.rpc('email_exists', {
+    check_email: email,
+  });
+  if (checkError) throw checkError;
+  if (emailTaken) {
+    throw new Error('Un compte existe déjà avec cet email.');
+  }
+
+  // name/city/cityLat/cityLng passent tous par user_metadata : le trigger
+  // handle_new_user() les insère en une fois dans public.users, côté serveur,
+  // indépendamment de toute session client (importante depuis que ce projet
+  // exige la confirmation par email — pas de session juste après signUp()).
   const { data, error } = await getSupabaseClient()!.auth.signUp({
     email,
     password,
@@ -9,6 +32,7 @@ export async function signUp(email: string, password: string, profile: { name: s
   });
 
   if (error) throw error;
+
   return data;
 }
 

@@ -40,6 +40,9 @@ export function Profile() {
         setProfileName(null);
         setCityName(null);
       });
+    // `user?.id` on purpose, not `user`: the user object gets a new reference
+    // on every auth-state event (token refresh, initial session), which would
+    // otherwise re-run this fetch needlessly.
   }, [user?.id]);
 
   const votingPosts = myPosts.filter(p => {

@@ -27,7 +27,7 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 ### 3.2 C2.1.2 — Intégration et déploiement continus
 **Document** : `MANUEL_DEPLOIEMENT.md` (pipeline CI `.github/workflows/ci.yml` : tests + build sur chaque push/PR vers `main` ; pipeline CD `.github/workflows/deploy.yml` : build+push GHCR puis déploiement SSH sur le VPS, déclenché par un tag `vX.Y.Z`).
 **Preuve** : les deux pipelines ont été **vérifiés en conditions réelles**, pas juste rédigés — déploiement réel sur `v1.0.1` (2026-07-18) et `v1.1.0` (2026-07-19), cf. `CHANGELOG.md`.
-**Statut** : ✅ — écart mineur assumé : pas de `tsc --noEmit` ni de lint en CI (SWC transpile sans vérifier les types). `npm audit --audit-level=high` rejoué à chaque push/PR depuis le 2026-07-19 (cf. §4).
+**Statut** : ✅ — `npm audit --audit-level=high` (2026-07-19), `tsc --noEmit` (2026-07-20) et `eslint` (2026-07-20) rejoués à chaque push/PR (cf. §4). Aucun écart résiduel sur ce critère.
 
 ### 3.3 C2.2.1 — Architecture présentée
 **Document** : `ARCHITECTURE.md` — vue d'ensemble (schéma Mermaid composants/flux), frontend (structure `src/`, routage), backend Supabase (RLS table par table, y compris `DELETE` depuis le retrait de l'Edge Function `delete-issue` — cf. `CHANGELOG.md` v1.2.0), déploiement/infra (Docker, Traefik, supervision, CI/CD), frontières de confiance.
@@ -55,7 +55,7 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 
 ### 3.8 C2.3.2 — Les bogues sont détectés, qualifiés et traités
 **Document** : `PLAN_CORRECTION_BOGUES.md`, citant les trois exigences du critère : *« Les bogues de codes sont détectés, qualifiés et traités »*, *« Une analyse des points d'amélioration est réalisée pour chaque test en échec »*, *« Les corrections et les améliorations proposées sont conformes à l'attendu et garantissent le bon fonctionnement du logiciel »*.
-**Preuve** : 15 bogues recensés, tous ✅ corrigés et re-vérifiés (5 Critiques, 6 Majeurs, 4 Mineurs). Chaque entrée documente la méthode de détection, la cause racine, le correctif et la vérification. **BUG-15** (2026-07-19) illustre spécifiquement une détection par de l'outillage de monitoring (Sentry) plutôt que par revue de code ou remontée utilisateur — preuve que la boucle détection → correction fonctionne aussi via la supervision mise en place, pas seulement en amont.
+**Preuve** : 18 bogues recensés, tous ✅ corrigés et re-vérifiés (5 Critiques, 9 Majeurs, 4 Mineurs). Chaque entrée documente la méthode de détection, la cause racine, le correctif et la vérification. **BUG-15** (2026-07-19) illustre spécifiquement une détection par de l'outillage de monitoring (Sentry) plutôt que par revue de code ou remontée utilisateur — preuve que la boucle détection → correction fonctionne aussi via la supervision mise en place, pas seulement en amont.
 **Statut** : ✅
 
 ### 3.9 C2.4.1 — Manuels de déploiement, d'utilisation et de mise à jour
@@ -67,9 +67,8 @@ Ce document est l'index unique qui fait correspondre chaque critère du bloc de 
 
 ## 4. Écarts connus
 
-- **C2.1.2** : pas de `tsc --noEmit` ni de lint rejoués automatiquement en CI (SWC transpile sans vérifier les types).
 - **C2.2.3 (accessibilité)** : contraste couleur RGAA non vérifiable sous `jsdom`, jamais testé en navigateur réel.
 - **C2.2.3 (A09, résiduel)** : la revue des logs de requêtes Supabase (seule couche qui verrait un contournement complet du frontend) est manuelle, pas d'alerte automatique native sur ces logs côté Supabase (plan gratuit) — l'alerte Sentry couvre le volet applicatif/client, pas ce volet-là. Détail : `SECURITE.md` §4.
 - **C2.3.1** : 12/87 scénarios de recette non exécutés, raison documentée sur chaque ligne (`CAHIER_DE_RECETTES.md`).
 
-A06 est désormais fermé (`npm audit` en CI depuis le 2026-07-19) et retiré de cette liste. A09 est largement fermé (télémétrie applicative + alerte Sentry depuis le 2026-07-19, cf. `SECURITE.md` §4) — seule la revue des logs Supabase reste manuelle plutôt qu'alertée automatiquement, listée ci-dessus comme limite résiduelle assumée, pas un blocage du critère. Aucun de ces écarts ne concerne un critère au rouge — tous les critères C2 listés en §2 sont satisfaits ; ce sont des marges de progression documentées, dans l'esprit du projet (limites écrites explicitement plutôt que masquées, cf. `SECURITE.md`/`ACCESSIBILITE.md`).
+A06 est désormais fermé (`npm audit` en CI depuis le 2026-07-19) et retiré de cette liste, de même que l'écart typage/lint (`tsc --noEmit` et `eslint` en CI depuis le 2026-07-20, cf. `MANUEL_DEPLOIEMENT.md`). A09 est largement fermé (télémétrie applicative + alerte Sentry depuis le 2026-07-19, cf. `SECURITE.md` §4) — seule la revue des logs Supabase reste manuelle plutôt qu'alertée automatiquement, listée ci-dessus comme limite résiduelle assumée, pas un blocage du critère. Aucun de ces écarts ne concerne un critère au rouge — tous les critères C2 listés en §2 sont satisfaits ; ce sont des marges de progression documentées, dans l'esprit du projet (limites écrites explicitement plutôt que masquées, cf. `SECURITE.md`/`ACCESSIBILITE.md`).

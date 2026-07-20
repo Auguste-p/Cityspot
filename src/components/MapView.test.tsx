@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
+import { FALLBACK_CITY } from '../constants/map';
 import type { Post } from '../types/Post';
 
 // maplibre-gl needs a real WebGL canvas, unavailable under jsdom — stub the
@@ -10,6 +11,12 @@ import type { Post } from '../types/Post';
 // on the map, setLngLat/addTo/remove chaining on markers).
 vi.mock('maplibre-gl', () => {
   class FakeMap {
+    static instances: FakeMap[] = [];
+    options: any;
+    constructor(options: any) {
+      this.options = options;
+      FakeMap.instances.push(this);
+    }
     addControl() {}
     flyTo() {}
     getZoom() {
@@ -45,9 +52,12 @@ vi.mock('../context/UserContext', () => ({
   useUser: vi.fn(),
 }));
 
+import maplibregl from 'maplibre-gl';
 import { useUser } from '../context/UserContext';
 import { useIssues, useVotes } from '../hooks/useIssues';
 import { MapView } from './MapView';
+
+const FakeMap = maplibregl.Map as unknown as { instances: { options: any }[] };
 
 const mockedUseIssues = vi.mocked(useIssues);
 const mockedUseVotes = vi.mocked(useVotes);
@@ -83,6 +93,7 @@ function renderMapView() {
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+  FakeMap.instances = [];
 });
 
 describe('MapView accessibility (RGAA / axe-core)', () => {
@@ -133,5 +144,47 @@ describe('MapView accessibility (RGAA / axe-core)', () => {
 
     await expectNoA11yViolations(container);
     expect(listItem).toBeTruthy();
+  });
+});
+
+describe('MapView initial centering', () => {
+  it('centers on the fallback city when the user has no saved city', async () => {
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssues.mockReturnValue({ issues: [], loading: false, error: null, reload: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+
+    renderMapView();
+    await screen.findByText('Tous les signalements');
+
+    expect(FakeMap.instances).toHaveLength(1);
+    expect(FakeMap.instances[0].options.center).toEqual([FALLBACK_CITY.lng, FALLBACK_CITY.lat]);
+  });
+
+  it("centers on the user's saved city when available", async () => {
+    mockedUseUser.mockReturnValue({
+      user: { ...CITIZEN, cityLat: 45.75, cityLng: 4.85 },
+      loading: false,
+      isMunicipalUser: false,
+      refreshUser: vi.fn(),
+    });
+    mockedUseIssues.mockReturnValue({ issues: [], loading: false, error: null, reload: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+
+    renderMapView();
+    await screen.findByText('Tous les signalements');
+
+    expect(FakeMap.instances).toHaveLength(1);
+    expect(FakeMap.instances[0].options.center).toEqual([4.85, 45.75]);
+  });
+
+  it('does not build the map until the user profile has finished loading', async () => {
+    mockedUseUser.mockReturnValue({ user: null, loading: true, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssues.mockReturnValue({ issues: [], loading: false, error: null, reload: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+
+    renderMapView();
+    await screen.findByText('Tous les signalements');
+
+    expect(FakeMap.instances).toHaveLength(0);
   });
 });

@@ -19,7 +19,7 @@ Pour l'historique des versions et la procédure de mise à jour d'une instance d
 | Gestion de sources | Git, dépôt distant GitHub (`Auguste-p/Cityspot`) |
 | Tests | Vitest + Testing Library + axe-core |
 
-> ⚠️ **Limite assumée** : il n'y a pas de `tsconfig.json` dédié ni de script `typecheck`/`lint` dans `package.json` à ce jour. SWC transpile le TypeScript sans vérifier les types (il ignore les erreurs de typage, contrairement à `tsc`). Le typage n'est donc pas vérifié automatiquement en CI — seule une exécution manuelle ponctuelle de `tsc` a eu lieu pendant le développement (cf. `README.md`, journal IA). Ajouter un `tsconfig.json` + une étape `tsc --noEmit` en CI est l'amélioration la plus directe si ce point doit être fermé avant l'oral.
+SWC transpile le TypeScript sans jamais vérifier les types (il retire les annotations et fait confiance au code, contrairement à `tsc`) — un `tsconfig.json` dédié et un script `typecheck` (`tsc --noEmit`) ferment ce point : rejoué à chaque push/PR en CI (`.github/workflows/ci.yml`), avant la suite de tests. De même, ESLint (`eslint.config.js`, flat config, `typescript-eslint` + `eslint-plugin-react-hooks` + `eslint-plugin-jsx-a11y`) est rejoué via `npm run lint` dans la même CI, fermant l'écart resté ouvert jusqu'au 2026-07-20.
 
 ## 3. Composants identifiés
 
@@ -65,7 +65,7 @@ docker rm -f cityspot   # arrêter / nettoyer
 
 ## 7. Pipeline d'intégration continue (GitHub Actions)
 
-Chaque push ou pull request vers `main` déclenche `.github/workflows/ci.yml` : installation des dépendances, exécution de la suite de tests avec couverture (`npm run test:coverage`), build de production (`npm run build`), puis dépôt du rapport de couverture en artefact CI (`coverage-report`, 30 jours de rétention). Un test ou un build en échec bloque la fusion.
+Chaque push ou pull request vers `main` déclenche `.github/workflows/ci.yml` : installation des dépendances, audit de sécurité (`npm audit --audit-level=high`), vérification des types (`npm run typecheck`), lint (`npm run lint`), exécution de la suite de tests avec couverture (`npm run test:coverage`), build de production (`npm run build`), puis dépôt du rapport de couverture en artefact CI (`coverage-report`, 30 jours de rétention). Un audit, un typecheck, un lint, un test ou un build en échec bloque la fusion.
 
 Ce pipeline couvre l'intégration continue (test + build) mais ne publie pas l'image Docker — c'est le rôle du pipeline de déploiement continu (§8).
 

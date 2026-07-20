@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { searchAddress } from './geocode';
+import { searchAddress, searchCity } from './geocode';
 
 function photonResponse(features: unknown[]) {
   return { ok: true, json: async () => ({ features }) };
@@ -80,5 +80,40 @@ describe('searchAddress', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
 
     await expect(searchAddress('Lyon')).resolves.toEqual([]);
+  });
+});
+
+describe('searchCity', () => {
+  it('restricts the query to city/town/village place types', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(photonResponse([]));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await searchCity('Lyon');
+
+    const calledUrl = new URL(fetchMock.mock.calls[0][0]);
+    expect(calledUrl.searchParams.getAll('osm_tag')).toEqual(['place:city', 'place:town', 'place:village']);
+  });
+
+  it('builds a simple "name, region" label, not a full address', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        photonResponse([
+          {
+            properties: {
+              name: 'Lyon',
+              county: 'Métropole de Lyon',
+              state: 'Auvergne-Rhône-Alpes',
+              country: 'France',
+            },
+            geometry: { coordinates: [4.8320114, 45.7578137] },
+          },
+        ]),
+      ),
+    );
+
+    const results = await searchCity('Lyon');
+
+    expect(results).toEqual([{ label: 'Lyon, Auvergne-Rhône-Alpes', lat: 45.7578137, lng: 4.8320114 }]);
   });
 });

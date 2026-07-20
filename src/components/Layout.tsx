@@ -24,7 +24,7 @@ export function Layout() {
       toast.error('Accès réservé aux comptes municipaux');
       navigate('/', { replace: true });
     }
-  }, [user, loading, isMunicipalUser, location.pathname]);
+  }, [user, loading, isMunicipalUser, location.pathname, navigate]);
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -108,6 +108,9 @@ export function Layout() {
               <span className="text-xs">Profil</span>
             </Button>
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-1">
+            {import.meta.env.VITE_APP_VERSION ?? 'dev'}
+          </p>
         </div>
       </nav>
     </div>

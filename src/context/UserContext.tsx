@@ -16,6 +16,9 @@ export interface AppUser {
   name?: string;
   avatar?: string;
   role: UserRole;
+  city?: string;
+  cityLat?: number;
+  cityLng?: number;
 }
 
 interface UserContextValue {
@@ -29,21 +32,34 @@ const UserContext = createContext<UserContextValue | null>(null);
 
 // Source of truth for the municipal role: public.users.role, not
 // auth.users.user_metadata — the app has no write access to auth.users.
-async function fetchRole(userId: string): Promise<UserRole> {
+// Coordonnées de la ville : renseignées à l'inscription (LoginPage), utilisées
+// pour centrer la carte à la connexion (MapView) sans devoir géolocaliser.
+async function fetchProfile(
+  userId: string,
+): Promise<{ role: UserRole; city?: string; cityLat?: number; cityLng?: number }> {
   const client = getSupabaseClient();
-  if (!client) return 'citizen';
+  if (!client) return { role: 'citizen' };
 
-  const { data } = await client.from('users').select('role').eq('id', userId).maybeSingle();
-  return data?.role === 'municipal' ? 'municipal' : 'citizen';
+  const { data } = await client.from('users').select('role, city, cityLat, cityLng').eq('id', userId).maybeSingle();
+  return {
+    role: data?.role === 'municipal' ? 'municipal' : 'citizen',
+    city: data?.city ?? undefined,
+    cityLat: data?.cityLat ?? undefined,
+    cityLng: data?.cityLng ?? undefined,
+  };
 }
 
 async function toAppUser(u: User): Promise<AppUser> {
+  const profile = await fetchProfile(u.id);
   return {
     id: u.id,
     email: u.email!,
     name: u.user_metadata?.name || u.email!,
     avatar: u.user_metadata?.avatar || '',
-    role: await fetchRole(u.id),
+    role: profile.role,
+    city: profile.city,
+    cityLat: profile.cityLat,
+    cityLng: profile.cityLng,
   };
 }
 

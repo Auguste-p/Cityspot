@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { PostCategory } from "../types/Post";
 import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
 import {
   Tabs,
   TabsContent,
@@ -108,7 +107,7 @@ export function MunicipalView() {
     });
 
     return counts;
-  }, []);
+  }, [posts]);
 
   const filteredPosts = useMemo(
     () =>

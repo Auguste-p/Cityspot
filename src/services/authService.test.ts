@@ -21,9 +21,13 @@ afterEach(() => {
 });
 
 describe('signUp', () => {
+  function emailNotTaken() {
+    return vi.fn().mockResolvedValue({ data: false, error: null });
+  }
+
   it('returns the auth payload on success', async () => {
     const signUpMock = vi.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null });
-    mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock } } as any);
+    mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc: emailNotTaken() } as any);
 
     const result = await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon' });
 
@@ -38,9 +42,42 @@ describe('signUp', () => {
   it('throws when supabase returns an error', async () => {
     mockedGetSupabaseClient.mockReturnValue({
       auth: { signUp: vi.fn().mockResolvedValue({ data: null, error: new Error('invalid email') }) },
+      rpc: emailNotTaken(),
     } as any);
 
     await expect(signUp('bad', 'pw', { name: 'A', city: 'Lyon' })).rejects.toThrow('invalid email');
+  });
+
+  it('forwards city coordinates through user_metadata (read by the handle_new_user trigger)', async () => {
+    const signUpMock = vi.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null });
+    mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc: emailNotTaken() } as any);
+
+    await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85 });
+
+    expect(signUpMock).toHaveBeenCalledWith({
+      email: 'a@b.com',
+      password: 'pw',
+      options: { data: { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85 } },
+    });
+  });
+
+  it('refuses to sign up when the email is already registered (auth.users or public.users)', async () => {
+    const signUpMock = vi.fn();
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+    mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc } as any);
+
+    await expect(signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon' })).rejects.toThrow(
+      'Un compte existe déjà avec cet email.',
+    );
+    expect(rpc).toHaveBeenCalledWith('email_exists', { check_email: 'a@b.com' });
+    expect(signUpMock).not.toHaveBeenCalled();
+  });
+
+  it('propagates an error from the email-existence check itself', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('rpc unavailable') });
+    mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: vi.fn() }, rpc } as any);
+
+    await expect(signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon' })).rejects.toThrow('rpc unavailable');
   });
 });
 

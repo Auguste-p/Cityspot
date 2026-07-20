@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
-
 // CreatePost form schema
 export const createPostSchema = z.object({
   title: z.string()
@@ -83,7 +81,7 @@ export const settingsFormSchema = z.object({
     .refine(
       (phone) => {
         if (!phone) return true;
-        return /^[\d\s\-\+\(\)]{10,}$/.test(phone.replace(/\s/g, ''));
+        return /^[\d\s\-+()]{10,}$/.test(phone.replace(/\s/g, ''));
       },
       'Veuillez entrer un numéro de téléphone valide'
     )

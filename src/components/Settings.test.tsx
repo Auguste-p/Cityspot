@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 
 vi.mock('../context/UserContext', () => ({
@@ -52,6 +52,9 @@ describe('Settings accessibility (RGAA / axe-core)', () => {
       id: CITIZEN.id,
       name: 'Jeanne Dupont',
       city: 'Lyon',
+      cityLat: null,
+      cityLng: null,
+      role: 'citizen',
       phone: '0601020304',
       address: '1 rue de la Paix',
       avatar: 'J',

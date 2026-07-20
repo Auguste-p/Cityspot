@@ -10,6 +10,10 @@ COPY . .
 ARG VITE_SENTRY_DSN
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 
+# Tag Git (ex: v1.2.1) affiché en bas de page — pas un secret non plus.
+ARG VITE_APP_VERSION
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
+
 RUN --mount=type=secret,id=VITE_SUPABASE_URL,required=true \
     --mount=type=secret,id=VITE_SUPABASE_ANON_KEY,required=true \
     sh -c 'export VITE_SUPABASE_URL=$(cat /run/secrets/VITE_SUPABASE_URL); \

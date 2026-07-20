@@ -146,6 +146,33 @@ Chaque entrée précise : comment le bogue a été détecté, sa cause racine, l
 - **Vérification** : tests unitaires ajoutés dans `authService.test.ts` — `getCurrentUser()` résout `null` (et ne rejette pas) quand Supabase renvoie `AuthSessionMissingError`, et continue de rejeter sur une autre erreur (ex. réseau). Suite complète rejouée (`npx vitest run src/services/authService.test.ts`) → 14/14 passants.
 - **Statut** : ✅ Corrigé et vérifié (2026-07-19)
 
+### BUG-16 — Carte quasi invisible en layout étroit (mobile et desktop)
+- **Sévérité** : Majeur (fonctionnalité centrale — la carte — rendue inutilisable dans une grande partie des cas d'usage réels)
+- **Détecté par** : remontée utilisateur ("la carte est à peine visible") avec capture d'écran, confirmé ensuite en layout desktop étroit
+- **Cause racine (à trois niveaux, trouvés successivement)** :
+  1. Le panneau de liste des signalements n'avait aucune contrainte de hauteur en layout mobile (`flex-col`) : sa hauteur de contenu (tous les signalements listés) dépassait l'écran et écrasait la carte au lieu de défiler.
+  2. Une fois ce premier point corrigé, la chaîne `h-full` sur plusieurs `<div>` imbriqués à l'intérieur d'un item flex ne se résolvait pas de façon fiable (dépendance circulaire entre la hauteur du parent et celle de l'enfant).
+  3. Une fois passé en positionnement `absolute inset-0`, MapLibre reclasse lui-même son conteneur avec sa propre classe `maplibregl-map`, qui impose `position: relative` dans sa feuille de style embarquée — écrasant silencieusement le `position: absolute` posé dessus par l'application, à cause de l'ordre de cascade CSS.
+- **Correctif appliqué** : panneau de liste passé en `flex-1` (mobile) pour partager l'espace au lieu de le monopoliser ; une classe CSS écrite à la main (`.cityspot-details-panel`) gère le retour à une largeur fixe sur desktop (le projet n'a pas de build Tailwind actif — `src/index.css` est un export statique qui ne contient que les classes déjà utilisées à sa génération, donc certaines variantes comme `lg:flex-none` n'existent tout simplement pas et ne peuvent pas être ajoutées via une classe Tailwind ordinaire) ; le conteneur passé à MapLibre utilise désormais `h-full w-full` plutôt que `absolute inset-0`, en s'appuyant sur son parent direct (non reclassé par la librairie) qui porte lui le positionnement absolu.
+- **Vérification** : diagnostic fait via l'inspecteur du navigateur (dimensions réelles de chaque élément de la chaîne), confirmé visuellement par l'utilisateur en mobile et en desktop après chaque correctif intermédiaire.
+- **Statut** : ✅ Corrigé et vérifié (2026-07-20)
+
+### BUG-17 — Redirection silencieuse vers `/login` après une inscription réussie
+- **Sévérité** : Majeur (un nouvel utilisateur ne comprend pas pourquoi il "n'arrive pas" à s'inscrire, alors que son compte est bien créé)
+- **Détecté par** : remontée utilisateur, confirmé par inspection de la requête réseau `auth/v1/signup`
+- **Cause racine** : le projet Supabase exige la confirmation de l'email avant l'ouverture d'une session (champ `confirmation_sent_at` présent dans la réponse, absence du champ `session`). Le code appelait systématiquement `navigate('/')` après `signUp()`, sans vérifier qu'une session avait effectivement été ouverte — `Layout.tsx` (garde de route) renvoyait alors vers `/login` sans aucun message, laissant croire à un échec silencieux de l'inscription.
+- **Correctif appliqué** : `LoginPage.tsx` vérifie désormais si `signUp()` renvoie une session ; si non, affiche *"Compte créé ! Vérifiez votre boîte mail pour confirmer votre inscription, puis connectez-vous."* et repasse en mode connexion, au lieu de naviguer vers `/`.
+- **Vérification** : tests unitaires ajoutés (`LoginPage.test.tsx`) couvrant les deux cas (session présente / absente après inscription).
+- **Statut** : ✅ Corrigé et vérifié (2026-07-20)
+
+### BUG-18 — Coordonnées de la ville jamais enregistrées en base (silencieusement)
+- **Sévérité** : Majeur (fonctionnalité annoncée — centrage automatique de la carte sur la ville de l'utilisateur — totalement inopérante, sans aucune erreur visible)
+- **Détecté par** : remontée utilisateur ("la ville est bien affichée mais la caméra n'est pas centrée dessus")
+- **Cause racine** : `cityLat`/`cityLng` étaient enregistrés via un appel `.update()` déclenché côté client juste après `signUp()` — un appel qui a besoin d'une session active pour passer la Row Level Security ("un utilisateur ne modifie que sa propre fiche"). Or ce projet exige la confirmation par email (BUG-17) : il n'existe donc aucune session à ce moment précis. L'appel échouait silencieusement (RLS filtre la ligne cible, `HTTP 200`, 0 ligne modifiée, pas d'erreur renvoyée) — contrairement à `name`/`city`, qui eux passent par le trigger `handle_new_user`, exécuté côté serveur indépendamment de toute session client, et fonctionnaient donc normalement. L'incohérence entre les deux mécanismes masquait le problème.
+- **Correctif appliqué** : `cityLat`/`cityLng` passent désormais par `user_metadata`, exactement comme `name`/`city`, et le trigger `handle_new_user()` insère les cinq champs en un seul `INSERT` (migration `20260720140000_handle_new_user_city_coords.sql`). L'appel `.update()` séparé, devenu inutile, a été retiré.
+- **Vérification** : `authService.test.ts` mis à jour pour vérifier que `cityLat`/`cityLng` sont bien transmis dans `user_metadata` au moment de l'appel `auth.signUp()`.
+- **Statut** : ✅ Corrigé et vérifié (2026-07-20)
+
 ---
 
 ## 4. Synthèse
@@ -153,8 +180,8 @@ Chaque entrée précise : comment le bogue a été détecté, sa cause racine, l
 | Sévérité | Corrigés | Ouverts |
 |---|---|---|
 | Critique | 5 (BUG-01, BUG-05, BUG-09, BUG-10, BUG-13) | 0 |
-| Majeur | 6 (BUG-02, BUG-03, BUG-04, BUG-06, BUG-11, BUG-14) | 0 |
+| Majeur | 9 (BUG-02, BUG-03, BUG-04, BUG-06, BUG-11, BUG-14, BUG-16, BUG-17, BUG-18) | 0 |
 | Mineur | 4 (BUG-07, BUG-08, BUG-12, BUG-15) | 0 |
-| **Total** | **15** | **0** |
+| **Total** | **18** | **0** |
 
-Les 15 bogues identifiés sont tous corrigés et re-vérifiés — par sonde REST directe pour les bogues de sécurité, par un parcours de bout en bout dans un navigateur piloté pour les bogues fonctionnels (BUG-11, BUG-14 : création, rechargement complet depuis la base, cycle d'édition), par les tests d'accessibilité automatisés pour BUG-07/BUG-08, et par Sentry en production pour BUG-15 (premier bogue détecté via le monitoring d'erreurs mis en place cette session, plutôt que par revue de code ou remontée utilisateur). BUG-12 attendait une décision produit (Option A retenue : source de vérité unique) avant de recevoir son correctif. **Aucun bogue ouvert à ce jour.**
+Les 18 bogues identifiés sont tous corrigés et re-vérifiés — par sonde REST directe pour les bogues de sécurité, par un parcours de bout en bout dans un navigateur piloté pour les bogues fonctionnels (BUG-11, BUG-14 : création, rechargement complet depuis la base, cycle d'édition), par les tests d'accessibilité automatisés pour BUG-07/BUG-08, par Sentry en production pour BUG-15 (détecté via le monitoring d'erreurs plutôt que par revue de code ou remontée utilisateur), et par inspection directe du navigateur pour BUG-16 (dimensions réelles à chaque niveau de la mise en page). BUG-12 attendait une décision produit (Option A retenue : source de vérité unique) avant de recevoir son correctif. **Aucun bogue ouvert à ce jour.**

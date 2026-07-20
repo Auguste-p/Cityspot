@@ -21,6 +21,9 @@ function Card({ className, onClick, onKeyDown, ...props }: React.ComponentProps<
     : { onKeyDown };
 
   return (
+    // role/tabIndex/onKeyDown are added dynamically via interactiveProps above when onClick is set;
+    // the linter can't see through the spread, but the keyboard path is covered by card.test.tsx.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       data-slot="card"
       className={cn(
@@ -50,6 +53,8 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 
 function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
+    // content comes from the caller via {...props}.children; every call site provides text.
+    // eslint-disable-next-line jsx-a11y/heading-has-content
     <h4
       data-slot="card-title"
       className={cn("leading-none", className)}

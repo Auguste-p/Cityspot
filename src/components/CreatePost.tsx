@@ -11,7 +11,7 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Button } from './ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
 import { createPostSchema } from '../schemas/formSchemas';
 import { createIssue, updateIssue } from '../services/issuesService';
 import { useIssue } from '../hooks/useIssues';
@@ -23,9 +23,6 @@ const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
 
 type CreatePostFormInput = z.input<typeof createPostSchema>;
 type CreatePostFormOutput = z.output<typeof createPostSchema>;
-type CreatePostForm = z.input<typeof createPostSchema>;
-
-type ListFieldName = 'tasks' | 'materials';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 
@@ -356,7 +353,7 @@ export function CreatePost() {
   const [addressSuggestions, setAddressSuggestions] = useState<GeocodeResult[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const addressSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const addressSearchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const form = useForm<CreatePostFormInput, undefined, CreatePostFormOutput>({
     resolver: zodResolver(createPostSchema),
@@ -398,7 +395,8 @@ export function CreatePost() {
     // `user?.id` on purpose, not `user`: the user object gets a new reference
     // on every auth-state event (token refresh, initial session), which would
     // otherwise re-run this reset mid-edit and discard in-progress changes.
-  }, [isEditMode, existingPost, user?.id]);
+    // `form`/`navigate` are stable references (react-hook-form / react-router).
+  }, [isEditMode, existingPost, user?.id, form, navigate]);
 
   useEffect(() => {
     return () => clearTimeout(addressSearchTimeout.current);
@@ -517,7 +515,7 @@ export function CreatePost() {
         isMunicipalProject: false,
       });
 
-      toast.success('Signalement créé avec succès ! 🎉');
+      toast.success('Signalement créé avec succès !');
       navigate('/');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer le signalement");

@@ -20,6 +20,9 @@ jobs:
       - run: npm install
       # Fails the build on high/critical vulnerabilities (OWASP A06, see SECURITE.md).
       - run: npm audit --audit-level=high
+      # SWC (Vite's transpiler) does not check types — this is the only gate that does.
+      - run: npm run typecheck
+      - run: npm run lint
       # `test:coverage` runs the full suite (same pass/fail as `npm test`) and
       # additionally produces the coverage report uploaded below.
       - run: npm run test:coverage

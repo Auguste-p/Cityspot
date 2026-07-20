@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, it } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import { PostCard } from './PostCard';
 import type { Post } from '../types/Post';

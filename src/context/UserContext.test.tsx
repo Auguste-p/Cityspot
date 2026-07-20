@@ -11,7 +11,10 @@ import { UserProvider, useUser } from './UserContext';
 
 const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
 
-function stubAuth(getUser: () => Promise<{ data: { user: any } }>, role?: string) {
+function stubAuth(
+  getUser: () => Promise<{ data: { user: any } }>,
+  profileRow?: { role?: string; cityLat?: number; cityLng?: number },
+) {
   return {
     auth: {
       getUser: vi.fn(getUser),
@@ -20,7 +23,7 @@ function stubAuth(getUser: () => Promise<{ data: { user: any } }>, role?: string
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: role ? { role } : null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: profileRow ?? null, error: null }),
         }),
       }),
     }),
@@ -35,6 +38,7 @@ function Probe() {
       <span data-testid="email">{user?.email ?? 'none'}</span>
       <span data-testid="role">{user?.role ?? 'none'}</span>
       <span data-testid="municipal">{String(isMunicipalUser)}</span>
+      <span data-testid="city-coords">{user?.cityLat ?? 'none'},{user?.cityLng ?? 'none'}</span>
     </div>
   );
 }
@@ -61,13 +65,26 @@ describe('UserProvider', () => {
     mockedGetSupabaseClient.mockReturnValue(
       stubAuth(
         async () => ({ data: { user: { id: 'u2', email: 'city@x.com', user_metadata: {} } } }),
-        'municipal',
+        { role: 'municipal' },
       ),
     );
 
     render(<UserProvider><Probe /></UserProvider>);
 
     expect((await screen.findByTestId('municipal')).textContent).toBe('true');
+  });
+
+  it('exposes the city coordinates saved at signup', async () => {
+    mockedGetSupabaseClient.mockReturnValue(
+      stubAuth(
+        async () => ({ data: { user: { id: 'u3', email: 'c@x.com', user_metadata: {} } } }),
+        { role: 'citizen', cityLat: 45.75, cityLng: 4.85 },
+      ),
+    );
+
+    render(<UserProvider><Probe /></UserProvider>);
+
+    expect((await screen.findByTestId('city-coords')).textContent).toBe('45.75,4.85');
   });
 
   it('resolves to no user when unauthenticated', async () => {

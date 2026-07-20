@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -6,7 +6,7 @@ import { Post } from '../types/Post';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDown, Home, Vote, Building2, Loader2, ChevronLeft, LocateFixed } from 'lucide-react';
+import { MapPin, Calendar, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Home, Building2, Loader2, ChevronLeft, LocateFixed } from 'lucide-react';
 import { VoteDialog } from './VoteDialog';
 import { toast } from 'sonner';
 import { MUNICIPAL_GRADIENT_CLASS, STATUS_MARKER_COLORS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
@@ -48,7 +48,7 @@ async function reverseGeocodeCity(lat: number, lng: number) {
 
 export function MapView() {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const { issues: posts, loading, error } = useIssues();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -70,14 +70,10 @@ export function MapView() {
     ? { ...selectedPost, votes: { positive: displaySelectedPositive, negative: displaySelectedNegative } }
     : null;
 
-  const selectedStatus = useMemo(
-    () => (syntheticSelectedPost ? getActualStatus(syntheticSelectedPost) : null),
-    [syntheticSelectedPost],
-  );
-  const selectedStatusConfig = useMemo(
-    () => (selectedStatus ? getStatusConfig(selectedStatus) : null),
-    [selectedStatus],
-  );
+  // syntheticSelectedPost is a fresh object every render, so memoizing off it
+  // would recompute every render anyway — plain consts are just as cheap here.
+  const selectedStatus = syntheticSelectedPost ? getActualStatus(syntheticSelectedPost) : null;
+  const selectedStatusConfig = selectedStatus ? getStatusConfig(selectedStatus) : null;
   const SelectedStatusIcon = selectedStatusConfig?.icon;
 
   const handleVote = (post: Post) => {
@@ -147,7 +143,16 @@ export function MapView() {
   };
 
   useEffect(() => {
-    if (loading || error) {
+    if (user?.city) {
+      setActiveCity(user.city);
+    }
+  }, [user?.city]);
+
+  useEffect(() => {
+    // Attend aussi le profil utilisateur (pas seulement les signalements) :
+    // sans ça, la carte pourrait se construire avant que cityLat/cityLng
+    // n'aient fini de charger et resterait bloquée sur la ville de repli.
+    if (loading || error || userLoading) {
       return;
     }
 
@@ -155,11 +160,16 @@ export function MapView() {
       return;
     }
 
+    const hasUserCity = Number.isFinite(user?.cityLat) && Number.isFinite(user?.cityLng);
+    const initialCenter = hasUserCity
+      ? { lat: user!.cityLat!, lng: user!.cityLng! }
+      : FALLBACK_CITY;
+
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: MAP_STYLE,
-      center: [FALLBACK_CITY.lng, FALLBACK_CITY.lat],
-      zoom: FALLBACK_CITY.zoom,
+      center: [initialCenter.lng, initialCenter.lat],
+      zoom: hasUserCity ? 13 : FALLBACK_CITY.zoom,
       attributionControl: { compact: true },
     });
 
@@ -178,7 +188,10 @@ export function MapView() {
       map.remove();
       mapRef.current = null;
     };
-  }, [loading, error]);
+    // `user?.cityLat/cityLng` on purpose, not `user`: only those two fields
+    // affect the initial center, and `user` gets a new reference on every
+    // auth-state event, which would otherwise rebuild the map needlessly.
+  }, [loading, error, userLoading, user?.cityLat, user?.cityLng]);
 
   useEffect(() => {
     const map = mapRef.current;

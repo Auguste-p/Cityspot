@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
@@ -92,6 +92,9 @@ describe('Profile accessibility (RGAA / axe-core)', () => {
       id: CITIZEN.id,
       name: 'Jeanne Dupont',
       city: 'Lyon',
+      cityLat: null,
+      cityLng: null,
+      role: 'citizen',
       phone: null,
       address: null,
       avatar: null,
@@ -112,6 +115,9 @@ describe('Profile accessibility (RGAA / axe-core)', () => {
       id: CITIZEN.id,
       name: 'Jeanne Dupont',
       city: 'Lyon',
+      cityLat: null,
+      cityLng: null,
+      role: 'citizen',
       phone: null,
       address: null,
       avatar: null,

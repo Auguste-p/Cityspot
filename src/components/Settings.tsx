@@ -54,8 +54,9 @@ export function Settings() {
     // `user.id` on purpose: `user` gets a new object reference on every
     // auth-state event (token refresh, initial session), which would
     // otherwise re-run this fetch and reset mid-edit, silently discarding
-    // whatever the visitor just toggled.
-  }, [user?.id]);
+    // whatever the visitor just toggled. `form` is stable (react-hook-form
+    // guarantees it) so including it never causes extra runs.
+  }, [user?.id, form]);
 
   if (!user) return null;
 
