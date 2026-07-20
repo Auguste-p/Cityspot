@@ -140,8 +140,8 @@ Ferme le point ouvert §10.4/A09 (aucune supervision en prod) de la session pré
 | Qualité — sécurité | Couverture OWASP Top 10 | Détail dans `SECURITE.md` | Revue manuelle + `CAHIER_DE_RECETTES.md` (SEC-01 à SEC-11) |
 | Performance — taille du bundle | Limiter le poids du chunk principal | ~270 kB (contre 511 kB avant code-splitting par route) | Optimisation manuelle ponctuelle (`README.md`, journal IA) — **pas de budget chiffré ni d'outil automatisé en CI à ce jour** |
 
-> ⚠️ **Limite assumée** : la mesure de performance (taille de bundle) a été faite une fois, manuellement, pas de façon continue. Aucun outil de type Lighthouse CI ou `bundlesize` n'est branché sur le pipeline. À ajouter si un suivi de performance continu est exigé par le jury.
+> ⚠️ **Limite assumée** : la mesure de performance (taille de bundle) a été faite une fois, manuellement, pas de façon continue. Aucun outil de type Lighthouse CI ou `bundlesize` n'est branché sur le pipeline. Possibilité de l'ajouter par la suite
 
 ## 10. À savoir avant un déploiement VPS
 
-`package-lock.json` est dans `.gitignore` — un `git clone` frais n'aura pas ce fichier. Le `Dockerfile` utilise `npm install` (pas `npm ci`) pour cette raison. Committer le lockfile permettrait de repasser sur `npm ci`, plus rapide et déterministe.
+`package-lock.json` est committé depuis le 2026-07-20 (n'est plus dans `.gitignore`) : un `git clone` frais dispose désormais des versions exactes verrouillées. Le `Dockerfile` et `.github/workflows/ci.yml` utilisent `npm ci` (plus rapide, déterministe, échoue si le lockfile et `package.json` divergent) plutôt que `npm install`.

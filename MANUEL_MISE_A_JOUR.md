@@ -84,7 +84,7 @@ npm update
 npm run build && npm test  # valider qu'une montée de version n'a rien cassé
 ```
 
-`package-lock.json` est volontairement dans `.gitignore` (voir `MANUEL_DEPLOIEMENT.md`, §7) : chaque installation régénère ses propres versions verrouillées dans les bornes de `package.json`. Committer le lockfile est une évolution possible si des versions figées deviennent nécessaires.
+`package-lock.json` est committé (depuis le 2026-07-20, voir `MANUEL_DEPLOIEMENT.md`, §10) : après `npm update`, penser à committer le lockfile mis à jour avec le reste du changement, sans quoi CI/Docker (`npm ci`) réinstalleraient les anciennes versions verrouillées.
 
 ### 6.3 Rotation d'une clé Supabase
 

@@ -22,6 +22,10 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 - Numéro de version affiché en bas de l'application (`VITE_APP_VERSION`, injecté au build depuis le tag Git).
 - Dossier de certification consolidé (`DOSSIER_CERTIFICATION.md` + export PDF), regroupant l'ensemble des livrables attendus en un seul document.
 
+### v1.3.1 — 2026-07-20 — Builds reproductibles (lockfile committé)
+
+- **`package-lock.json` committé** (n'est plus dans `.gitignore`) : `Dockerfile` et `.github/workflows/ci.yml` passent de `npm install` à `npm ci`, pour des builds reproductibles à partir des mêmes versions verrouillées (ferme la nuance résiduelle sur A08, cf. `SECURITE.md`).
+
 ### v1.2.1 — 2026-07-20 — Correctif d'affichage de la carte sur mobile
 
 - **Carte invisible/écrasée sur mobile et en layout étroit** (`MapView.tsx`) : le conteneur de la carte utilisait `h-full` en cascade sur plusieurs `<div>` imbriqués dans un item flex, une résolution de hauteur en pourcentage qui ne se propageait pas de façon fiable. Remplacé par un positionnement `absolute inset-0` sur le conteneur non touché par MapLibre, et `h-full w-full` sur celui que MapLibre reclasse lui-même (`maplibregl-map`, qui impose `position: relative` et écrasait silencieusement un `position: absolute` posé directement dessus).

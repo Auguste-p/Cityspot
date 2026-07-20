@@ -188,7 +188,7 @@ Détail complet : [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMENT.md) §2.
 
 Chaque push ou pull request vers `main` déclenche `.github/workflows/ci.yml` :
 
-1. `npm install` (le lockfile est volontairement absent du dépôt, cf. §16).
+1. `npm ci` (installation à partir de `package-lock.json`, committé, cf. §16).
 2. `npm audit --audit-level=high` — le build échoue si une vulnérabilité haute/critique est détectée dans les dépendances (ferme le point OWASP A06, cf. §10).
 3. `npm run typecheck` (`tsc --noEmit`) — SWC (utilisé pour builder) ne vérifie jamais les types ; c'est la seule étape qui le fait.
 4. `npm run lint` (`eslint .`) — `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`.
@@ -214,7 +214,7 @@ Un test ou un build en échec **bloque la fusion** sur `main`. Ce pipeline couvr
 3. Connexion SSH, nouvelle image tirée, seul le conteneur `app` est remplacé — `traefik` n'est pas interrompu (pas de coupure TLS).
 4. Vérification post-déploiement : accès HTTPS au domaine, logs du conteneur sans erreur.
 
-Ce pipeline est **vérifié en conditions réelles**, pas seulement rédigé : déploiements effectifs sur `v1.0.1`, `v1.1.0`, `v1.2.0`, `v1.2.1`.
+Ce pipeline est **vérifié en conditions réelles**, pas seulement rédigé : déploiements effectifs depuis `v1.0.1`.
 
 Détail complet (secrets requis, mise en place initiale du VPS, supervision) : [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMENT.md) §8.
 
@@ -339,7 +339,7 @@ Détail complet de chaque version : [`CHANGELOG.md`](./CHANGELOG.md).
 
 ## 13. Dernière version fonctionnelle
 
-**`v1.2.1`** est la version actuellement déployée en production (`https://projet-cityspot.fr`), construite et déployée automatiquement par le pipeline décrit en §7. État de fonctionnement à cette version :
+**`v1.3.0`** est la version actuellement déployée en production (`https://projet-cityspot.fr`), construite et déployée automatiquement par le pipeline décrit en §7. État de fonctionnement à cette version :
 
 - 121/121 tests unitaires et d'accessibilité passants, build de production sans erreur.
 - 75/87 scénarios du cahier de recettes exécutés et ✅ (18/18 scénarios **Bloquant** ✅), 0 ❌.
@@ -414,7 +414,7 @@ docker build \
 
 **Mise en place initiale du VPS** (une seule fois) : Debian + Docker Engine, `/opt/cityspot/` avec `docker-compose.yml` et la configuration de supervision, enregistrements DNS, package GHCR rendu public (ou authentification par token), clé SSH autorisée, fichier `.env` local (mots de passe Grafana/Matomo, jamais commités).
 
-`package-lock.json` est volontairement absent du dépôt (`.gitignore`) : le `Dockerfile` utilise `npm install`, pas `npm ci` — chaque installation régénère ses propres versions verrouillées dans les bornes de `package.json`.
+`package-lock.json` est committé depuis le 2026-07-20 : le `Dockerfile` et la CI utilisent `npm ci`, plus rapide et déterministe (échoue si le lockfile diverge de `package.json`) plutôt que de régénérer des versions à chaque installation.
 
 Détail complet, y compris la supervision (Prometheus/Grafana/Matomo/Sentry/fail2ban) : [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMENT.md).
 
@@ -436,7 +436,7 @@ Détail complet : [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md).
 
 **Cycle de modification du code** : branche depuis `main` → développement avec la suite de tests comme filet de sécurité → pull request (CI bloque la fusion si tests ou build échouent) → une fois fusionné et la recette validée, pose d'un tag `vX.Y.Z` qui déclenche automatiquement le déploiement (§7).
 
-**Base de données** : évolutions de schéma versionnées dans `supabase/migrations/` (un fichier par changement). Particularité assumée du dépôt : les migrations déjà appliquées sont régulièrement supprimées du dossier local une fois poussées — l'historique de référence fiable est le plan de correction des bogues (§15), pas le dossier `migrations/`. Toute nouvelle table exposée à l'API doit recevoir des policies RLS explicites dès sa création (ne jamais laisser de policy permissive de type `"all for all"` — cf. BUG-10/BUG-13).
+**Base de données** : évolutions de schéma versionnées dans `supabase/migrations/` (un fichier par changement). Particularité assumée du dépôt : les migrations déjà appliquées sont régulièrement supprimées du dossier local une fois poussées car exécutées sur l'interface web supabase directement. Conservées depuis la v1.0.0. L'historique de référence fiable est le plan de correction des bogues (§15), pas le dossier `migrations/`. Toute nouvelle table exposée à l'API doit recevoir des policies RLS explicites dès sa création (ne jamais laisser de policy permissive de type `"all for all"` — cf. BUG-10/BUG-13).
 
 **Tâches d'administration courantes** :
 - Attribuer le rôle municipal : `update public.users set role = 'municipal' where id = '<uuid>'`.

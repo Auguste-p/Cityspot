@@ -263,9 +263,6 @@ export function MapView() {
         <Card className="p-8 text-center max-w-sm w-full">
           <Loader2 className="size-10 mx-auto mb-4 animate-spin text-primary" />
           <h2 className="mb-2">Chargement des signalements</h2>
-          <p className="text-sm text-muted-foreground">
-            Récupération des données depuis Supabase.
-          </p>
         </Card>
       </div>
     );
