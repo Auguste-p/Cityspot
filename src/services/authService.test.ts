@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../lib/supabase', () => ({
@@ -34,7 +35,10 @@ describe('signUp', () => {
     expect(signUpMock).toHaveBeenCalledWith({
       email: 'a@b.com',
       password: 'pw',
-      options: { data: { name: 'A', city: 'Lyon' } },
+      options: {
+        data: { name: 'A', city: 'Lyon' },
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
     });
     expect(result).toEqual({ user: { id: '1' } });
   });
@@ -57,7 +61,10 @@ describe('signUp', () => {
     expect(signUpMock).toHaveBeenCalledWith({
       email: 'a@b.com',
       password: 'pw',
-      options: { data: { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85 } },
+      options: {
+        data: { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85 },
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
     });
   });
 

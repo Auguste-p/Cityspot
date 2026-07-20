@@ -28,7 +28,15 @@ export async function signUp(email: string, password: string, profile: SignUpPro
   const { data, error } = await getSupabaseClient()!.auth.signUp({
     email,
     password,
-    options: { data: profile },
+    options: {
+      data: profile,
+      // Sans ça, Supabase retombe sur le "Site URL" configuré côté dashboard
+      // (souvent resté sur localhost depuis le setup initial) pour le lien de
+      // confirmation, quel que soit le domaine réel d'où l'inscription a eu
+      // lieu. Doit aussi être ajouté à la liste "Redirect URLs" du dashboard,
+      // sinon Supabase l'ignore silencieusement et retombe sur le Site URL.
+      emailRedirectTo: `${window.location.origin}/login`,
+    },
   });
 
   if (error) throw error;

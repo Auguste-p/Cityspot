@@ -1,7 +1,7 @@
 # Dossier de certification — City Spot
 
 **Candidat** : Auguste P. — **Projet** : City Spot (signalement citoyen de dégradations urbaines)
-**Dépôt** : `github.com/Auguste-p/Cityspot` — **Version en production** : `v1.2.1` — **Date** : 20/07/2026
+**Dépôt** : `github.com/Auguste-p/Cityspot` — **Version en production** : `v1.3.1` — **Date** : 20/07/2026
 
 > Ce dossier consolide, en un seul document, l'ensemble des livrables attendus pour la simulation de situation de travail. Chaque section renvoie vers le document source complet du dépôt pour le détail exhaustif — ce dossier en présente la synthèse et les éléments de preuve essentiels. Index complet critère → document : [`GRILLE_EVALUATION.md`](./GRILLE_EVALUATION.md).
 
