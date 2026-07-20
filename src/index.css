@@ -2679,6 +2679,23 @@ html {
   border: 1px solid var(--card);
 }
 
+/* ponytail: écrit à la main plutôt qu'en classes Tailwind — ce fichier est un
+   export statique (pas de build Tailwind actif dans ce projet), les variantes
+   `lg:flex-none`/`lg:grow-0`/`lg:basis-auto` n'y existent pas. Sur mobile, le
+   panneau doit partager l'espace vertical avec la carte (flex-basis: 0%) ;
+   sur desktop (>= 1024px, le breakpoint `lg` de Tailwind), il doit revenir à
+   une largeur fixe (`lg:w-96`) sans grandir dans la ligne. */
+.cityspot-details-panel {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+@media (width >= 64rem) {
+  .cityspot-details-panel {
+    flex: none;
+  }
+}
+
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;

@@ -10,6 +10,12 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### v1.2.1 — 2026-07-20 — Correctif d'affichage de la carte sur mobile
+
+- **Carte invisible/écrasée sur mobile et en layout étroit** (`MapView.tsx`) : le conteneur de la carte utilisait `h-full` en cascade sur plusieurs `<div>` imbriqués dans un item flex, une résolution de hauteur en pourcentage qui ne se propageait pas de façon fiable. Remplacé par un positionnement `absolute inset-0` sur le conteneur non touché par MapLibre, et `h-full w-full` sur celui que MapLibre reclasse lui-même (`maplibregl-map`, qui impose `position: relative` et écrasait silencieusement un `position: absolute` posé directement dessus).
+- Panneau de liste des signalements (mobile) : passe à `flex-1` pour partager l'espace avec la carte au lieu de la pousser hors de l'écran par sa hauteur de contenu.
+- Nouvelle classe CSS écrite à la main (`.cityspot-details-panel`, `src/index.css`) pour contourner l'absence de variantes `lg:flex-none` dans le CSS statique du projet (pas de build Tailwind actif, cf. `MANUEL_DEPLOIEMENT.md`).
+
 ### v1.2.0 — 2026-07-20 — Recherche d'adresse précise à la création d'un signalement
 
 - **Recherche d'adresse avec suggestions** (`src/lib/geocode.ts`, `CreatePost.tsx`) : le champ "Localisation" propose désormais une liste de suggestions au fil de la frappe (debounce 400 ms), via l'API Photon (mêmes données OSM que le reverse-geocoding déjà utilisé dans `MapView`, mais pensée pour l'autocomplétion — rues, numéros, lieux nommés, pas seulement des villes). Corrige un bogue réel : tout nouveau signalement était créé avec `lat: 0, lng: 0` (marqueur sur Null Island) ; le marqueur apparaît désormais à la position réelle du lieu choisi. Si aucune suggestion n'est sélectionnée, une géolocalisation de secours du texte saisi est tentée à la soumission avant de retomber sur la ville par défaut.

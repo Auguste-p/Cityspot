@@ -166,6 +166,12 @@ export function MapView() {
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
     mapRef.current = map;
 
+    // Le conteneur peut déjà avoir la bonne taille CSS au montage, mais le
+    // moteur de rendu de MapLibre capture sa propre caméra/zoom au moment de
+    // la construction. Un `resize()` explicite après le premier rendu force
+    // la carte à recharger les tuiles pour la taille réelle du conteneur.
+    map.once('load', () => map.resize());
+
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
@@ -267,8 +273,8 @@ export function MapView() {
   return (
     <div className="h-full flex flex-col lg:flex-row">
       {/* Map Area */}
-      <div className="relative flex-1 bg-muted">
-        <div className="relative h-full min-h-[400px] lg:min-h-screen overflow-hidden rounded-none lg:rounded-r-lg" role="region" aria-label="Carte des signalements">
+      <div className="relative flex-1 min-h-[400px] bg-muted">
+        <div className="absolute inset-0 overflow-hidden rounded-none lg:rounded-r-lg" role="region" aria-label="Carte des signalements">
           <div ref={mapContainerRef} className="cityspot-map h-full w-full" />
 
           <div className="absolute top-4 left-4 z-10 space-y-2">
@@ -314,7 +320,7 @@ export function MapView() {
       </div>
 
       {/* Details Panel */}
-      <div className="lg:w-96 bg-background border-t lg:border-t-0 lg:border-l border-border overflow-y-auto">
+      <div className="cityspot-details-panel lg:w-96 bg-background border-t lg:border-t-0 lg:border-l border-border overflow-y-auto">
         {selectedPost ? (
           <div className="p-6">
             <button

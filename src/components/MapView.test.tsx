@@ -6,8 +6,8 @@ import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
 // maplibre-gl needs a real WebGL canvas, unavailable under jsdom — stub the
-// pieces MapView actually calls (addControl/flyTo/getZoom/remove on the map,
-// setLngLat/addTo/remove chaining on markers).
+// pieces MapView actually calls (addControl/flyTo/getZoom/remove/once/resize
+// on the map, setLngLat/addTo/remove chaining on markers).
 vi.mock('maplibre-gl', () => {
   class FakeMap {
     addControl() {}
@@ -15,6 +15,10 @@ vi.mock('maplibre-gl', () => {
     getZoom() {
       return 12;
     }
+    once(_event: string, callback: () => void) {
+      callback();
+    }
+    resize() {}
     remove() {}
   }
   class FakeMarker {
