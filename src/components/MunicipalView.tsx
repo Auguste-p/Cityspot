@@ -14,16 +14,11 @@ import {
   Clock,
   Vote,
   Building2,
-  Car,
-  Lightbulb,
-  Shield,
-  Trash2 as TrashIcon,
-  Trees,
-  Armchair,
   AlertCircle,
   Loader2,
 } from "lucide-react";
 import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from "../lib/postStatus";
+import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from "../lib/postCategory";
 import { PostCard } from "./PostCard";
 import { useIssues } from "../hooks/useIssues";
 
@@ -41,42 +36,7 @@ const CATEGORIES: Array<{
     icon: Building2,
     color: "text-primary",
   },
-  {
-    value: "voirie",
-    label: "Voirie",
-    icon: Car,
-    color: "text-slate-600",
-  },
-  {
-    value: "eclairage",
-    label: "Éclairage",
-    icon: Lightbulb,
-    color: "text-yellow-600",
-  },
-  {
-    value: "securite",
-    label: "Sécurité",
-    icon: Shield,
-    color: "text-red-600",
-  },
-  {
-    value: "proprete",
-    label: "Propreté",
-    icon: TrashIcon,
-    color: "text-cyan-600",
-  },
-  {
-    value: "espaces-verts",
-    label: "Espaces verts",
-    icon: Trees,
-    color: "text-green-600",
-  },
-  {
-    value: "mobilier-urbain",
-    label: "Mobilier urbain",
-    icon: Armchair,
-    color: "text-orange-600",
-  },
+  ...POST_CATEGORIES.map((value) => ({ value, ...POST_CATEGORY_CONFIG[value] })),
 ];
 
 export function MunicipalView() {
