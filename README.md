@@ -40,14 +40,17 @@ Dernière mesure locale (2026-07-17) :
 | `src/components/ui` | 85.15 % |
 | `src/services` | 64.75 % |
 
-Détail fichier par fichier, ce que chaque test vérifie et pourquoi : [`TESTS.md`](./TESTS.md). Référentiel d'accessibilité (RGAA 4.1), méthode et limites : [`ACCESSIBILITE.md`](./ACCESSIBILITE.md). Mesures de sécurité mappées à l'OWASP Top 10 : [`SECURITE.md`](./SECURITE.md). Scénarios de recette exécutés : [`CAHIER_DE_RECETTES.md`](./CAHIER_DE_RECETTES.md). Bogues détectés, corrigés ou en attente de correctif : [`PLAN_CORRECTION_BOGUES.md`](./PLAN_CORRECTION_BOGUES.md).
+Détail fichier par fichier, ce que chaque test vérifie et pourquoi : [`TESTS.md`](./docs/TESTS.md). Référentiel d'accessibilité (RGAA 4.1), méthode et limites : [`ACCESSIBILITE.md`](./docs/ACCESSIBILITE.md). Mesures de sécurité mappées à l'OWASP Top 10 : [`SECURITE.md`](./docs/SECURITE.md). Scénarios de recette exécutés : [`CAHIER_DE_RECETTES.md`](./docs/CAHIER_DE_RECETTES.md). Bogues détectés, corrigés ou en attente de correctif : [`PLAN_CORRECTION_BOGUES.md`](./docs/PLAN_CORRECTION_BOGUES.md).
 
 ## Documentation
 
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — composants, flux de données, frontières de confiance.
-- [`MANUEL_DEPLOIEMENT.md`](./MANUEL_DEPLOIEMENT.md) — build et déploiement de l'image Docker, pipeline CI/CD.
-- [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md) — prise en main de l'application pour un utilisateur (citoyen ou agent municipal).
-- [`MANUEL_MISE_A_JOUR.md`](./MANUEL_MISE_A_JOUR.md) — faire évoluer le logiciel : migrations base de données, dépendances, redéploiement.
-- [`SECURITE.md`](./SECURITE.md) — mapping des mesures de sécurité à l'OWASP Top 10.
-- [`CHANGELOG.md`](./CHANGELOG.md) — historique des versions (tags Git), traçabilité des évolutions du prototype.
-- [`GRILLE_EVALUATION.md`](./GRILLE_EVALUATION.md) — index : quel document répond à quel critère de la grille d'évaluation.
+Tous les documents détaillés sont dans [`docs/`](./docs).
+
+- [`DOSSIER_CERTIFICATION.md`](./docs/DOSSIER_CERTIFICATION.md) — dossier de synthèse consolidé (présentation, architecture, qualité, tests) pour la certification.
+- [`ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — composants, flux de données, frontières de confiance.
+- [`MANUEL_DEPLOIEMENT.md`](./docs/MANUEL_DEPLOIEMENT.md) — build et déploiement de l'image Docker, pipeline CI/CD.
+- [`MANUEL_UTILISATION.md`](./docs/MANUEL_UTILISATION.md) — prise en main de l'application pour un utilisateur (citoyen ou agent municipal).
+- [`MANUEL_MISE_A_JOUR.md`](./docs/MANUEL_MISE_A_JOUR.md) — faire évoluer le logiciel : migrations base de données, dépendances, redéploiement.
+- [`SECURITE.md`](./docs/SECURITE.md) — mapping des mesures de sécurité à l'OWASP Top 10.
+- [`CHANGELOG.md`](./docs/CHANGELOG.md) — historique des versions (tags Git), traçabilité des évolutions du prototype.
+- [`GRILLE_EVALUATION.md`](./docs/GRILLE_EVALUATION.md) — index : quel document répond à quel critère de la grille d'évaluation.
