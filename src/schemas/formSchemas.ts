@@ -21,8 +21,10 @@ export const createPostSchema = z.object({
     .max(200, 'L\'adresse doit contenir moins de 200 caractères'),
   
   isPrivateProperty: z.enum(['public', 'private']),
-  
+
   isOwnProperty: z.enum(['yes', 'no']),
+
+  category: z.enum(['voirie', 'eclairage', 'securite', 'proprete', 'espaces-verts', 'mobilier-urbain']).optional(),
   
   propertyDocument: z.string().default(''),
   

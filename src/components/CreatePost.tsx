@@ -18,6 +18,8 @@ import { useIssue } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { searchAddress, type GeocodeResult } from '../lib/geocode';
 import { FALLBACK_CITY } from '../constants/map';
+import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from '../lib/postCategory';
+import { cn } from './ui/utils';
 
 const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
 
@@ -363,6 +365,7 @@ export function CreatePost() {
       address: '',
       isPrivateProperty: 'public',
       isOwnProperty: 'yes',
+      category: undefined,
       propertyDocument: undefined,
       ownerEmail: '',
       tasks: [],
@@ -513,6 +516,8 @@ export function CreatePost() {
         positiveVotes: 0,
         negativeVotes: 0,
         isMunicipalProject: false,
+        category: data.category,
+        created_by: user?.id,
       });
 
       toast.success('Signalement créé avec succès !');
@@ -600,6 +605,48 @@ export function CreatePost() {
                 </Card>
               )}
             />
+
+            {!isEditMode && (
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <Card className="p-6">
+                    <FormItem>
+                      <Label className="mb-3 block">Catégorie</Label>
+                      <FormControl>
+                        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Catégorie">
+                          {POST_CATEGORIES.map((category) => {
+                            const config = POST_CATEGORY_CONFIG[category];
+                            const Icon = config.icon;
+                            const isSelected = field.value === category;
+                            return (
+                              <button
+                                key={category}
+                                type="button"
+                                role="radio"
+                                aria-checked={isSelected}
+                                onClick={() => field.onChange(isSelected ? undefined : category)}
+                                className={cn(
+                                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+                                  isSelected
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-input bg-input-background hover:bg-accent',
+                                )}
+                              >
+                                <Icon className={cn('size-3.5', isSelected ? '' : config.color)} />
+                                {config.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </Card>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
