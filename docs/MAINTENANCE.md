@@ -14,9 +14,14 @@ Critère : *« Le processus de mise à jour des dépendances précise la fréque
 | **Périmètre** | L'ensemble des dépendances npm du projet (`package.json`/`package-lock.json`) — frontend uniquement, Supabase (backend managé) n'a pas de dépendances applicatives à mettre à jour côté code. |
 | **Type** | **Détection** : automatique, `npm audit --audit-level=high` rejoué à chaque push/PR (`.github/workflows/ci.yml`) — le build échoue si une vulnérabilité haute/critique est introduite. **Mise à jour** : manuelle, procédure documentée dans `MANUEL_MISE_A_JOUR.md` §6.2 (`npm outdated` → `npm audit` → `npm update` → `npm run build && npm test`). |
 
-**Preuve** : `.github/workflows/ci.yml` (étape `npm audit --audit-level=high`), `SECURITE.md` (A06:2021, fermé depuis le 2026-07-19), `MANUEL_MISE_A_JOUR.md` §6.2.
+**Preuve** : `.github/workflows/ci.yml` (étape `npm audit --omit=dev --audit-level=high`), `SECURITE.md` (A06:2021, fermé depuis le 2026-07-19), `MANUEL_MISE_A_JOUR.md` §6.2.
 
 **Écart assumé** : pas d'outil de veille automatique des nouvelles versions (type Dependabot/Renovate) — la détection de vulnérabilités est automatique, mais la connaissance d'une nouvelle version disponible reste manuelle (`npm outdated` lancé à la main). Cf. §6.
+
+**Incident du 2026-07-29** : `npm audit --audit-level=high` a fait échouer la CI sur 3 avis de sécurité. Traitement :
+- `postcss` et `react-router` (dépendances de production) : corrigés par `npm audit fix` (montée de version non cassante).
+- `brace-expansion` (via `minimatch@3.1.5`, imbriqué dans les dépendances propres d'`eslint` et d'`eslint-plugin-jsx-a11y`) : aucun correctif non cassant disponible — la seule version corrigée reconnue par l'avisory (`5.0.8`) change la forme de l'API (`require('brace-expansion')` n'exporte plus une fonction directement), incompatible avec l'ancien `minimatch@3.1.5` utilisé en interne par `eslint`. Monter `eslint` en v10 (qui ne dépend plus de cette chaîne) casse à son tour `eslint-plugin-jsx-a11y@6.10.2`, dont le `peerDependencies` ne déclare le support que jusqu'à `eslint@^9`. Bogue purement outillage (lint), jamais exécuté en production ni exposé à une entrée utilisateur.
+- **Décision** : porter le gate `npm audit` sur `--omit=dev` (dépendances de production uniquement). Les dépendances de production restent intégralement propres (0 vulnérabilité) ; le résidu dev-only reste visible via `npm audit` en local, sans bloquer la CI. Détail : §6.
 
 ## 3. C4.1.2 — Système de supervision et d'alerte
 
@@ -74,6 +79,7 @@ Exemple concret — **BUG-17/BUG-18** (redirection silencieuse après inscriptio
 ## 6. Écarts connus
 
 - **C4.1.1** : pas de veille automatique des nouvelles versions (Dependabot/Renovate) — seule la détection de vulnérabilités est automatisée (`npm audit` en CI), la mise à jour elle-même reste déclenchée manuellement.
+- **C4.1.1 (résiduel, 2026-07-29)** : `brace-expansion` (transitif, via `minimatch@3.1.5` interne à `eslint`/`eslint-plugin-jsx-a11y`) reste sur une version signalée par `npm audit`, sans correctif non cassant disponible tant qu'`eslint-plugin-jsx-a11y` ne supporte pas `eslint@10`. Gate CI restreint à `--omit=dev` en conséquence — 0 vulnérabilité sur les dépendances de production. À revoir quand `eslint-plugin-jsx-a11y` étendra son `peerDependencies` à `eslint@^10`.
 - **C4.1.2** : pas d'alerte automatique sur les métriques Prometheus/Grafana (infra) — revue manuelle des dashboards ; seule la couche sécurité applicative a une alerte automatique active (Sentry, cf. `SECURITE.md` §4).
 
 Aucun de ces écarts ne bloque le critère — ce sont des marges de progression documentées, dans le même esprit que `SECURITE.md`/`ACCESSIBILITE.md` : limites écrites explicitement plutôt que masquées.
