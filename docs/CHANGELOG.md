@@ -13,7 +13,7 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 ### v2.0.1 — 2026-07-29 — Correctif CI : échec `npm audit`
 
 - **`postcss`, `react-router`** : montée de version non cassante (`npm audit fix`) — corrige 2 vulnérabilités hautes (path traversal sur les source maps, contournement CSRF en mode RSC) sur des dépendances de production.
-- **`.github/workflows/ci.yml`** : le gate `npm audit` passe à `--omit=dev` (dépendances de production uniquement). Le résidu restant (`brace-expansion`, via `minimatch@3.1.5` imbriqué dans les dépendances propres d'`eslint`/`eslint-plugin-jsx-a11y`) n'a pas de correctif non cassant tant qu'`eslint-plugin-jsx-a11y` ne supporte pas `eslint@10` en peer dependency — bogue d'outillage lint, jamais exécuté en production. Détail : `MAINTENANCE.md` §2 et §7.
+- **`.github/workflows/ci.yml`** : le gate `npm audit` passe à `--omit=dev` (dépendances de production uniquement). Le résidu restant (`brace-expansion`, via `minimatch@3.1.5` imbriqué dans les dépendances propres d'`eslint`/`eslint-plugin-jsx-a11y`) n'a pas de correctif non cassant tant qu'`eslint-plugin-jsx-a11y` ne supporte pas `eslint@10` en peer dependency — bogue d'outillage lint, jamais exécuté en production. Détail : `MAINTENANCE.md` §2 et §8.
 
 ### v2.0.0 — 2026-07-29 — Documentation de maintenance en condition opérationnelle (BLOC 4)
 

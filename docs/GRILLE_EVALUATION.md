@@ -22,6 +22,7 @@ Ce document est l'index unique qui fait correspondre chaque critère des blocs d
 | C4.2.1 | Consignation des anomalies (processus + fiche) | `MAINTENANCE.md` §4, `PLAN_CORRECTION_BOGUES.md` | ✅ |
 | C4.2.2 | Correctif créé et déployé via le processus CI/CD | `MAINTENANCE.md` §5 | ✅ |
 | C4.3.1 | Recommandations d'amélioration argumentées | `MAINTENANCE.md` §6 | ✅ |
+| C4.3.3 | Collaboration support/client sur un problème résolu | `MAINTENANCE.md` §7, `PLAN_CORRECTION_BOGUES.md` (BUG-16) | ✅ |
 
 ## 3. Détail par critère
 
@@ -75,7 +76,7 @@ Ce document est l'index unique qui fait correspondre chaque critère des blocs d
 - **C2.2.3 (accessibilité)** : contraste couleur RGAA non vérifiable sous `jsdom`, jamais testé en navigateur réel.
 - **C2.2.3 (A09, résiduel)** : la revue des logs de requêtes Supabase (seule couche qui verrait un contournement complet du frontend) est manuelle, pas d'alerte automatique native sur ces logs côté Supabase (plan gratuit) — l'alerte Sentry couvre le volet applicatif/client, pas ce volet-là. Détail : `SECURITE.md` §4.
 - **C2.3.1** : 12/87 scénarios de recette non exécutés, raison documentée sur chaque ligne (`CAHIER_DE_RECETTES.md`).
-- **C4.1.1** : pas de veille automatique des nouvelles versions de dépendances (Dependabot/Renovate) — seule la détection de vulnérabilités est automatisée. Détail : `MAINTENANCE.md` §7.
-- **C4.1.2** : pas d'alerte automatique sur les métriques Prometheus/Grafana (infra), revue manuelle des dashboards — seule la couche sécurité applicative a une alerte automatique (Sentry). Détail : `MAINTENANCE.md` §7.
+- **C4.1.1** : pas de veille automatique des nouvelles versions de dépendances (Dependabot/Renovate) — seule la détection de vulnérabilités est automatisée. Détail : `MAINTENANCE.md` §8.
+- **C4.1.2** : pas d'alerte automatique sur les métriques Prometheus/Grafana (infra), revue manuelle des dashboards — seule la couche sécurité applicative a une alerte automatique (Sentry). Détail : `MAINTENANCE.md` §8.
 
 A06 est désormais fermé (`npm audit` en CI depuis le 2026-07-19) et retiré de cette liste, de même que l'écart typage/lint (`tsc --noEmit` et `eslint` en CI depuis le 2026-07-20, cf. `MANUEL_DEPLOIEMENT.md`). A09 est largement fermé (télémétrie applicative + alerte Sentry depuis le 2026-07-19, cf. `SECURITE.md` §4) — seule la revue des logs Supabase reste manuelle plutôt qu'alertée automatiquement, listée ci-dessus comme limite résiduelle assumée, pas un blocage du critère. Aucun de ces écarts ne concerne un critère au rouge — tous les critères C2 listés en §2 sont satisfaits ; ce sont des marges de progression documentées, dans l'esprit du projet (limites écrites explicitement plutôt que masquées, cf. `SECURITE.md`/`ACCESSIBILITE.md`).
