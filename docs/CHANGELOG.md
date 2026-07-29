@@ -10,6 +10,12 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### v2.0.0 — 2026-07-29 — Documentation de maintenance en condition opérationnelle (BLOC 4)
+
+- **`docs/MAINTENANCE.md`** : nouveau document répondant aux critères C4.1.1 (processus de mise à jour des dépendances), C4.1.2 (système de supervision et d'alerte), C4.2.1 (consignation des anomalies) et C4.2.2 (correctif créé et déployé via le processus CI/CD) — s'appuie sur l'existant (`ci.yml`, `prometheus.yml`, `grafana/`, `SECURITE.md`, `PLAN_CORRECTION_BOGUES.md`) sans dupliquer, en documentant explicitement ce qui manquait comme livrable autonome pour ces critères.
+- `GRILLE_EVALUATION.md` étendu au bloc **C4** (au-delà du seul C2 couvert jusqu'ici).
+- Passage en version majeure 2.x pour marquer le passage du BLOC 2 (Concevoir et développer) au BLOC 4 (Maintenir en condition opérationnelle) de la grille d'évaluation.
+
 ### v1.3.0 — 2026-07-20 — Centrage sur la ville, robustesse de l'inscription, vérification des types et du lint
 
 - **Carte centrée sur la ville de l'utilisateur** : `cityLat`/`cityLng`, renseignés à l'inscription (recherche de ville filtrée aux communes, `searchCity()`), centrent désormais la carte à la connexion au lieu de systématiquement retomber sur la ville par défaut.

@@ -52,5 +52,6 @@ Tous les documents détaillés sont dans [`docs/`](./docs).
 - [`MANUEL_UTILISATION.md`](./docs/MANUEL_UTILISATION.md) — prise en main de l'application pour un utilisateur (citoyen ou agent municipal).
 - [`MANUEL_MISE_A_JOUR.md`](./docs/MANUEL_MISE_A_JOUR.md) — faire évoluer le logiciel : migrations base de données, dépendances, redéploiement.
 - [`SECURITE.md`](./docs/SECURITE.md) — mapping des mesures de sécurité à l'OWASP Top 10.
+- [`MAINTENANCE.md`](./docs/MAINTENANCE.md) — maintien en condition opérationnelle : mises à jour de dépendances, supervision, consignation et déploiement des correctifs.
 - [`CHANGELOG.md`](./docs/CHANGELOG.md) — historique des versions (tags Git), traçabilité des évolutions du prototype.
 - [`GRILLE_EVALUATION.md`](./docs/GRILLE_EVALUATION.md) — index : quel document répond à quel critère de la grille d'évaluation.
