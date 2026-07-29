@@ -10,6 +10,10 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### v2.0.2 — 2026-07-29 — Correctif RLS à la création d'un signalement
+
+- **`CreatePost.tsx`** : la création d'un signalement pouvait échouer avec une violation de la policy RLS Postgres (`new row violates row-level security policy for table "issues"`) si le formulaire était soumis avant la résolution asynchrone de la session (`UserContext`) — `created_by: user?.id` valait alors `undefined`, silencieusement omis du payload JSON envoyé à PostgREST, donc `NULL` en base, ce que la policy `with check (auth.uid() = created_by)` refuse. `onSubmit` bloque désormais tant que `user` n'est pas chargé, avec un message clair au lieu de l'erreur RLS brute.
+
 ### v2.0.1 — 2026-07-29 — Correctif CI : échec `npm audit`
 
 - **`postcss`, `react-router`** : montée de version non cassante (`npm audit fix`) — corrige 2 vulnérabilités hautes (path traversal sur les source maps, contournement CSRF en mode RSC) sur des dépendances de production.

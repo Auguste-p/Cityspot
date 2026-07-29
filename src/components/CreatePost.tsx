@@ -465,6 +465,11 @@ export function CreatePost() {
   };
 
   const onSubmit = async (data: CreatePostFormOutput) => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour publier un signalement');
+      return;
+    }
+
     try {
       if (isEditMode && id) {
         const addressChanged = data.address !== existingPost?.location.address;
@@ -517,7 +522,7 @@ export function CreatePost() {
         negativeVotes: 0,
         isMunicipalProject: false,
         category: data.category,
-        created_by: user?.id,
+        created_by: user.id,
       });
 
       toast.success('Signalement créé avec succès !');
