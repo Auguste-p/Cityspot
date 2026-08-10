@@ -27,12 +27,13 @@
       rollupOptions: {
         output: {
           manualChunks(id) {
+            // maplibre-gl n'est PAS regroupé ici : le forcer dans un chunk
+            // nommé le rend "partagé" aux yeux de Rollup, qui ajoute alors un
+            // import statique de ce chunk dans TOUTES les routes (y compris
+            // Login/Profile/Settings) au lieu de le garder privé à MapView,
+            // seule route qui l'utilise réellement via un import() dynamique.
             if (!id.includes('node_modules')) {
               return;
-            }
-
-            if (id.includes('maplibre-gl')) {
-              return 'vendor-map';
             }
 
             if (id.includes('@supabase/supabase-js')) {
