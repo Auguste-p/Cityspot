@@ -80,7 +80,7 @@ Exemple concret — **BUG-17/BUG-18** (redirection silencieuse après inscriptio
 
 Critère : *« Les recommandations d'amélioration sont argumentées et permettent d'évaluer les gains de performance en termes de coût, délai de mise en œuvre, etc., sont réalistes et réalisables, et permettent de renforcer l'attractivité du logiciel »*.
 
-Trois axes, chacun mesuré sur l'état réel du projet (build, couverture, CI) plutôt qu'estimé à vue. Un quatrième axe (MapLibre GL chargé hors de sa route) a été identifié puis appliqué depuis — détail dans le journal de version, `DOSSIER_MAINTENANCE.md` §7.1 (v2.0.3) et `CHANGELOG.md`.
+Trois axes, chacun mesuré sur l'état réel du projet (build, couverture, CI) plutôt qu'estimé à vue. Un quatrième axe (MapLibre GL chargé hors de sa route) a été identifié puis appliqué depuis — détail dans le journal de version, `CHANGELOG.md`.
 
 | # | Constat mesuré | Recommandation | Coût / délai | Gain attendu |
 |---|---|---|---|---|

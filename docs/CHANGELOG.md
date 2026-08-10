@@ -14,7 +14,7 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 - **`vite.config.ts`** : `manualChunks` forçait `maplibre-gl` dans un chunk nommé `vendor-map` (1 048,59 kB / 282,04 kB gzip). Rollup traite un chunk manuellement nommé comme partagé et ajoutait un `import` **statique** vers lui dans toutes les autres routes (`LoginPage`, `Profile`, `Settings`, `CreatePost`, `PostDetail`, `MunicipalView`), malgré le découpage par route déjà en place dans `routes.ts` (`import()` dynamique par page) — le chunk et son CSS (69,92 kB) se chargeaient donc même sur les pages sans carte. Retrait du regroupement forcé : Rollup garde désormais MapLibre privé au chunk `MapView`, seule route qui l'importe réellement.
 - Vérifié par build + capture réseau (`vite build` puis `vite preview`) : `index-*.js` reste à 364 kB, plus aucune requête vers `vendor-map-*` sur `/login`, `/profile`, `/settings`.
-- Documentation mise à jour : `MAINTENANCE.md` §6 (recommandation retirée du tableau, appliquée), `DOSSIER_MAINTENANCE.md` §7 (journal de version).
+- Documentation mise à jour : `MAINTENANCE.md` §6 (recommandation retirée du tableau, appliquée)
 
 ### v2.0.2 — 2026-07-29 — Correctif RLS à la création d'un signalement
 
