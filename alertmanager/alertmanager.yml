@@ -1,0 +1,18 @@
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'auguste.pasero@gmail.com'
+  smtp_auth_username: 'auguste.pasero@gmail.com'
+  smtp_auth_password_file: '/run/secrets/smtp_password'
+  smtp_require_tls: true
+
+route:
+  receiver: email
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+
+receivers:
+  - name: email
+    email_configs:
+      - to: 'auguste.pasero@gmail.com'

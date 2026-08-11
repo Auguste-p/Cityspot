@@ -1,0 +1,29 @@
+groups:
+  - name: cityspot
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cible Prometheus indisponible : {{ $labels.job }}"
+          description: "{{ $labels.instance }} (job {{ $labels.job }}) ne répond plus au scrape depuis 2 minutes."
+
+      - alert: HostHighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAM du VPS > 90 %"
+          description: "Utilisation mémoire à {{ printf \"%.1f\" $value }}% depuis 5 minutes."
+
+      - alert: HostHighDisk
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disque du VPS > 85 % sur {{ $labels.mountpoint }}"
+          description: "Utilisation disque à {{ printf \"%.1f\" $value }}% sur {{ $labels.mountpoint }} depuis 5 minutes."

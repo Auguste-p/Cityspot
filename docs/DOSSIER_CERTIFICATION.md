@@ -78,6 +78,7 @@ flowchart TB
         App["conteneur app\nnginx + build statique"]
         Grafana["Grafana"]
         Prometheus["Prometheus"]
+        Alertmanager["Alertmanager"]
         NodeExp["node-exporter"]
         cAdvisor["cAdvisor"]
         Matomo["Matomo + MariaDB"]
@@ -101,6 +102,8 @@ flowchart TB
     Prometheus --> NodeExp
     Prometheus --> cAdvisor
     Prometheus --> Traefik
+    Prometheus --> Alertmanager
+    Alertmanager -.->|"email"| Mainteneur["mainteneur\n(auguste.pasero@gmail.com)"]
     Grafana --> Prometheus
 ```
 
@@ -204,14 +207,14 @@ Un test ou un build en échec **bloque la fusion** sur `main`. Ce pipeline couvr
 `.github/workflows/deploy.yml` se déclenche sur le push d'un **tag Git `vX.Y.Z`** et enchaîne deux jobs :
 
 1. **`build-and-push`** — build l'image Docker (secrets Supabase injectés via `--secret`, jamais en clair) et la pousse sur le **GitHub Container Registry** (`ghcr.io/auguste-p/cityspot`), taguée `latest` et avec le numéro de version.
-2. **`deploy`** — connexion SSH au VPS, `docker compose pull && docker compose up -d` dans `/opt/cityspot`.
+2. **`deploy`** — synchronise les fichiers d'infra (`docker-compose.yml`, `prometheus.yml`, `alerting_rules.yml`, `alertmanager/`) vers `/opt/cityspot` sur le VPS (`appleboy/scp-action`), puis connexion SSH, `docker compose pull && docker compose up -d`.
 
-**Sur le VPS**, plusieurs conteneurs tournent en permanence via `docker-compose.yml` : `app` (l'image ci-dessus), `traefik` (reverse proxy public, TLS Let's Encrypt automatique par domaine, découverte des services via labels Docker), la pile de supervision (`prometheus`/`node-exporter`/`cadvisor`/`grafana`), les analytics (`matomo`/`matomo-db`), et `fail2ban` sur l'hôte (anti brute-force SSH).
+**Sur le VPS**, plusieurs conteneurs tournent en permanence via `docker-compose.yml` : `app` (l'image ci-dessus), `traefik` (reverse proxy public, TLS Let's Encrypt automatique par domaine, découverte des services via labels Docker), la pile de supervision (`prometheus`/`node-exporter`/`cadvisor`/`grafana`/`alertmanager`), les analytics (`matomo`/`matomo-db`), et `fail2ban` sur l'hôte (anti brute-force SSH).
 
 **Séquence complète d'une mise en production** :
 1. Recette validée (§14), tag `vX.Y.Z` posé et poussé.
 2. `deploy.yml` construit l'image, la pousse sur GHCR.
-3. Connexion SSH, nouvelle image tirée, seul le conteneur `app` est remplacé — `traefik` n'est pas interrompu (pas de coupure TLS).
+3. Fichiers d'infra synchronisés sur le VPS, connexion SSH, nouvelle image tirée — `app` systématiquement recréé, `prometheus`/`alertmanager` seulement si leur config a changé, `traefik` jamais interrompu (pas de coupure TLS).
 4. Vérification post-déploiement : accès HTTPS au domaine, logs du conteneur sans erreur.
 
 Ce pipeline est **vérifié en conditions réelles**, pas seulement rédigé : déploiements effectifs depuis `v1.0.1`.

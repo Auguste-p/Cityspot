@@ -10,6 +10,13 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### v2.1.0 — 2026-08-11 — Alerte automatique sur indisponibilité (Alertmanager)
+
+- **`alertmanager/alertmanager.yml`**, **`alerting_rules.yml`** : nouveau conteneur `alertmanager` dans `docker-compose.yml`, notifiant par email dès qu'une cible Prometheus passe à `up == 0` pendant 2 minutes (`InstanceDown`), ou que la RAM/le disque du VPS dépassent 90 %/85 % pendant 5 minutes. Fermait l'écart documenté en C4.1.2 (supervision consultée manuellement, sans alerte automatique côté infra).
+- Mot de passe SMTP jamais commité : `smtp_auth_password_file` pointe vers un secret Docker Compose (`/opt/cityspot/secrets/smtp_password` sur le VPS, même traitement que `.env`).
+- **`.github/workflows/deploy.yml`** : ajout d'une étape `appleboy/scp-action` qui synchronise `docker-compose.yml`, `prometheus.yml`, `alerting_rules.yml` et `alertmanager/` vers le VPS avant chaque redémarrage — ces fichiers d'infra ne faisaient jusqu'ici l'objet que d'une copie manuelle, jamais automatisée par la CD.
+- Documentation mise à jour : `MAINTENANCE.md` §3/§6/§8, `DOSSIER_MAINTENANCE.md` §2/§5/§6, `MANUEL_DEPLOIEMENT.md` §8, `GRILLE_EVALUATION.md`, `DOSSIER_CERTIFICATION.md` (diagramme d'architecture).
+
 ### v2.0.3 — 2026-08-10 — Correctif performance : MapLibre GL chargé sur toutes les routes malgré le découpage par route
 
 - **`vite.config.ts`** : `manualChunks` forçait `maplibre-gl` dans un chunk nommé `vendor-map` (1 048,59 kB / 282,04 kB gzip). Rollup traite un chunk manuellement nommé comme partagé et ajoutait un `import` **statique** vers lui dans toutes les autres routes (`LoginPage`, `Profile`, `Settings`, `CreatePost`, `PostDetail`, `MunicipalView`), malgré le découpage par route déjà en place dans `routes.ts` (`import()` dynamique par page) — le chunk et son CSS (69,92 kB) se chargeaient donc même sur les pages sans carte. Retrait du regroupement forcé : Rollup garde désormais MapLibre privé au chunk `MapView`, seule route qui l'importe réellement.

@@ -2,5 +2,6 @@
 build
 coverage
 .env
+secrets/
 **/.vscode
 CONTEXTE_PROJET.md

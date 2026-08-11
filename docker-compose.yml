@@ -42,7 +42,17 @@ services:
     restart: unless-stopped
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerting_rules.yml:/etc/prometheus/alerting_rules.yml:ro
       - prometheus_data:/prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    restart: unless-stopped
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    secrets:
+      - smtp_password
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -119,6 +129,11 @@ services:
 volumes:
   traefik_certs:
   prometheus_data:
+  alertmanager_data:
   grafana_data:
   matomo_data:
   matomo_db_data:
+
+secrets:
+  smtp_password:
+    file: ./secrets/smtp_password
