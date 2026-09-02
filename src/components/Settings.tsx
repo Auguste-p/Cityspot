@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card } from './ui/card';
@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
-import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '../context/UserContext';
 import { getUserProfile, signOut, updateUserProfile } from '../services/authService';
@@ -347,7 +347,7 @@ export function Settings() {
             </Card>
 
             <Card className="p-6">
-              <h2 className="mb-4">Préférences (à venir)</h2>
+              <h2 className="mb-4">Notifications (à venir)</h2>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -363,32 +363,47 @@ export function Settings() {
                         </p>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="profileVisible"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between space-y-0">
-                      <div className="flex-1">
-                        <FormLabel className="text-sm font-medium">
-                          Visibilité du profil
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Rendre votre profil public
-                        </p>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value} disabled onCheckedChange={field.onChange} />
                       </FormControl>
                     </FormItem>
                   )}
                 />
               </div>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="mb-4">Confidentialité</h2>
+              <FormField
+                control={form.control}
+                name="profileVisible"
+                render={({ field }) => (
+                  <FormItem className="space-y-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <FormLabel className="text-sm font-medium">
+                          Visibilité du profil
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Rendre votre profil public : nom, ville, signalements et votes visibles
+                          par les autres membres (jamais votre téléphone ni votre adresse).
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </div>
+                    {field.value && (
+                      <Link
+                        to={`/user/${user.id}`}
+                        className="mt-3 flex items-center gap-1.5 text-sm text-primary hover:underline w-fit"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        Voir mon profil public
+                      </Link>
+                    )}
+                  </FormItem>
+                )}
+              />
             </Card>
 
             <Button
