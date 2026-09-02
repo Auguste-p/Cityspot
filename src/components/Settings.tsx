@@ -347,31 +347,6 @@ export function Settings() {
             </Card>
 
             <Card className="p-6">
-              <h2 className="mb-4">Notifications (à venir)</h2>
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="emailNotifications"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between space-y-0">
-                      <div className="flex-1">
-                        <FormLabel className="text-sm font-medium">
-                          Notifications par email
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Recevoir des mises à jour sur vos signalements
-                        </p>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} disabled onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </Card>
-
-            <Card className="p-6">
               <h2 className="mb-4">Confidentialité</h2>
               <FormField
                 control={form.control}
@@ -404,6 +379,31 @@ export function Settings() {
                   </FormItem>
                 )}
               />
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="mb-4">Notifications (à venir)</h2>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="emailNotifications"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0">
+                      <div className="flex-1">
+                        <FormLabel className="text-sm font-medium">
+                          Notifications par email
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Recevoir des mises à jour sur vos signalements
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} disabled onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </Card>
 
             <Button
