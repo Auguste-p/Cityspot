@@ -437,7 +437,7 @@ export function PostDetail() {
               {!canEditTasks && actualStatus === 'pending' && (
                 <div className="flex items-start gap-2 p-3 mt-3 bg-blue-50 rounded-lg text-sm text-blue-700">
                   <Info className="size-4 mt-0.5 flex-shrink-0" />
-                  <span>Les tâches seront visibles et modifiables une fois l'objectif de +{VOTE_GOAL} votes atteint.</span>
+                  <span>Les tâches seront modifiables une fois l'objectif de +{VOTE_GOAL} votes atteint.</span>
                 </div>
               )}
             </div>
