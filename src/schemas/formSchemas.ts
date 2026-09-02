@@ -96,7 +96,9 @@ export const settingsFormSchema = z.object({
     .default(''),
   
   address: z.string().trim().default(''),
-  
+
+  city: z.string().trim().default(''),
+
   avatar: z.string().default(''),
 
   emailNotifications: z.boolean().optional().default(true),

@@ -86,6 +86,9 @@ export interface UpdateUserProfileInput {
   name: string;
   phone?: string;
   address?: string;
+  city?: string;
+  cityLat?: number;
+  cityLng?: number;
   avatar?: string;
   emailNotifications?: boolean;
   profileVisible?: boolean;

@@ -13,7 +13,10 @@ import { useUser } from '../context/UserContext';
 import { getUserProfile, signOut, updateUserProfile } from '../services/authService';
 import { settingsFormSchema } from '../schemas/formSchemas';
 import { isAllowedImageFile, uploadToBucket } from '../lib/storage';
+import { searchAddress, type GeocodeResult } from '../lib/geocode';
 import { z } from 'zod';
+
+const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
 
 export function Settings() {
   const navigate = useNavigate();
@@ -26,6 +29,7 @@ export function Settings() {
       email: user?.email ?? '',
       phone: '',
       address: '',
+      city: '',
       avatar: user?.avatar ?? '',
       emailNotifications: true,
       profileVisible: false,
@@ -36,6 +40,10 @@ export function Settings() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<GeocodeResult[]>([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const addressSearchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (!user) return;
@@ -48,6 +56,7 @@ export function Settings() {
           email: user.email ?? '',
           phone: profile.phone ?? '',
           address: profile.address ?? '',
+          city: profile.city ?? '',
           avatar: profile.avatar ?? user.avatar ?? '',
           emailNotifications: profile.emailNotifications ?? true,
           profileVisible: profile.profileVisible ?? false,
@@ -60,6 +69,10 @@ export function Settings() {
     // whatever the visitor just toggled. `form` is stable (react-hook-form
     // guarantees it) so including it never causes extra runs.
   }, [user?.id, form]);
+
+  useEffect(() => {
+    return () => clearTimeout(addressSearchTimeout.current);
+  }, []);
 
   if (!user) return null;
 
@@ -83,6 +96,11 @@ export function Settings() {
         name: data.name,
         phone: data.phone,
         address: data.address,
+        city: data.city,
+        // Coordonnées mises à jour seulement si l'adresse a été rechangée cette
+        // session (nouvelle suggestion choisie) — sinon on ne touche pas aux
+        // coordonnées existantes, déjà cohérentes avec la ville affichée.
+        ...(selectedLocation ? { cityLat: selectedLocation.lat, cityLng: selectedLocation.lng } : {}),
         avatar,
         emailNotifications: data.emailNotifications,
         profileVisible: data.profileVisible,
@@ -105,6 +123,24 @@ export function Settings() {
 
     setAvatarFile(file);
     onChange(URL.createObjectURL(file));
+  };
+
+  const handleAddressChange = (value: string) => {
+    setSelectedLocation(null);
+    clearTimeout(addressSearchTimeout.current);
+
+    addressSearchTimeout.current = setTimeout(async () => {
+      const results = await searchAddress(value);
+      setAddressSuggestions(results);
+      setSuggestionsOpen(results.length > 0);
+    }, ADDRESS_SEARCH_DEBOUNCE_MS);
+  };
+
+  const handleAddressSelect = (suggestion: GeocodeResult, onChangeAddress: (value: string) => void) => {
+    onChangeAddress(suggestion.label);
+    form.setValue('city', suggestion.city ?? '');
+    setSelectedLocation({ lat: suggestion.lat, lng: suggestion.lng });
+    setSuggestionsOpen(false);
   };
 
   const handleLogout = async () => {
@@ -239,9 +275,70 @@ export function Settings() {
                         <MapPin className="size-4 text-primary" />
                         Adresse
                       </FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleAddressChange(e.target.value);
+                            }}
+                            onFocus={() => setSuggestionsOpen(addressSuggestions.length > 0)}
+                            onBlur={() => {
+                              field.onBlur();
+                              setTimeout(() => setSuggestionsOpen(false), 150);
+                            }}
+                            placeholder="Rechercher une adresse, une rue ou un lieu..."
+                            className="bg-input-background"
+                            autoComplete="off"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded={suggestionsOpen}
+                            aria-controls="settings-address-suggestions"
+                          />
+                        </FormControl>
+                        {suggestionsOpen && addressSuggestions.length > 0 && (
+                          <ul
+                            id="settings-address-suggestions"
+                            role="listbox"
+                            aria-label="Suggestions d'adresse"
+                            className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-background shadow-lg"
+                          >
+                            {addressSuggestions.map((suggestion, index) => (
+                              <li key={`${suggestion.lat}-${suggestion.lng}-${index}`} role="option" aria-selected={false}>
+                                <button
+                                  type="button"
+                                  onMouseDown={() => handleAddressSelect(suggestion, field.onChange)}
+                                  className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                                >
+                                  <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                                  {suggestion.label}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2 mb-2">
+                        <MapPin className="size-4 text-primary" />
+                        Ville
+                      </FormLabel>
                       <FormControl>
-                        <Input {...field} className="bg-input-background" />
+                        <Input {...field} disabled className="bg-input-background" />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Déduite de l'adresse choisie ci-dessus.
+                      </p>
                       <FormMessage className="text-xs" />
                     </FormItem>
                   )}
@@ -250,7 +347,7 @@ export function Settings() {
             </Card>
 
             <Card className="p-6">
-              <h2 className="mb-4">Préférences</h2>
+              <h2 className="mb-4">Préférences (à venir)</h2>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
