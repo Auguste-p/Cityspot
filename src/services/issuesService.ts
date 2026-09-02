@@ -48,6 +48,7 @@ interface CommentRow {
   id_user: string;
   id_issue: string;
   comment: string;
+  author_name: string | null;
 }
 
 function normalizeKey(value: string) {
@@ -656,6 +657,7 @@ export interface Comment {
   id_user: string;
   id_issue: string;
   comment: string;
+  authorName?: string;
 }
 
 export async function listComments(issueId: string): Promise<Comment[]> {
@@ -676,17 +678,23 @@ export async function listComments(issueId: string): Promise<Comment[]> {
     id_user: row.id_user,
     id_issue: row.id_issue,
     comment: row.comment,
+    authorName: row.author_name ?? undefined,
   }));
 }
 
-export async function createComment(issueId: string, userId: string, text: string): Promise<Comment> {
+// author_name est dénormalisé sur la ligne à l'écriture (même raison que
+// issues.owner_email) : la RLS sur public.users n'autorise chaque compte qu'à
+// lire sa propre ligne (SEC-11), donc pas moyen de relire le nom d'un autre
+// auteur à l'affichage — seul l'auteur, au moment où il poste, peut fournir
+// (et lire) son propre nom.
+export async function createComment(issueId: string, userId: string, text: string, authorName?: string): Promise<Comment> {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase non configuré');
 
   const supabase = client as any;
   const { data, error } = await supabase
     .from('comments')
-    .insert({ id_issue: issueId, id_user: userId, comment: text })
+    .insert({ id_issue: issueId, id_user: userId, comment: text, author_name: authorName ?? null })
     .select('*')
     .single();
 
@@ -699,6 +707,7 @@ export async function createComment(issueId: string, userId: string, text: strin
     id_user: row.id_user,
     id_issue: row.id_issue,
     comment: row.comment,
+    authorName: row.author_name ?? undefined,
   };
 }
 

@@ -107,6 +107,7 @@ export interface Database {
           id_user: string;
           id_issue: string;
           comment: string;
+          author_name: string | null;
         };
         Insert: {
           id?: string;
@@ -114,6 +115,7 @@ export interface Database {
           id_user: string;
           id_issue: string;
           comment: string;
+          author_name?: string | null;
         };
         Update: {
           id?: string;

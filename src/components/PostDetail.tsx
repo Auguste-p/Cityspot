@@ -31,10 +31,11 @@ import { useUser } from '../context/UserContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { deleteIssue } from '../services/issuesService';
 
-function getVoterIdentity(isMe: boolean, userName?: string) {
+function getVoterIdentity(isMe: boolean, userName?: string, otherName?: string) {
+  const name = isMe ? userName : otherName;
   return {
-    label: isMe ? (userName ?? 'Moi') : 'Citoyen',
-    avatar: isMe ? (userName?.[0]?.toUpperCase() ?? 'M') : 'C',
+    label: name ?? (isMe ? 'Moi' : 'Citoyen'),
+    avatar: name?.[0]?.toUpperCase() ?? (isMe ? 'M' : 'C'),
   };
 }
 
@@ -158,7 +159,7 @@ export function PostDetail() {
     if (!commentText.trim() || !user) return;
     setSubmitting(true);
     try {
-      await addComment(user.id, commentText.trim());
+      await addComment(user.id, commentText.trim(), user.name);
       setCommentText('');
     } catch {
       toast.error('Impossible de publier le commentaire');
@@ -514,7 +515,7 @@ export function PostDetail() {
             <div className="space-y-4 mb-4">
               {comments.map((comment) => {
                 const isMe = comment.id_user === user?.id;
-                const { label: authorLabel, avatar: avatarChar } = getVoterIdentity(isMe, user?.name);
+                const { label: authorLabel, avatar: avatarChar } = getVoterIdentity(isMe, user?.name, comment.authorName);
                 return (
                   <div key={comment.id} className="border-l-2 border-primary/30 pl-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -522,7 +523,10 @@ export function PostDetail() {
                         {avatarChar}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{authorLabel}</p>
+                        <p className="text-sm font-medium">
+                          {authorLabel}
+                          {isMe && <span className="text-muted-foreground font-normal"> (vous)</span>}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(comment.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>

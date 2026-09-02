@@ -90,9 +90,9 @@ export function useComments(issueId?: string) {
     return () => { isActive = false; };
   }, [issueId]);
 
-  const addComment = useCallback(async (userId: string, text: string) => {
+  const addComment = useCallback(async (userId: string, text: string, authorName?: string) => {
     if (!issueId) return;
-    const comment = await createComment(issueId, userId, text);
+    const comment = await createComment(issueId, userId, text, authorName);
     setComments((prev) => [...prev, comment]);
   }, [issueId]);
 

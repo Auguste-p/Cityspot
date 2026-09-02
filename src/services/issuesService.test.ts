@@ -177,14 +177,14 @@ describe('comments and votes', () => {
     mockedGetSupabaseClient.mockReturnValue(
       fakeClient({
         comments: {
-          data: [{ id: 'c1', created_at: 'now', id_user: 'u1', id_issue: 'i1', comment: 'Bien vu' }],
+          data: [{ id: 'c1', created_at: 'now', id_user: 'u1', id_issue: 'i1', comment: 'Bien vu', author_name: 'Jeanne Dupont' }],
           error: null,
         },
       }),
     );
 
     await expect(listComments('i1')).resolves.toEqual([
-      { id: 'c1', created_at: 'now', id_user: 'u1', id_issue: 'i1', comment: 'Bien vu' },
+      { id: 'c1', created_at: 'now', id_user: 'u1', id_issue: 'i1', comment: 'Bien vu', authorName: 'Jeanne Dupont' },
     ]);
   });
 
