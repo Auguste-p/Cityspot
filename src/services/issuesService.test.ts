@@ -23,7 +23,14 @@ function tableStub(result: { data: unknown; error: unknown }) {
 }
 
 function fakeClient(tables: Record<string, { data: unknown; error: unknown }>) {
-  return { from: (table: string) => tableStub(tables[table]) } as any;
+  return {
+    from: (table: string) => tableStub(tables[table]),
+    storage: {
+      from: (bucket: string) => ({
+        getPublicUrl: (path: string) => ({ data: { publicUrl: `https://fake.supabase.co/storage/v1/object/public/${bucket}/${path}` } }),
+      }),
+    },
+  } as any;
 }
 
 afterEach(() => {

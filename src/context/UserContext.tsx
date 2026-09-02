@@ -36,14 +36,15 @@ const UserContext = createContext<UserContextValue | null>(null);
 // pour centrer la carte à la connexion (MapView) sans devoir géolocaliser.
 async function fetchProfile(
   userId: string,
-): Promise<{ role: UserRole; name?: string; city?: string; cityLat?: number; cityLng?: number }> {
+): Promise<{ role: UserRole; name?: string; avatar?: string; city?: string; cityLat?: number; cityLng?: number }> {
   const client = getSupabaseClient();
   if (!client) return { role: 'citizen' };
 
-  const { data } = await client.from('users').select('role, name, city, cityLat, cityLng').eq('id', userId).maybeSingle();
+  const { data } = await client.from('users').select('role, name, avatar, city, cityLat, cityLng').eq('id', userId).maybeSingle();
   return {
     role: data?.role === 'municipal' ? 'municipal' : 'citizen',
     name: data?.name ?? undefined,
+    avatar: data?.avatar ?? undefined,
     city: data?.city ?? undefined,
     cityLat: data?.cityLat ?? undefined,
     cityLng: data?.cityLng ?? undefined,
@@ -55,11 +56,12 @@ async function toAppUser(u: User): Promise<AppUser> {
   return {
     id: u.id,
     email: u.email!,
-    // public.users.name est éditable depuis Profile (updateUserProfile) ; le
-    // user_metadata Auth, lui, n'est écrit qu'à l'inscription et jamais resynchronisé —
-    // s'y fier en priorité affichait l'email pour tout compte modifié ou plus ancien.
+    // public.users.name/avatar sont éditables depuis Settings (updateUserProfile) ;
+    // le user_metadata Auth, lui, n'est écrit qu'à l'inscription et jamais
+    // resynchronisé — s'y fier en priorité affichait l'email/rien pour tout
+    // compte modifié ou plus ancien.
     name: profile.name || u.user_metadata?.name || u.email!,
-    avatar: u.user_metadata?.avatar || '',
+    avatar: profile.avatar || u.user_metadata?.avatar || '',
     role: profile.role,
     city: profile.city,
     cityLat: profile.cityLat,

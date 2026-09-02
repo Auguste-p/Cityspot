@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useUser } from '../context/UserContext';
 import { getUserProfile, signOut, updateUserProfile } from '../services/authService';
 import { settingsFormSchema } from '../schemas/formSchemas';
+import { isAllowedImageFile, uploadToBucket } from '../lib/storage';
 import { z } from 'zod';
 
 export function Settings() {
@@ -33,6 +34,8 @@ export function Settings() {
   });
 
   const [profileLoading, setProfileLoading] = useState(true);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -74,11 +77,13 @@ export function Settings() {
 
   const onSubmit = async (data: z.output<typeof settingsFormSchema>) => {
     try {
+      const avatar = avatarFile ? await uploadToBucket('avatars', user.id, avatarFile) : data.avatar;
+
       await updateUserProfile(user.id, {
         name: data.name,
         phone: data.phone,
         address: data.address,
-        avatar: data.avatar,
+        avatar,
         emailNotifications: data.emailNotifications,
         profileVisible: data.profileVisible,
       });
@@ -87,6 +92,19 @@ export function Settings() {
       console.error(error);
       toast.error('Erreur lors de la mise à jour');
     }
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!isAllowedImageFile(file)) {
+      toast.error('Veuillez sélectionner une image PNG ou JPG de moins de 5 Mo');
+      return;
+    }
+
+    setAvatarFile(file);
+    onChange(URL.createObjectURL(file));
   };
 
   const handleLogout = async () => {
@@ -117,22 +135,45 @@ export function Settings() {
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Card className="p-6">
-              <h2 className="mb-4">Photo de profil</h2>
-              <div className="flex items-center gap-4">
-                <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl">
-                  {user.avatar}
-                </div>
-                <div>
-                  <Button type="button" variant="secondary" size="sm">
-                    Changer la photo
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    JPG, PNG ou GIF (max. 2MB)
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <FormField
+              control={form.control}
+              name="avatar"
+              render={({ field }) => (
+                <Card className="p-6">
+                  <h2 className="mb-4">Photo de profil</h2>
+                  <div className="flex items-center gap-4">
+                    <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl overflow-hidden">
+                      {field.value ? (
+                        <img src={field.value} alt="" className="size-full object-cover" />
+                      ) : (
+                        user.name?.[0]?.toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        onChange={(e) => handleAvatarUpload(e, field.onChange)}
+                        className="hidden"
+                        aria-label="Changer la photo de profil"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => avatarInputRef.current?.click()}
+                      >
+                        Changer la photo
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        JPG ou PNG (max. 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            />
 
             <Card className="p-6">
               <h2 className="mb-4">Informations personnelles</h2>

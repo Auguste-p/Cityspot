@@ -1,5 +1,6 @@
 import {getSupabaseClient, type IssueStatus} from '../lib/supabase';
 import { logSecurityEvent } from '../lib/sentry';
+import { getDefaultIssuePhotoUrl } from '../lib/storage';
 import type { Post, PostCategory, Task } from '../types/Post';
 
 type DatabaseIssueStatus = IssueStatus;
@@ -75,9 +76,8 @@ export interface CreateIssueInput {
   isMunicipalProject?: boolean;
   category?: PostCategory | null;
   created_by?: string;
+  city?: string;
 }
-
-const DEFAULT_IMAGE_URL = 'https://picsum.photos/200';
 
 const localIssuesStore: Post[] = [];
 
@@ -230,7 +230,7 @@ function normalizeIssue(
       lng: toNumber(location.lng),
       address: location.address ?? '',
     },
-    imageUrl: row.image_url ?? DEFAULT_IMAGE_URL,
+    imageUrl: row.image_url ?? getDefaultIssuePhotoUrl(),
     tasks: taskRows.map(normalizeTask),
     materials: materialRows.map((material) => material.name),
     isPrivateProperty: Boolean(row.is_private_property),
@@ -260,7 +260,7 @@ function buildLocalIssue(input: CreateIssueInput): Post {
       lng: 0,
       address: input.address,
     },
-    imageUrl: input.imageUrl?.trim() ? input.imageUrl : DEFAULT_IMAGE_URL,
+    imageUrl: input.imageUrl?.trim() ? input.imageUrl : getDefaultIssuePhotoUrl(),
     tasks: (input.tasks ?? []).map((title, index) => ({
       id: `task-${now.getTime()}-${index}`,
       title,
@@ -404,7 +404,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
       lng: 0,
       address: input.address,
     },
-    image_url: input.imageUrl?.trim() ? input.imageUrl : DEFAULT_IMAGE_URL,
+    image_url: input.imageUrl?.trim() ? input.imageUrl : getDefaultIssuePhotoUrl(),
     is_private_property: input.isPrivateProperty ?? false,
     is_own_property: input.isOwnProperty ?? null,
     owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
@@ -414,6 +414,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     is_municipal_project: input.isMunicipalProject ?? false,
     category: input.category ?? null,
     created_by: input.created_by ?? undefined,
+    city: input.city ?? null,
   };
 
   const supabase = client as any;
@@ -508,6 +509,7 @@ export interface UpdateIssueInput {
   isOwnProperty?: boolean;
   ownerEmail?: string;
   category?: PostCategory | null;
+  city?: string;
 }
 
 export async function updateIssue(issueId: string, input: UpdateIssueInput): Promise<Post> {
@@ -548,11 +550,12 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       title: input.title,
       description: input.description,
       location: input.location,
-      image_url: input.imageUrl?.trim() ? input.imageUrl : DEFAULT_IMAGE_URL,
+      image_url: input.imageUrl?.trim() ? input.imageUrl : getDefaultIssuePhotoUrl(),
       is_private_property: input.isPrivateProperty ?? false,
       is_own_property: input.isOwnProperty ?? null,
       owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
       ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.city !== undefined ? { city: input.city } : {}),
     })
     .eq('id', issueId)
     .select('*')

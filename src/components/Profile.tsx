@@ -96,8 +96,12 @@ export function Profile() {
           </div>
           
           <div className="flex flex-col items-center text-center">
-            <div className="size-20 rounded-full bg-primary-foreground/20 flex items-center justify-center mb-3 backdrop-blur-sm border-2 border-primary-foreground/30">
-              <span className="text-2xl">{user?.avatar}</span>
+            <div className="size-20 rounded-full bg-primary-foreground/20 flex items-center justify-center mb-3 backdrop-blur-sm border-2 border-primary-foreground/30 overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="size-full object-cover" />
+              ) : (
+                <span className="text-2xl">{(profileName ?? user?.name)?.[0]?.toUpperCase()}</span>
+              )}
             </div>
             {isMunicipalUser && (
               <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 shadow-lg mb-2`}>

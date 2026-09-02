@@ -4,6 +4,7 @@ export interface GeocodeResult {
   label: string;
   lat: number;
   lng: number;
+  city?: string;
 }
 
 interface PhotonProperties {
@@ -98,6 +99,7 @@ async function photonSearch(
         label: toResultLabel(feature.properties),
         lat: feature.geometry.coordinates[1],
         lng: feature.geometry.coordinates[0],
+        city: feature.properties.city,
       }))
       .filter((result) => result.label.length > 0);
   } catch {

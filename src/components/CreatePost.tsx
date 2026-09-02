@@ -16,17 +16,16 @@ import { createPostSchema } from '../schemas/formSchemas';
 import { createIssue, updateIssue } from '../services/issuesService';
 import { useIssue } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
-import { searchAddress, type GeocodeResult } from '../lib/geocode';
+import { getCityName, searchAddress, type GeocodeResult } from '../lib/geocode';
 import { FALLBACK_CITY } from '../constants/map';
 import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from '../lib/postCategory';
+import { MAX_UPLOAD_SIZE, isAllowedImageFile, uploadToBucket } from '../lib/storage';
 import { cn } from './ui/utils';
 
 const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
 
 type CreatePostFormInput = z.input<typeof createPostSchema>;
 type CreatePostFormOutput = z.output<typeof createPostSchema>;
-
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 
 type FormApi = ReturnType<typeof useForm<CreatePostFormInput, undefined, CreatePostFormOutput>>;
 
@@ -351,10 +350,11 @@ export function CreatePost() {
   const { user } = useUser();
   const { issue: existingPost, loading: existingPostLoading } = useIssue(id);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [propertyDocumentName, setPropertyDocumentName] = useState<string | null>(null);
   const [addressSuggestions, setAddressSuggestions] = useState<GeocodeResult[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; city?: string } | null>(null);
   const addressSearchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const form = useForm<CreatePostFormInput, undefined, CreatePostFormOutput>({
@@ -419,12 +419,9 @@ export function CreatePost() {
 
   const handleAddressSelect = (suggestion: GeocodeResult) => {
     form.setValue('address', suggestion.label);
-    setSelectedLocation({ lat: suggestion.lat, lng: suggestion.lng });
+    setSelectedLocation({ lat: suggestion.lat, lng: suggestion.lng, city: suggestion.city });
     setSuggestionsOpen(false);
   };
-
-  const isAllowedImageFile = (file: File) =>
-    file.type.startsWith('image/') && file.size <= MAX_UPLOAD_SIZE;
 
   const isAllowedDocumentFile = (file: File) => {
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -442,11 +439,8 @@ export function CreatePost() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -472,6 +466,12 @@ export function CreatePost() {
     }
 
     try {
+      // imagePreview vaut soit l'URL existante (édition, photo inchangée), soit
+      // null (pas de photo), soit une blob: URL locale tant que imageFile n'a
+      // pas été uploadée — dans ce dernier cas on remplace par l'URL publique
+      // réelle avant d'écrire en base.
+      const imageUrl = imageFile ? await uploadToBucket('issue-photos', user.id, imageFile) : imagePreview;
+
       if (isEditMode && id) {
         const addressChanged = data.address !== existingPost?.location.address;
         const coords =
@@ -481,7 +481,7 @@ export function CreatePost() {
         await updateIssue(id, {
           title: data.title,
           description: data.description,
-          imageUrl: imagePreview,
+          imageUrl,
           materials: data.materials.map((material) => material.title),
           tasks: data.tasks.map((task) => task.title),
           location: {
@@ -493,6 +493,9 @@ export function CreatePost() {
           isOwnProperty: data.isOwnProperty === 'yes',
           ownerEmail: data.ownerEmail,
           category: data.category,
+          // Pas d'adresse recalculée (coords null) = pas de changement de lieu :
+          // on ne touche pas à la ville existante.
+          city: coords ? coords.city ?? getCityName(user?.city) : undefined,
         });
 
         toast.success('Signalement modifié avec succès !');
@@ -509,7 +512,7 @@ export function CreatePost() {
         title: data.title,
         description: data.description,
         address: data.address,
-        imageUrl: imagePreview,
+        imageUrl,
         materials: data.materials.map((material) => material.title),
         tasks: data.tasks.map((task) => task.title),
         location: {
@@ -525,6 +528,10 @@ export function CreatePost() {
         isMunicipalProject: false,
         category: data.category,
         created_by: user.id,
+        // Ville de l'adresse choisie/géocodée en priorité (le signalement
+        // concerne cet endroit) ; repli sur la ville du profil si le
+        // géocodage n'a pas résolu de ville (ex. lieu-dit, hors commune).
+        city: coords?.city ?? getCityName(user?.city),
       });
 
       toast.success('Signalement créé avec succès !');
@@ -563,7 +570,10 @@ export function CreatePost() {
             <UploadSection
               imagePreview={imagePreview}
               onImageUpload={handleImageUpload}
-              onRemoveImage={() => setImagePreview(null)}
+              onRemoveImage={() => {
+                setImageFile(null);
+                setImagePreview(null);
+              }}
             />
 
             <FormField

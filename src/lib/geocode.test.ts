@@ -42,7 +42,7 @@ describe('searchAddress', () => {
     const results = await searchAddress('Tour Eiffel');
 
     expect(results).toEqual([
-      { label: 'Tour Eiffel, 5 Avenue Anatole France, 75007 Paris', lat: 48.8582599, lng: 2.2945006 },
+      { label: 'Tour Eiffel, 5 Avenue Anatole France, 75007 Paris', lat: 48.8582599, lng: 2.2945006, city: 'Paris' },
     ]);
   });
 
@@ -67,7 +67,7 @@ describe('searchAddress', () => {
 
     const results = await searchAddress('rue de la republique lyon');
 
-    expect(results).toEqual([{ label: 'Rue de la République, 69001 Lyon', lat: 45.7675252, lng: 4.836052 }]);
+    expect(results).toEqual([{ label: 'Rue de la République, 69001 Lyon', lat: 45.7675252, lng: 4.836052, city: 'Lyon' }]);
   });
 
   it('resolves an empty array on an HTTP error', async () => {
