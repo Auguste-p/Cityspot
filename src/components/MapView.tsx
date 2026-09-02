@@ -476,6 +476,10 @@ export function MapView() {
                             <ThumbsUp className="size-3" />
                             <span>{post.votes.positive}</span>
                           </div>
+                          <div className="flex items-center gap-1 text-xs text-red-600">
+                            <ThumbsDown className="size-3" />
+                            <span>{post.votes.negative}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
