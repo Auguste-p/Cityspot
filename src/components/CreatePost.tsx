@@ -187,13 +187,14 @@ function PropertySection({
                 render={({ field }) => (
                   <FormItem>
                     <Label htmlFor="owner-email" className="mb-2 block">
-                      Email du propriétaire
+                      Email du propriétaire <span className="text-destructive" aria-hidden="true">*</span>
                     </Label>
                     <FormControl>
                       <Input
                         id="owner-email"
                         type="email"
                         {...field}
+                        aria-required="true"
                         value={field.value || ''}
                         placeholder="proprietaire@example.com"
                         className="bg-input-background"
@@ -583,12 +584,13 @@ export function CreatePost() {
                 <Card className="p-6">
                   <FormItem>
                     <Label htmlFor="title" className="mb-3 block">
-                      Titre du signalement
+                      Titre du signalement <span className="text-destructive" aria-hidden="true">*</span>
                     </Label>
                     <FormControl>
                       <Input
                         id="title"
                         {...field}
+                        aria-required="true"
                         placeholder="Ex: Nid-de-poule rue Victor Hugo"
                         className="bg-input-background"
                       />
@@ -606,12 +608,13 @@ export function CreatePost() {
                 <Card className="p-6">
                   <FormItem>
                     <Label htmlFor="description" className="mb-3 block">
-                      Description
+                      Description <span className="text-destructive" aria-hidden="true">*</span>
                     </Label>
                     <FormControl>
                       <Textarea
                         id="description"
                         {...field}
+                        aria-required="true"
                         placeholder="Décrivez la dégradation en détail..."
                         rows={4}
                         className="bg-input-background resize-none"
@@ -629,9 +632,11 @@ export function CreatePost() {
               render={({ field }) => (
                 <Card className="p-6">
                   <FormItem>
-                    <Label className="mb-3 block">Catégorie</Label>
+                    <Label className="mb-3 block">
+                      Catégorie <span className="text-destructive" aria-hidden="true">*</span>
+                    </Label>
                     <FormControl>
-                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Catégorie">
+                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Catégorie" aria-required="true">
                         {POST_CATEGORIES.map((category) => {
                           const config = POST_CATEGORY_CONFIG[category];
                           const Icon = config.icon;
@@ -671,13 +676,14 @@ export function CreatePost() {
                   <FormItem>
                     <Label htmlFor="address" className="mb-3 block flex items-center gap-2">
                       <MapPin className="size-4 text-primary" />
-                      Localisation
+                      Localisation <span className="text-destructive" aria-hidden="true">*</span>
                     </Label>
                     <div className="relative">
                       <FormControl>
                         <Input
                           id="address"
                           {...field}
+                          aria-required="true"
                           onChange={(e) => {
                             field.onChange(e);
                             handleAddressChange(e.target.value);

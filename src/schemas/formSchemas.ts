@@ -61,6 +61,12 @@ export const createPostSchema = z.object({
     message: 'L\'email du propriétaire est requis pour une propriété privée',
     path: ['ownerEmail'],
   }
+).refine(
+  (data) => Boolean(data.category),
+  {
+    message: 'La catégorie est requise',
+    path: ['category'],
+  }
 );
 
 export type CreatePostFormData = z.infer<typeof createPostSchema>;

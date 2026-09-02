@@ -7,11 +7,18 @@ const validPost = {
   address: '12 rue de la Paix, Paris',
   isPrivateProperty: 'public' as const,
   isOwnProperty: 'no' as const,
+  category: 'voirie' as const,
 };
 
 describe('createPostSchema', () => {
   it('accepts a valid public-property post', () => {
     expect(createPostSchema.safeParse(validPost).success).toBe(true);
+  });
+
+  it('rejects a post without a category', () => {
+    const { title, description, address, isPrivateProperty, isOwnProperty } = validPost;
+    const result = createPostSchema.safeParse({ title, description, address, isPrivateProperty, isOwnProperty });
+    expect(result.success).toBe(false);
   });
 
   it('rejects a title that is too short', () => {

@@ -62,7 +62,7 @@ describe('CreatePost accessibility (RGAA / axe-core)', () => {
     mockedUseIssue.mockReturnValue({ issue: null, loading: false, error: null });
 
     const { container } = renderCreatePost('/create');
-    await screen.findByLabelText('Titre du signalement');
+    await screen.findByLabelText(/Titre du signalement/);
     await expectNoA11yViolations(container);
   });
 
@@ -71,11 +71,11 @@ describe('CreatePost accessibility (RGAA / axe-core)', () => {
     mockedUseIssue.mockReturnValue({ issue: null, loading: false, error: null });
 
     const { container } = renderCreatePost('/create');
-    await screen.findByLabelText('Titre du signalement');
+    await screen.findByLabelText(/Titre du signalement/);
 
     fireEvent.click(screen.getByLabelText('Voie privée'));
     fireEvent.click(screen.getByLabelText('Non'));
-    await screen.findByLabelText('Email du propriétaire');
+    await screen.findByLabelText(/Email du propriétaire/);
 
     await expectNoA11yViolations(container);
   });
@@ -85,7 +85,7 @@ describe('CreatePost accessibility (RGAA / axe-core)', () => {
     mockedUseIssue.mockReturnValue({ issue: null, loading: false, error: null });
 
     const { container } = renderCreatePost('/create');
-    await screen.findByLabelText('Titre du signalement');
+    await screen.findByLabelText(/Titre du signalement/);
 
     fireEvent.click(screen.getByLabelText('Voie privée'));
     fireEvent.click(screen.getByLabelText('Oui'));
