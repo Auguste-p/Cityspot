@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Post } from '../types/Post';
-import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listVotes } from '../services/issuesService';
+import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listVotes, listVotesByUser } from '../services/issuesService';
 
 export function useIssues(city?: string) {
   const [issues, setIssues] = useState<Post[]>([]);
@@ -122,4 +122,23 @@ export function useVotes(issueId?: string) {
   }, [issueId]);
 
   return { votes, loading, error, addVote };
+}
+
+export function useUserVotes(userId?: string) {
+  const [votes, setVotes] = useState<Vote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!userId) { setVotes([]); setLoading(false); return; }
+    setLoading(true);
+    listVotesByUser(userId)
+      .then((data) => { if (isActive) setVotes(data); })
+      .catch((err) => { if (isActive) setError(err instanceof Error ? err : new Error('Impossible de charger les votes')); })
+      .finally(() => { if (isActive) setLoading(false); });
+    return () => { isActive = false; };
+  }, [userId]);
+
+  return { votes, loading, error };
 }

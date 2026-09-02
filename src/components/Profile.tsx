@@ -18,14 +18,17 @@ import { PostCard } from './PostCard';
 import { Badge } from './ui/badge';
 import { EMPTY_STATE_LABELS, MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, getNetVotes } from '../lib/postStatus';
 import { useUser } from '../context/UserContext';
-import { useIssues } from '../hooks/useIssues';
+import { useIssues, useUserVotes } from '../hooks/useIssues';
 import { getUserProfile } from '../services/authService';
 
 export function Profile() {
   const navigate = useNavigate();
   const { user, isMunicipalUser } = useUser();
   const { issues, loading, error } = useIssues();
+  const { votes: userVotes, loading: userVotesLoading } = useUserVotes(user?.id);
   const myPosts = issues.filter((post) => post.created_by === user?.id);
+  const votedPostIds = new Set(userVotes.map((vote) => vote.id_issue));
+  const votedPosts = issues.filter((post) => votedPostIds.has(post.id));
   const [profileName, setProfileName] = useState<string | null>(null);
   const [cityName, setCityName] = useState<string | null>(null);
 
@@ -57,7 +60,7 @@ export function Profile() {
   
   const completedPosts = myPosts.filter(p => p.status === 'completed');
 
-  if (loading) {
+  if (loading || userVotesLoading) {
     return (
       <div className="min-h-full flex items-center justify-center p-6">
         <Card className="p-8 text-center max-w-sm w-full">
@@ -165,7 +168,7 @@ export function Profile() {
 
         {/* Tabs for different post statuses */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="all">
               Tous ({myPosts.length})
             </TabsTrigger>
@@ -177,6 +180,9 @@ export function Profile() {
             </TabsTrigger>
             <TabsTrigger value="completed">
               Terminés ({completedPosts.length})
+            </TabsTrigger>
+            <TabsTrigger value="voted">
+              Votés ({votedPosts.length})
             </TabsTrigger>
           </TabsList>
 
@@ -244,6 +250,23 @@ export function Profile() {
               <Card className="p-8 text-center">
                 <CheckCircle2 className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">{EMPTY_STATE_LABELS.completed}</p>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="voted" className="space-y-4">
+            {votedPosts.length > 0 ? (
+              votedPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                />
+              ))
+            ) : (
+              <Card className="p-8 text-center">
+                <Vote className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">{EMPTY_STATE_LABELS.voted}</p>
               </Card>
             )}
           </TabsContent>

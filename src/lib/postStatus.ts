@@ -18,6 +18,7 @@ export const EMPTY_STATE_LABELS = {
   voting: 'Aucun signalement en cours de vote',
   inProgress: 'Aucun signalement en cours',
   completed: 'Aucun signalement terminé',
+  voted: 'Vous n\'avez voté pour aucun signalement',
 } as const;
 
 export interface StatusConfig {

@@ -745,6 +745,18 @@ export async function listVotes(issueId: string): Promise<Vote[]> {
   return (data ?? []) as VoteRow[];
 }
 
+export async function listVotesByUser(userId: string): Promise<Vote[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+  const { data, error } = await client
+    .from('votes')
+    .select('*')
+    .eq('id_user', userId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as VoteRow[];
+}
+
 export async function createVote(issueId: string, userId: string, yes: boolean): Promise<Vote> {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase non configuré');

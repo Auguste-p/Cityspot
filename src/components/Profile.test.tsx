@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
 vi.mock('../hooks/useIssues', () => ({
   useIssues: vi.fn(),
+  useUserVotes: vi.fn(),
 }));
 
 vi.mock('../context/UserContext', () => ({
@@ -18,12 +19,13 @@ vi.mock('../services/authService', () => ({
 }));
 
 import { useUser } from '../context/UserContext';
-import { useIssues } from '../hooks/useIssues';
+import { useIssues, useUserVotes } from '../hooks/useIssues';
 import { getUserProfile } from '../services/authService';
 import { Profile } from './Profile';
 
 const mockedUseUser = vi.mocked(useUser);
 const mockedUseIssues = vi.mocked(useIssues);
+const mockedUseUserVotes = vi.mocked(useUserVotes);
 const mockedGetUserProfile = vi.mocked(getUserProfile);
 
 const CITIZEN = { id: 'u1', email: 'a@b.com', name: 'Jeanne Dupont', avatar: 'J', role: 'citizen' as const };
@@ -60,6 +62,10 @@ afterEach(() => {
 });
 
 describe('Profile accessibility (RGAA / axe-core)', () => {
+  beforeEach(() => {
+    mockedUseUserVotes.mockReturnValue({ votes: [], loading: false, error: null });
+  });
+
   it('the loading state has no violation', async () => {
     mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
     mockedUseIssues.mockReturnValue({ issues: [], loading: true, error: null, reload: vi.fn() });
