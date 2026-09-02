@@ -23,6 +23,7 @@ export interface Database {
           status: IssueStatus | null;
           is_municipal_project: boolean | null;
           category: string | null;
+          city: string | null;
         };
         Insert: {
           id?: string;
@@ -39,6 +40,7 @@ export interface Database {
           status?: IssueStatus | null;
           is_municipal_project?: boolean | null;
           category?: string | null;
+          city?: string | null;
         };
         Update: {
           id?: string;
@@ -55,6 +57,7 @@ export interface Database {
           status?: IssueStatus | null;
           is_municipal_project?: boolean | null;
           category?: string | null;
+          city?: string | null;
         };
         Relationships: [];
       };

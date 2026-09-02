@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Post } from '../types/Post';
 import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listVotes } from '../services/issuesService';
 
-export function useIssues() {
+export function useIssues(city?: string) {
   const [issues, setIssues] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -12,14 +12,14 @@ export function useIssues() {
     setError(null);
 
     try {
-      const nextIssues = await listIssues();
+      const nextIssues = await listIssues(city);
       setIssues(nextIssues);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError : new Error('Impossible de charger les signalements'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     void reload();

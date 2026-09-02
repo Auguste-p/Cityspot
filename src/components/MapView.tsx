@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { MUNICIPAL_GRADIENT_CLASS, STATUS_MARKER_COLORS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import { useIssues, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
+import { getCityName } from "../lib/geocode";
 import { FALLBACK_CITY, MAP_STYLE, NOMINATIM_REVERSE_GEOCODE_URL } from '../constants/map';
 
 async function reverseGeocodeCity(lat: number, lng: number) {
@@ -526,7 +527,7 @@ export function MapView() {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {post.location.address.split(',')[0]}
+                          {getCityName(post.location.address)}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge 

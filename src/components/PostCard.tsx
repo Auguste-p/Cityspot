@@ -5,6 +5,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import type { Post } from '../types/Post';
+import { getCityName } from "../lib/geocode";
 
 type CategoryBadge = {
   label: string;
@@ -61,7 +62,7 @@ function PostCardComponent({ post, onClick, categoryBadge, className }: PostCard
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="size-3" />
-              <span className="truncate">{post.location.address.split(',')[0]}</span>
+              <span className="truncate">{getCityName(post.location.address)}</span>
             </div>
 
             {categoryBadge && (

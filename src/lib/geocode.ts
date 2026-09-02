@@ -51,6 +51,12 @@ function toCityLabel(p: PhotonProperties): string {
   return [p.name, p.state].filter(Boolean).join(', ');
 }
 
+// Le profil stocke le label complet de toCityLabel ("Montpellier, Occitanie") ;
+// on n'a besoin que du nom de ville pour filtrer/comparer avec issues.city.
+export function getCityName(label?: string | null): string | undefined {
+  return label?.split(',')[0]?.trim() || undefined;
+}
+
 // ponytail: appel direct depuis le navigateur (pas de proxy serveur), cohérent
 // avec le reverse-geocoding déjà fait ainsi dans MapView. Débit largement sous
 // la limite d'usage raisonnable de l'instance publique vu le debounce appliqué.

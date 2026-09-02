@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
@@ -9,10 +9,24 @@ vi.mock('../hooks/useIssues', () => ({
   useIssues: vi.fn(),
 }));
 
+vi.mock('../context/UserContext', () => ({
+  useUser: vi.fn(),
+}));
+
+import { useUser } from '../context/UserContext';
 import { useIssues } from '../hooks/useIssues';
 import { MunicipalView } from './MunicipalView';
 
 const mockedUseIssues = vi.mocked(useIssues);
+const mockedUseUser = vi.mocked(useUser);
+
+const MUNICIPAL_AGENT = {
+  id: 'agent-1',
+  email: 'agent@ville.fr',
+  name: 'Agent Municipal',
+  role: 'municipal' as const,
+  city: 'Montpellier, Occitanie',
+};
 
 function post(overrides: Partial<Post> = {}): Post {
   return {
@@ -46,6 +60,15 @@ afterEach(() => {
 });
 
 describe('MunicipalView accessibility (RGAA / axe-core)', () => {
+  beforeEach(() => {
+    mockedUseUser.mockReturnValue({
+      user: MUNICIPAL_AGENT,
+      loading: false,
+      isMunicipalUser: true,
+      refreshUser: vi.fn(),
+    });
+  });
+
   it('the loading state has no violation', async () => {
     mockedUseIssues.mockReturnValue({ issues: [], loading: true, error: null, reload: vi.fn() });
     const { container } = renderMunicipalView();

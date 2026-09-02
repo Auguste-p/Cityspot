@@ -21,6 +21,8 @@ import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from "../lib/postStatus";
 import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from "../lib/postCategory";
 import { PostCard } from "./PostCard";
 import { useIssues } from "../hooks/useIssues";
+import { getCityName } from "../lib/geocode";
+import { useUser } from "../context/UserContext";
 
 type CategoryValue = PostCategory | "all";
 
@@ -42,7 +44,8 @@ const CATEGORIES: Array<{
 export function MunicipalView() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
-  const { issues: posts, loading, error } = useIssues();
+  const { user } = useUser();
+  const { issues: posts, loading, error } = useIssues(getCityName(user?.city));
 
   const categoryConfigByValue = useMemo(
     () => new Map(CATEGORIES.map((category) => [category.value, category])),
@@ -140,7 +143,7 @@ export function MunicipalView() {
               <Building2 className="size-8" />
             </div>
             <div>
-              <h1 className="mb-1">Nom ville</h1>
+              <h1 className="mb-1">{user?.city}</h1>
               <p className="text-primary-foreground/80 text-sm">
                 Gestion des projets municipaux
               </p>
@@ -150,7 +153,7 @@ export function MunicipalView() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1">
+              <div className="text-2xl mb-1 text-primary-foreground">
                 {filteredPosts.length}
               </div>
               <div className="text-xs text-primary-foreground/80">
@@ -158,7 +161,7 @@ export function MunicipalView() {
               </div>
             </Card>
             <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1">
+              <div className="text-2xl mb-1 text-primary-foreground">
                 {votingPosts.length}
               </div>
               <div className="text-xs text-primary-foreground/80">
@@ -166,7 +169,7 @@ export function MunicipalView() {
               </div>
             </Card>
             <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1">
+              <div className="text-2xl mb-1 text-primary-foreground">
                 {inProgressPosts.length}
               </div>
               <div className="text-xs text-primary-foreground/80">
@@ -174,7 +177,7 @@ export function MunicipalView() {
               </div>
             </Card>
             <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1">
+              <div className="text-2xl mb-1 text-primary-foreground">
                 {completedPosts.length}
               </div>
               <div className="text-xs text-primary-foreground/80">

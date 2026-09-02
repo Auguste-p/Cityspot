@@ -26,6 +26,7 @@ interface IssueRow {
   is_municipal_project: boolean | null;
   category: PostCategory | null;
   created_by: string | null;
+  city: string | null;
 }
 
 interface TaskRow {
@@ -280,17 +281,19 @@ function buildLocalIssue(input: CreateIssueInput): Post {
   };
 }
 
-export async function listIssues(): Promise<Post[]> {
+export async function listIssues(city?: string): Promise<Post[]> {
   const client = getSupabaseClient();
 
   if (!client) {
     return localIssuesStore.map(clonePost);
   }
 
-  const { data: issueRows, error: issuesError } = await client
-    .from('issues')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = client.from('issues').select('*');
+  if (city) {
+    query = query.eq('city', city);
+  }
+
+  const { data: issueRows, error: issuesError } = await query.order('created_at', { ascending: false });
 
   if (issuesError) {
     throw new Error(issuesError.message);
