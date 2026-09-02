@@ -82,6 +82,22 @@ export async function getUserProfile(userId: string) {
   return data;
 }
 
+// Vue public.public_profiles (migration 20260902110000) : contourne la RLS
+// "own row only" de public.users pour exposer un sous-ensemble sûr (jamais
+// phone/address) des comptes ayant activé "Visibilité du profil". Retourne
+// null si le compte n'existe pas ou n'est pas public — mêmes deux cas, pas
+// distingués (l'appelant ne doit rien pouvoir déduire de l'un ou l'autre).
+export async function getPublicProfile(userId: string) {
+  const { data, error } = await getSupabaseClient()!
+    .from('public_profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
 export interface UpdateUserProfileInput {
   name: string;
   phone?: string;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, Link } from 'react-router';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -524,7 +524,13 @@ export function PostDetail() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">
-                          {authorLabel}
+                          {isMe ? (
+                            authorLabel
+                          ) : (
+                            <Link to={`/user/${comment.id_user}`} className="hover:underline">
+                              {authorLabel}
+                            </Link>
+                          )}
                           {isMe && <span className="text-muted-foreground font-normal"> (vous)</span>}
                         </p>
                         <p className="text-xs text-muted-foreground">

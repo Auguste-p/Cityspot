@@ -1,39 +1,32 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { Card } from './ui/card';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Lock } from 'lucide-react';
 import { VOTE_GOAL, getNetVotes } from '../lib/postStatus';
-import { useUser } from '../context/UserContext';
 import { useIssues, useUserVotes } from '../hooks/useIssues';
-import { getUserProfile } from '../services/authService';
+import { getPublicProfile } from '../services/authService';
 import { ProfileView } from './ProfileView';
 
-export function Profile() {
+export function PublicProfile() {
   const navigate = useNavigate();
-  const { user, isMunicipalUser } = useUser();
+  const { id: profileId } = useParams<{ id: string }>();
   const { issues, loading, error } = useIssues();
-  const { votes: userVotes, loading: userVotesLoading } = useUserVotes(user?.id);
-  const myPosts = issues.filter((post) => post.created_by === user?.id);
+  const { votes: userVotes, loading: userVotesLoading } = useUserVotes(profileId);
+  const myPosts = issues.filter((post) => post.created_by === profileId);
   const votedPostIds = new Set(userVotes.map((vote) => vote.id_issue));
   const votedPosts = issues.filter((post) => votedPostIds.has(post.id));
-  const [profileName, setProfileName] = useState<string | null>(null);
-  const [cityName, setCityName] = useState<string | null>(null);
+
+  const [profile, setProfile] = useState<{ name: string | null; avatar: string | null; city: string | null; role: string } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    getUserProfile(user.id)
-      .then((profile) => {
-        setProfileName(profile?.name ?? null);
-        setCityName(profile?.city ?? null);
-      })
-      .catch(() => {
-        setProfileName(null);
-        setCityName(null);
-      });
-    // `user?.id` on purpose, not `user`: the user object gets a new reference
-    // on every auth-state event (token refresh, initial session), which would
-    // otherwise re-run this fetch needlessly.
-  }, [user?.id]);
+    if (!profileId) return;
+    setProfileLoading(true);
+    getPublicProfile(profileId)
+      .then((data) => setProfile(data))
+      .catch(() => setProfile(null))
+      .finally(() => setProfileLoading(false));
+  }, [profileId]);
 
   const votingPosts = myPosts.filter((p) => {
     const netVotes = getNetVotes(p);
@@ -47,7 +40,7 @@ export function Profile() {
 
   const completedPosts = myPosts.filter((p) => p.status === 'completed');
 
-  if (loading || userVotesLoading) {
+  if (loading || userVotesLoading || profileLoading) {
     return (
       <div className="min-h-full flex items-center justify-center p-6">
         <Card className="p-8 text-center max-w-sm w-full">
@@ -70,18 +63,29 @@ export function Profile() {
     );
   }
 
+  if (!profile) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <Lock className="size-10 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="mb-2">Ce profil est privé</h2>
+          <p className="text-sm text-muted-foreground">Cet utilisateur n'a pas rendu son profil public.</p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <ProfileView
-      name={profileName ?? user?.name ?? null}
-      avatarUrl={user?.avatar || null}
-      city={cityName}
-      isMunicipal={isMunicipalUser}
+      name={profile.name}
+      avatarUrl={profile.avatar}
+      city={profile.city}
+      isMunicipal={profile.role === 'municipal'}
       allPosts={myPosts}
       votingPosts={votingPosts}
       inProgressPosts={inProgressPosts}
       completedPosts={completedPosts}
       votedPosts={votedPosts}
-      onSettingsClick={() => navigate('/settings')}
       onPostClick={(postId) => navigate(`/post/${postId}`)}
     />
   );

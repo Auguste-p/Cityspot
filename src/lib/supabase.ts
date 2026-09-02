@@ -173,7 +173,18 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      public_profiles: {
+        Row: {
+          id: string;
+          name: string | null;
+          avatar: string | null;
+          city: string | null;
+          role: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       email_exists: {
         Args: { check_email: string };

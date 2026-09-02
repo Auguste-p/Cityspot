@@ -49,6 +49,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "user/:id",
+        lazy: async () => {
+          const { PublicProfile } = await import("./components/PublicProfile");
+          return { Component: PublicProfile };
+        },
+      },
+      {
         path: "settings",
         lazy: async () => {
           const { Settings } = await import("./components/Settings");
