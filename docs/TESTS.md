@@ -120,7 +120,7 @@ Le référentiel choisi (RGAA 4.1), sa justification, la méthode (automatisé `
 
 - **`routes.ts`, `App.tsx`, `main.tsx`** : câblage/bootstrap, pas de logique à vérifier unitairement.
 - **`src/components/ui/dialog.tsx` et `form.tsx`** : couverts indirectement via `VoteDialog`/`CreatePost`/`Settings`, pas de test dédié à la primitive elle-même.
-- **Interactions non déclenchées par un audit d'accessibilité** : soumission de formulaire (`onSubmit`), suppression (`handleDelete`), partage (`handleShare`), géolocalisation (`handleLocateUser`)… Ces tests rendent l'écran et auditent le DOM obtenu, mais ne cliquent pas sur tous les boutons d'action — d'où le % Fonctions plus bas que le % Lignes dans le tableau du §3. Une passe de tests **fonctionnels** (pas seulement accessibilité) sur ces écrans resterait à faire si on veut aussi verrouiller leur comportement contre les régressions.
+- **Interactions non déclenchées par un audit d'accessibilité** : soumission de formulaire (`onSubmit`), suppression (`handleDelete`), partage (`handleShare`), recentrage sur la ville du profil (`handleLocateUser`)… Ces tests rendent l'écran et auditent le DOM obtenu, mais ne cliquent pas sur tous les boutons d'action — d'où le % Fonctions plus bas que le % Lignes dans le tableau du §3. Une passe de tests **fonctionnels** (pas seulement accessibilité) sur ces écrans resterait à faire si on veut aussi verrouiller leur comportement contre les régressions.
 - **Contraste des couleurs** : cf. `ACCESSIBILITE.md` §3 — nécessite un vrai navigateur, pas de solution fiable en test unitaire jsdom.
 
 ## 7. Défauts d'accessibilité réels trouvés et corrigés au passage

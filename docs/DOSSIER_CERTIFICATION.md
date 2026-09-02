@@ -45,7 +45,7 @@ Le projet part d'un bundle de code généré depuis Figma Make, très largement 
 ### 2.1 Parcours citoyen
 
 1. **Inscription / connexion** (`/login`) — un citoyen crée un compte (nom, ville — avec recherche géographique assistée, email, mot de passe) ou se connecte. Une session valide redirige vers la carte.
-2. **Carte interactive** (`/`) — affichage de tous les signalements sous forme de marqueurs colorés selon leur statut (en vote / en cours / terminé), sur un fond OpenStreetMap. La carte se centre automatiquement sur la ville renseignée à l'inscription. Un bouton "Me localiser" recentre sur la position réelle de l'utilisateur.
+2. **Carte interactive** (`/`) — affichage de tous les signalements sous forme de marqueurs colorés selon leur statut (en vote / en cours / terminé), sur un fond OpenStreetMap. La carte se centre automatiquement sur la ville renseignée à l'inscription. Un bouton "Recentrer" recentre sur la position réelle de l'utilisateur.
 3. **Créer un signalement** (`/create`) — photo, titre, description, **recherche d'adresse avec suggestions** (rues, lieux nommés, pas seulement des villes) pour positionner précisément le marqueur, type de voie (publique/privée, avec sous-cas propriétaire ou non), tâches et matériel nécessaires.
 4. **Détail d'un signalement** (`/post/:id`) — vote pour/contre avec niveau d'engagement, jauge de progression vers le seuil de bascule "en cours", liste des tâches (cochables une fois le projet lancé, par le créateur uniquement), commentaires, partage. Le créateur peut modifier ou supprimer son propre signalement.
 5. **Vue municipale** (`/municipal`, agents municipaux uniquement) — statistiques globales, filtres par catégorie (voirie, éclairage, sécurité, propreté, espaces verts, mobilier urbain), onglets par statut.
@@ -55,7 +55,7 @@ Le projet part d'un bundle de code généré depuis Figma Make, très largement 
 
 Introduite en v1.2.0 pour corriger un bogue réel (tout nouveau signalement était créé avec des coordonnées `(0, 0)`), cette fonctionnalité illustre bien la démarche du projet : un signalement doit avoir une position GPS fiable pour que son marqueur apparaisse au bon endroit sur la carte.
 
-- Le champ "Localisation" propose une liste de suggestions au fil de la frappe (debounce 400 ms), via l'API **Photon** (mêmes données OpenStreetMap que le géocodage inverse déjà utilisé pour "Me localiser", mais pensée pour l'autocomplétion : rues, numéros, lieux nommés).
+- Le champ "Localisation" propose une liste de suggestions au fil de la frappe (debounce 400 ms), via l'API **Photon** (mêmes données OpenStreetMap que le géocodage inverse déjà utilisé pour "Recentrer", mais pensée pour l'autocomplétion : rues, numéros, lieux nommés).
 - Si l'utilisateur ne sélectionne aucune suggestion, une géolocalisation de secours du texte saisi est tentée à la soumission, avant de retomber sur une ville par défaut — jamais de retour silencieux à `(0, 0)`.
 - La même mécanique est réutilisée pour la ville à l'inscription (filtrée aux seuls lieux de type ville/commune, pour garantir une ville reconnue plutôt qu'une adresse quelconque), dont les coordonnées servent ensuite à centrer automatiquement la carte à la connexion.
 

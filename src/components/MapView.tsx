@@ -13,39 +13,7 @@ import { MUNICIPAL_GRADIENT_CLASS, STATUS_MARKER_COLORS, VOTE_GOAL, getActualSta
 import { useIssues, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { getCityName } from "../lib/geocode";
-import { FALLBACK_CITY, MAP_STYLE, NOMINATIM_REVERSE_GEOCODE_URL } from '../constants/map';
-
-async function reverseGeocodeCity(lat: number, lng: number) {
-  const endpoint = new URL(NOMINATIM_REVERSE_GEOCODE_URL);
-  endpoint.searchParams.set('format', 'jsonv2');
-  endpoint.searchParams.set('lat', String(lat));
-  endpoint.searchParams.set('lon', String(lng));
-  endpoint.searchParams.set('accept-language', 'fr');
-
-  try {
-    const response = await fetch(endpoint.toString());
-    if (!response.ok) {
-      return null;
-    }
-
-    const payload = await response.json() as {
-      address?: {
-        city?: string;
-        town?: string;
-        village?: string;
-        municipality?: string;
-      };
-    };
-
-    return payload.address?.city
-      ?? payload.address?.town
-      ?? payload.address?.village
-      ?? payload.address?.municipality
-      ?? null;
-  } catch {
-    return null;
-  }
-}
+import { FALLBACK_CITY, MAP_STYLE } from '../constants/map';
 
 export function MapView() {
   const navigate = useNavigate();
@@ -58,7 +26,11 @@ export function MapView() {
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [votingPost, setVotingPost] = useState<Post | null>(null);
   const [activeCity, setActiveCity] = useState<string>(FALLBACK_CITY.name);
-  const [isLocating, setIsLocating] = useState(false);
+
+  const hasUserCity = Number.isFinite(user?.cityLat) && Number.isFinite(user?.cityLng);
+  const userCityFallback = hasUserCity
+    ? { name: getCityName(user?.city) ?? FALLBACK_CITY.name, lat: user!.cityLat!, lng: user!.cityLng!, zoom: 13 }
+    : FALLBACK_CITY;
 
   const { votes: selectedVotes, loading: selectedVotesLoading, addVote } = useVotes(selectedPost?.id);
   const selectedPositiveVotes = selectedVotes.filter((v) => v.yes).length;
@@ -99,48 +71,13 @@ export function MapView() {
       return;
     }
 
-    if (!navigator.geolocation) {
-      setActiveCity(FALLBACK_CITY.name);
-      map.flyTo({
-        center: [FALLBACK_CITY.lng, FALLBACK_CITY.lat],
-        zoom: FALLBACK_CITY.zoom,
-        duration: 900,
-      });
-      toast.info('La géolocalisation est indisponible sur cet appareil.');
-      return;
-    }
-
-    setIsLocating(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        map.flyTo({ center: [longitude, latitude], zoom: 13.5, duration: 900 });
-
-        const cityName = await reverseGeocodeCity(latitude, longitude);
-        setActiveCity(cityName ?? 'Position actuelle');
-
-        toast.success(cityName
-          ? `Carte centrée sur ${cityName}.`
-          : 'Carte centrée sur votre position.');
-        setIsLocating(false);
-      },
-      () => {
-        setActiveCity(FALLBACK_CITY.name);
-        map.flyTo({
-          center: [FALLBACK_CITY.lng, FALLBACK_CITY.lat],
-          zoom: FALLBACK_CITY.zoom,
-          duration: 900,
-        });
-        toast.info(`Géolocalisation refusée: recentrage sur ${FALLBACK_CITY.name}.`);
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 8000,
-        maximumAge: 300000,
-      },
-    );
+    setActiveCity(userCityFallback.name);
+    map.flyTo({
+      center: [userCityFallback.lng, userCityFallback.lat],
+      zoom: userCityFallback.zoom,
+      duration: 900,
+    });
+    toast.success(`Carte centrée sur ${userCityFallback.name}.`);
   };
 
   useEffect(() => {
@@ -161,7 +98,6 @@ export function MapView() {
       return;
     }
 
-    const hasUserCity = Number.isFinite(user?.cityLat) && Number.isFinite(user?.cityLng);
     const initialCenter = hasUserCity
       ? { lat: user!.cityLat!, lng: user!.cityLng! }
       : FALLBACK_CITY;
@@ -299,10 +235,9 @@ export function MapView() {
               variant="secondary"
               className="shadow-md"
               onClick={handleLocateUser}
-              disabled={isLocating}
             >
               <LocateFixed className="size-4 mr-2" />
-              {isLocating ? 'Localisation...' : 'Me localiser'}
+              Recentrer
             </Button>
           </div>
 
