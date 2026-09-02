@@ -108,9 +108,6 @@ export function Layout() {
               <span className="text-xs">Profil</span>
             </Button>
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-1">
-            {import.meta.env.VITE_APP_VERSION ?? 'dev'}
-          </p>
         </div>
       </nav>
     </div>

@@ -280,6 +280,10 @@ export function Settings() {
               <LogOut className="size-5" />
               Se déconnecter
             </Button>
+
+            <p className="text-center text-xs text-muted-foreground mt-1">
+              {import.meta.env.VITE_APP_VERSION ?? 'dev'}
+            </p>
           </form>
         </Form>
       </div>

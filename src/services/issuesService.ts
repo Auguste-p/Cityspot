@@ -507,6 +507,7 @@ export interface UpdateIssueInput {
   isPrivateProperty?: boolean;
   isOwnProperty?: boolean;
   ownerEmail?: string;
+  category?: PostCategory | null;
 }
 
 export async function updateIssue(issueId: string, input: UpdateIssueInput): Promise<Post> {
@@ -533,6 +534,7 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       isPrivateProperty: input.isPrivateProperty ?? localIssuesStore[index].isPrivateProperty,
       isOwnProperty: input.isOwnProperty ?? localIssuesStore[index].isOwnProperty,
       ownerEmail: input.ownerEmail?.trim() ? input.ownerEmail : localIssuesStore[index].ownerEmail,
+      category: input.category !== undefined ? input.category ?? undefined : localIssuesStore[index].category,
     };
     localIssuesStore[index] = updated;
     return clonePost(updated);
@@ -550,6 +552,7 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       is_private_property: input.isPrivateProperty ?? false,
       is_own_property: input.isOwnProperty ?? null,
       owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
+      ...(input.category !== undefined ? { category: input.category } : {}),
     })
     .eq('id', issueId)
     .select('*')

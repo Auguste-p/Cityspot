@@ -388,6 +388,7 @@ export function CreatePost() {
       address: existingPost.location.address,
       isPrivateProperty: existingPost.isPrivateProperty ? 'private' : 'public',
       isOwnProperty: existingPost.isOwnProperty === false ? 'no' : 'yes',
+      category: existingPost.category,
       propertyDocument: undefined,
       ownerEmail: existingPost.ownerEmail ?? '',
       tasks: existingPost.tasks.map((task) => ({ id: task.id, title: task.title })),
@@ -491,6 +492,7 @@ export function CreatePost() {
           isPrivateProperty: data.isPrivateProperty === 'private',
           isOwnProperty: data.isOwnProperty === 'yes',
           ownerEmail: data.ownerEmail,
+          category: data.category,
         });
 
         toast.success('Signalement modifié avec succès !');
@@ -611,47 +613,45 @@ export function CreatePost() {
               )}
             />
 
-            {!isEditMode && (
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <Card className="p-6">
-                    <FormItem>
-                      <Label className="mb-3 block">Catégorie</Label>
-                      <FormControl>
-                        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Catégorie">
-                          {POST_CATEGORIES.map((category) => {
-                            const config = POST_CATEGORY_CONFIG[category];
-                            const Icon = config.icon;
-                            const isSelected = field.value === category;
-                            return (
-                              <button
-                                key={category}
-                                type="button"
-                                role="radio"
-                                aria-checked={isSelected}
-                                onClick={() => field.onChange(isSelected ? undefined : category)}
-                                className={cn(
-                                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
-                                  isSelected
-                                    ? 'border-primary bg-primary text-primary-foreground'
-                                    : 'border-input bg-input-background hover:bg-accent',
-                                )}
-                              >
-                                <Icon className={cn('size-3.5', isSelected ? '' : config.color)} />
-                                {config.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </Card>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <Card className="p-6">
+                  <FormItem>
+                    <Label className="mb-3 block">Catégorie</Label>
+                    <FormControl>
+                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Catégorie">
+                        {POST_CATEGORIES.map((category) => {
+                          const config = POST_CATEGORY_CONFIG[category];
+                          const Icon = config.icon;
+                          const isSelected = field.value === category;
+                          return (
+                            <button
+                              key={category}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              onClick={() => field.onChange(isSelected ? undefined : category)}
+                              className={cn(
+                                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+                                isSelected
+                                  ? 'border-primary bg-primary text-primary-foreground'
+                                  : 'border-input bg-input-background hover:bg-accent',
+                              )}
+                            >
+                              <Icon className={cn('size-3.5', isSelected ? '' : config.color)} />
+                              {config.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </Card>
+              )}
+            />
 
             <FormField
               control={form.control}
