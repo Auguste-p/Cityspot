@@ -9,7 +9,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 ### 1.1 Traçabilité avec la grille d'évaluation (C2.3.1)
 
 - *"Le cahier de recettes reprend l'ensemble des fonctionnalités attendues"* → sections 5 à 11 (Authentification, Création de signalement, Carte, Détail, Vue municipale, Profil, Paramètres) couvrent chacune un écran livré, fonctionnalité par fonctionnalité.
-- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-07-19) : 75/87 scénarios ✅, 0 ❌, 12 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, ou hors de portée avec 2 comptes de test). Les 18 scénarios Bloquant sont tous ✅ (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
+- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-09-03) : 83/97 scénarios ✅, 0 ❌, 14 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, ou hors de portée avec 2 comptes de test). Les 18 scénarios Bloquant sont tous ✅ (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
 
 ## 2. Périmètre
 
@@ -71,6 +71,8 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | POST-12 | F | Mineur | Ajout/suppression de matériel | Ajouter puis retirer un matériau | Liste mise à jour dynamiquement | ✅ *(exécuté 2026-07-17)* |
 | POST-13 | F | Mineur | Annulation | Cliquer "Annuler" | Retour à `/` sans création | ✅ *(exécuté 2026-07-17)* |
 | POST-14 | S | Mineur | Formulaire non bloquant pendant soumission | Observer le bouton pendant l'envoi | Bouton désactivé + spinner "Création..." | ✅ *(observé visuellement lors des créations répétées de cette session)* |
+| POST-15 | F | Majeur | Catégorie obligatoire | Laisser le sélecteur de catégorie vide, valider | Erreur "La catégorie est requise", formulaire bloqué (catégorie désormais requise au même titre que titre/description/localisation, `createPostSchema`) | ✅ *(exécuté 2026-09-03 par l'utilisateur avec 2 comptes réels)* |
+| POST-16 | F | Mineur | Ville dérivée de l'adresse | Créer un signalement en choisissant une suggestion d'adresse, vérifier `issues.city` en base | La ville correspond à celle retournée par la suggestion sélectionnée (Photon), sans ressaisie | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
 
 ## 7. Carte interactive (`/`)
 
@@ -96,6 +98,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | DET-05 | F | Majeur | Visibilité des tâches selon statut | Consulter un post "en vote" puis "en cours" | En vote : tâches masquées avec message informatif · en cours : tâches visibles avec barre de progression | ☐ *(dépend du même seuil de +10 votes que DET-04, non atteignable avec 2 comptes)* |
 | DET-06 | SEC | Majeur | Édition des tâches restreinte | Se connecter avec un compte différent du créateur, tenter de cocher une tâche sur un post "en cours" | Action bloquée, toast "Les tâches ne sont plus modifiables..." (contrôle `canEditTasks`) | ✅ *(vérification partielle exécutée 2026-07-17 : sur un post "en vote" (pending), cliquer une tâche affiche bien le toast d'information au lieu de la cocher. Le cas exact "en cours + non-créateur" reste hors de portée, bloqué par le seuil de vote de DET-04)* |
 | DET-07 | F | Majeur | Ajout de commentaire | Saisir un commentaire, publier | Commentaire ajouté en fin de liste avec auteur et date | ✅ *(exécuté 2026-07-17)* |
+| DET-17 | F | Mineur | Nom de l'auteur et lien vers le profil public | Ouvrir un signalement avec des commentaires d'un autre utilisateur | Nom réel de l'auteur affiché (au lieu de "Citoyen"), cliquable vers `/user/:id` ; ses propres commentaires portent la mention "(vous)" et ne sont pas cliquables | ✅ *(exécuté 2026-09-03 par l'utilisateur avec 2 comptes réels)* |
 | DET-08 | F | Mineur | Partage | Cliquer sur "Partager" (navigateur sans Web Share API) | Lien copié dans le presse-papier, toast de confirmation | ✅ *(exécuté 2026-07-17, repli presse-papier confirmé en environnement headless)* |
 | DET-09 | SEC | Bloquant | Icônes Modifier/Supprimer réservées au créateur | Ouvrir un post créé par un autre utilisateur, puis le même post en étant le créateur | Absentes dans le premier cas, visibles dans le second (garde `user?.id === post.created_by`) | ✅ *(exécuté 2026-07-17 avec 2 comptes réels : non-propriétaire → Modifier/Supprimer absents ; propriétaire → Modifier/Supprimer visibles)* |
 | DET-10 | F | Mineur | Signalement introuvable | Accéder à `/post/id-inexistant` | Message "Signalement introuvable" avec retour à la carte | ✅ *(exécuté 2026-07-17)* |
@@ -113,6 +116,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | MUN-01 | F | Majeur | Accès via un compte municipal | Se connecter avec `role = municipal` | Bouton d'accès visible dans l'en-tête, page accessible | ✅ *(exécuté 2026-07-17 avec un compte `public.users.role = 'municipal'` confirmé — bouton "Vue municipale" visible, page accessible)* |
 | MUN-02 | SEC | Bloquant | Accès direct à `/municipal` par un citoyen | Se connecter avec `role = citizen`, saisir l'URL `/municipal` manuellement | Accès refusé | ✅ *(échec confirmé le 2026-07-17, corrigé le jour même par un garde de route dans `Layout.tsx` — redirection vers `/` + toast "Accès réservé aux comptes municipaux", re-testé en direct : OK)* |
 | MUN-03 | F | Mineur | Filtrage par catégorie | Cliquer sur chaque catégorie (voirie, éclairage, sécurité, propreté, espaces verts, mobilier urbain) | Liste filtrée, compteur par catégorie exact | ✅ *(exécuté 2026-07-17, filtrage "Voirie" fonctionnel)* |
+| MUN-07 | F | Majeur | Vue limitée à la ville de l'agent | Se connecter avec un compte municipal dont la ville de profil diffère de celle d'un signalement existant | Seuls les signalements dont `issues.city` correspond à la ville de l'agent apparaissent (`listIssues(city)`, comportement introduit le 2026-09-02, cf. `CHANGELOG.md` v2.1.1) | ✅ *(exécuté 2026-09-03 par l'utilisateur, 2 comptes sur des villes différentes)* |
 | MUN-04 | F | Mineur | Onglets par statut | Parcourir les onglets Tous/En vote/En cours/Terminés | Contenu et compteurs cohérents avec les données | ✅ *(exécuté 2026-07-17)* |
 | MUN-05 | F | Mineur | Statistiques globales | Comparer les cartes de stats en haut de page aux données réelles | Total, en vote, en cours, terminés corrects | ✅ *(exécuté 2026-07-17, statistiques affichées)* |
 | MUN-06 | F | Mineur | État vide | Filtrer une catégorie sans signalement | Message "Aucun signalement dans cette catégorie" | ✅ *(exécuté 2026-07-17, message d'état vide affiché sur "Mobilier urbain")* |
@@ -129,6 +133,9 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | PROF-06 | F | Majeur | Nom et ville affichés depuis `public.users` | Ouvrir `/profile` avec un compte ayant `name`/`city` renseignés en base | Le nom (titre) et la ville (sous-titre) affichés correspondent à `public.users.name`/`city` — l'email n'est plus affiché sur cette page | ✅ *(exécuté 2026-07-17)* |
 | PROF-07 | F | Mineur | Badge "Mairie" conditionnel | Ouvrir le profil d'un compte `role = municipal`, puis d'un compte `role = citizen` | Badge dégradé bleu "Mairie" (icône bâtiment) visible uniquement dans le premier cas | ✅ *(exécuté 2026-07-17 avec 2 comptes réels, confirmé par capture d'écran : badge visible pour le compte municipal, absent pour le compte citoyen)* |
 | PROF-08 | SEC | Bloquant | Isolation des données de profil | Voir SEC-11 | Cf. section 13 | ✅ *(même exécution que SEC-11)* |
+| PROF-09 | F | Mineur | Onglet "Votés" | Voter sur un signalement créé par un autre utilisateur, ouvrir son propre profil | Le signalement apparaît dans l'onglet "Votés" (5ᵉ onglet, `useUserVotes`), en plus de "Tous" pour les signalements dont on est l'auteur | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
+| PROF-10 | F | Majeur | Visite d'un profil public | Ouvrir `/user/:id` d'un compte ayant activé "Visibilité du profil" | Même présentation que son propre profil (en-tête, stats, onglets), sans bouton Paramètres ; ses signalements/votes publics visibles | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
+| PROF-11 | SEC | Majeur | Profil non public inaccessible | Ouvrir `/user/:id` d'un compte n'ayant pas activé "Visibilité du profil" | Message "Ce profil est privé", aucune donnée du compte visé exposée (`public_profiles` filtrée par `profileVisible = true`) | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
 
 ## 11. Paramètres (`/settings`)
 
@@ -141,6 +148,9 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | SET-04 | F | Mineur | Bascule des préférences | Activer/désactiver notifications par email et visibilité du profil | État des interrupteurs conservé pendant la session | ✅ *(exécuté 2026-07-17, bascule d'état confirmée)* |
 | SET-05 | F | Majeur | Déconnexion depuis les paramètres | Cliquer "Se déconnecter" | Redirection vers `/login` | ✅ *(exécuté indirectement lors d'AUTH-02 — déconnexion via `/settings` puis reconnexion, redirection vers `/login` confirmée)* |
 | SET-07 | F | Majeur | Interrupteurs utilisables dès l'affichage | Ouvrir `/settings`, activer/désactiver un interrupteur | Le formulaire n'est rendu qu'une fois `getUserProfile` résolu (spinner "Chargement des paramètres" avant) ; aucun retour en arrière du switch après le clic, y compris juste après le chargement de la page | ✅ *(exécuté 2026-07-17, aucun reset intempestif observé)* |
+| SET-08 | F | Mineur | Recherche d'adresse et ville déduite | Saisir une adresse dans le champ Adresse, sélectionner une suggestion | Champ Ville renseigné automatiquement (lecture seule), `cityLat`/`cityLng` mis à jour à l'enregistrement | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
+| SET-09 | F | Mineur | Changement de photo de profil | Cliquer "Changer la photo", sélectionner un PNG/JPG < 5 Mo | Aperçu mis à jour immédiatement, upload vers le bucket `avatars` à l'enregistrement | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
+| SET-10 | F | Mineur | Lien vers le profil public | Activer "Visibilité du profil" | Lien "Voir mon profil public" apparaît vers `/user/:id` ; désactiver le switch le fait disparaître | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
 
 ## 12. Tests structurels
 
@@ -176,24 +186,24 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 
 | Catégorie (type) | Nombre de scénarios |
 |---|---|
-| Fonctionnels (F) | 59 |
+| Fonctionnels (F) | 68 |
 | Structurels (S) | 11 |
-| Sécurité (SEC) | 17 |
-| **Total** | **87** |
+| Sécurité (SEC) | 18 |
+| **Total** | **97** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 18 |
-| Majeur | 34 |
-| Mineur | 35 |
-| **Total** | **87** |
+| Majeur | 38 |
+| Mineur | 41 |
+| **Total** | **97** |
 
-| État d'exécution (2026-07-17) | Nombre |
+| État d'exécution | Nombre |
 |---|---|
-| ✅ OK | 75 |
+| ✅ OK | 83 *(73 le 2026-07-17 + 10 le 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 12 |
-| **Total** | **87** |
+| ☐ Non exécuté (raison documentée par ligne) | 14 |
+| **Total** | **97** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

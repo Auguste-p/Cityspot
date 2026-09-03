@@ -12,41 +12,41 @@ Ce document liste les tests unitaires du projet, explique ce que chacun vérifie
 - **Accessibilité** : `axe-core`, exécuté directement dans les tests de composants (voir `src/test/a11y.ts` et `ACCESSIBILITE.md`).
 
 ```bash
-npm test              # exécute les 105 tests
+npm test              # exécute les 122 tests
 npm run test:coverage # exécute les tests + génère le rapport de couverture (table ci-dessous)
 ```
 
 La couverture est calculée uniquement sur `src/**` (le dossier `build/`, qui contient le bundle compilé, est explicitement exclu de la configuration — l'inclure aurait fait chuter le pourcentage sans rapport avec le code réellement écrit). Voir `vite.config.ts`, clé `test.coverage`.
 
-**En CI** (`.github/workflows/ci.yml`, C2.1.2) : `npm run test:coverage` s'exécute sur chaque push/PR vers `main` — mêmes 105 tests que `npm test` (le build échoue pareillement si l'un d'eux casse), plus le rapport de couverture, déposé en artefact `coverage-report` (HTML + JSON, 30 jours) consultable depuis l'onglet *Actions* du dépôt. Le résumé est aussi recopié dans `README.md` (§ Tests & couverture).
+**En CI** (`.github/workflows/ci.yml`, C2.1.2) : `npm run test:coverage` s'exécute sur chaque push/PR vers `main` — mêmes 122 tests que `npm test` (le build échoue pareillement si l'un d'eux casse), plus le rapport de couverture, déposé en artefact `coverage-report` (HTML + JSON, 30 jours) consultable depuis l'onglet *Actions* du dépôt. Le résumé est aussi recopié dans `README.md` (§ Tests & couverture).
 
 ## 3. Couverture globale
 
-Mesurée le 2026-07-19 avec `npm run test:coverage` (105 tests, 20 fichiers de test, tous verts).
+Mesurée le 2026-09-03 avec `npm run test:coverage` (122 tests, 21 fichiers de test, tous verts).
 
 | Dossier | % Instructions | % Branches | % Fonctions | % Lignes |
 |---|---|---|---|---|
-| **`src` (ensemble)** | **80.88 %** | 70.42 % | 59.14 % | **80.88 %** |
-| `src/lib` | 100 % | 100 % | 100 % | 100 % |
+| **`src` (ensemble)** | **79.73 %** | 70.71 % | 55.61 % | **79.73 %** |
 | `src/constants` | 100 % | 100 % | 100 % | 100 % |
-| `src/context` | 85.5 % | 94.44 % | 100 % | 85.5 % |
-| `src/hooks` | 95.04 % | 78.57 % | 100 % | 95.04 % |
-| `src/schemas` | 100 % | 75 % | 100 % | 100 % |
-| `src/components` (écrans) | 85.74 % | 76.38 % | 29.87 % | 85.74 % |
-| `src/components/ui` | 85.15 % | 80.95 % | 75.67 % | 85.15 % |
-| `src/services` | 63.52 % | 46.04 % | 96 % | 63.52 % |
+| `src/schemas` | 100 % | 77.77 % | 100 % | 100 % |
+| `src/lib` | 92.01 % | 92.72 % | 87.5 % | 92.01 % |
+| `src/context` | 88.5 % | 96 % | 100 % | 88.5 % |
+| `src/hooks` | 82.9 % | 78.57 % | 83.33 % | 82.9 % |
+| `src/components/ui` | 84.91 % | 80.95 % | 75.67 % | 84.91 % |
+| `src/components` (écrans) | 83.56 % | 75.31 % | 28.12 % | 83.56 % |
+| `src/services` | 64.39 % | 45.8 % | 88.88 % | 64.39 % |
 | `src/test` (helper `a11y.ts`) | 75 % | 66.66 % | 100 % | 75 % |
-| `src` racine (`App.tsx`, `main.tsx`, `routes.ts`), `src/types` | 0 % | — | — | 0 % |
+| `src/components/figma`, `src` racine (`App.tsx`, `main.tsx`, `routes.ts`), `src/types` | 0 % | — | — | 0 % |
 
-**Lecture** : le critère C2.2.2 (« majorité du code développé ») est désormais dépassé — **81 % des lignes de `src`** sont exercées par au moins un test. `src/lib` est passé à 100 % avec l'ajout des tests d'`initSentry`/`logSecurityEvent` (§4.22). Tous les écrans (`MapView`, `CreatePost`, `PostDetail`, `MunicipalView`, `Profile`, `Settings`, `Layout`, `LoginPage`, `VoteDialog`, `PostCard`) ont des tests, chacun sous l'angle accessibilité (§5) — ce qui, en exerçant le rendu complet de chaque écran, a couvert la logique de rendu et les branches conditionnelles au passage. La colonne « % Fonctions » reste plus basse (59.14 %) : beaucoup de gestionnaires d'événements (`onSubmit`, `handleDelete`, `handleShare`…) ne sont pas déclenchés par un simple audit d'accessibilité, qui rend l'écran mais ne simule pas toutes les interactions. Ce qui reste à 0 % (`App.tsx`, `main.tsx`, `routes.ts`, `src/types`) est du câblage/bootstrap sans logique propre — voir §6.
+**Lecture** : le critère C2.2.2 (« majorité du code développé ») reste dépassé — **79.73 % des lignes de `src`** sont exercées par au moins un test, en léger retrait par rapport à la mesure du 2026-07-19 (80.88 %) : le lot du 2026-09-02 (`CHANGELOG.md` v2.1.1/v2.2.0) a ajouté plus de code neuf (profils publics, Storage) que de tests dédiés. `src/lib` redescend à 92.01 % (n'était plus à 100 % depuis l'ajout de `storage.ts`, §4.23) ; tout le reste de `src/lib` (`geocode.ts`, `postCategory.ts`, `postStatus.ts`, `sentry.ts`, `supabase.ts`) reste couvert. Tous les écrans (`MapView`, `CreatePost`, `PostDetail`, `MunicipalView`, `Profile`, `Settings`, `Layout`, `LoginPage`, `VoteDialog`, `PostCard`) ont des tests, chacun sous l'angle accessibilité (§5) — ce qui, en exerçant le rendu complet de chaque écran, a couvert la logique de rendu et les branches conditionnelles au passage ; `ProfileView.tsx` en hérite (98.16 %, réutilisé par `Profile.test.tsx`) mais `PublicProfile.tsx`, nouveau, n'a aucun test dédié (0 %, cf. §6). La colonne « % Fonctions » reste plus basse (55.61 %) : beaucoup de gestionnaires d'événements (`onSubmit`, `handleDelete`, `handleShare`…) ne sont pas déclenchés par un simple audit d'accessibilité, qui rend l'écran mais ne simule pas toutes les interactions. Ce qui reste à 0 % (`App.tsx`, `main.tsx`, `routes.ts`, `src/types`, `src/components/figma/ImageWithFallback.tsx`) est du câblage/bootstrap sans logique propre, à l'exception d'`ImageWithFallback.tsx` : résidu de l'import initial depuis Figma Make, jamais utilisé par un composant du projet — voir §6.
 
 ## 4. Détail par fichier de test
 
 ### 4.1 `src/lib/postStatus.test.ts` (préexistant — 6 tests)
 Teste `getNetVotes`, `getActualStatus` et `getStatusConfig` : le calcul du solde de votes, le seuil de bascule `pending → in-progress` (`VOTE_GOAL`), et le fait qu'un post `completed` ne redescend jamais. Intérêt : c'est la logique qui décide de l'état affiché sur chaque signalement — une erreur ici serait visible par tous les utilisateurs.
 
-### 4.2 `src/schemas/formSchemas.test.ts` (préexistant — 8 tests)
-Teste les schémas Zod de validation des formulaires (titre, description, adresse, email propriétaire…). Intérêt : c'est la première ligne de défense contre les données invalides envoyées à Supabase (POST-02 à POST-10 du cahier de recettes).
+### 4.2 `src/schemas/formSchemas.test.ts` (préexistant — 9 tests)
+Teste les schémas Zod de validation des formulaires (titre, description, adresse, email propriétaire…). Intérêt : c'est la première ligne de défense contre les données invalides envoyées à Supabase (POST-02 à POST-10 du cahier de recettes). +1 test le 2026-09-02 (« rejects a post without a category ») suite au passage de la catégorie en champ obligatoire (`CHANGELOG.md` v2.2.0, POST-15).
 
 ### 4.3 `src/components/ui/card.test.tsx` (préexistant — 3 tests)
 Teste l'accessibilité clavier du composant `Card` (rôle `button`, `tabindex`, activation par `Entrée`/`Espace`). Intérêt : critère STR-06/STR-07 du cahier de recettes (navigation clavier, `aria-*`).
@@ -54,7 +54,7 @@ Teste l'accessibilité clavier du composant `Card` (rôle `button`, `tabindex`, 
 ### 4.4 `src/lib/supabase.test.ts` (nouveau — 3 tests)
 Teste `hasSupabaseConfig` et `getSupabaseClient()` : absence de config → client `null` ; **rejet d'une clé secrète/service-role** (`sb_secret_...`) même si une URL est fournie, avec avertissement console ; construction et mémoïsation du client quand la config est valide. Intérêt : couvre directement **SEC-01** du cahier de recettes — c'était la seule mesure de sécurité explicitement nommée dans la grille (OWASP) qui n'avait aucun test.
 
-### 4.5 `src/services/authService.test.ts` (nouveau — 12 tests)
+### 4.5 `src/services/authService.test.ts` (nouveau — 15 tests)
 Teste chaque fonction du service d'authentification (`signUp`, `signIn`, `signOut`, `getCurrentUser`, `getUserProfile`, `updateUserProfile`) : cas de succès (bon appel à Supabase, bonne donnée renvoyée) et cas d'erreur (l'erreur Supabase est bien propagée via `throw`, pas avalée — sauf `AuthSessionMissingError` sur `getCurrentUser()`, qui résout `null`, cf. `PLAN_CORRECTION_BOGUES.md` BUG-15). Le client Supabase est mocké (`vi.mock('../lib/supabase')`) — aucun appel réseau réel. Intérêt : ce service est sur le chemin critique de toutes les pages protégées (AUTH-01 à AUTH-08).
 
 ### 4.6 `src/services/issuesService.test.ts` (nouveau — 13 tests)
@@ -67,8 +67,8 @@ Le fichier le plus volumineux du projet, testé sous trois angles :
 ### 4.7 `src/hooks/useIssues.test.tsx` (nouveau — 7 tests)
 Teste `useIssues`, `useIssue`, `useComments`, `useVotes` avec `renderHook` (`@testing-library/react`) et le service `issuesService` mocké : état `loading` initial puis résolu, erreur capturée sans crash, `reload()` qui refetch, ajout local d'un commentaire/vote après résolution de la promesse. Intérêt : ces hooks pilotent le chargement de données sur `MapView`, `PostDetail`, `MunicipalView` — une régression ici casserait l'affichage sur plusieurs écrans à la fois.
 
-### 4.8 `src/context/UserContext.test.tsx` (nouveau — 5 tests)
-Teste `UserProvider`/`useUser` : un utilisateur authentifié sans `user_metadata.role` est bien classé `citizen` par défaut ; un `role: 'municipal'` déclenche `isMunicipalUser: true` ; absence de session → `user: null` ; une erreur au chargement initial ne casse pas le rendu (`user: null` au lieu d'une exception) ; `useUser()` hors `UserProvider` lève bien l'erreur explicite. Intérêt : c'est ce contexte qui décide, avec le garde de route dans `Layout.tsx`, qui a accès à `/municipal` — donc directement lié à **STR-09/SEC-09** du cahier de recettes.
+### 4.8 `src/context/UserContext.test.tsx` (nouveau — 6 tests)
+Teste `UserProvider`/`useUser` : un utilisateur authentifié sans `user_metadata.role` est bien classé `citizen` par défaut ; un `role: 'municipal'` déclenche `isMunicipalUser: true` ; les coordonnées de ville sauvegardées à l'inscription (`cityLat`/`cityLng`) sont bien exposées ; absence de session → `user: null` ; une erreur au chargement initial ne casse pas le rendu (`user: null` au lieu d'une exception) ; `useUser()` hors `UserProvider` lève bien l'erreur explicite. Intérêt : c'est ce contexte qui décide, avec le garde de route dans `Layout.tsx`, qui a accès à `/municipal` — donc directement lié à **STR-09/SEC-09** du cahier de recettes ; les coordonnées de ville alimentent aussi le filtre municipal par ville (MUN-07) et le centrage de la carte.
 
 ### 4.9 `src/test/a11y.ts` (helper, pas un fichier de test)
 Encapsule `axe-core` : lance l'audit sur un conteneur DOM déjà rendu, filtré sur les tags WCAG 2.1 A/AA (base technique du RGAA — voir `ACCESSIBILITE.md` pour la justification du référentiel et le mapping), avec la règle `color-contrast` désactivée (non fiable sous `jsdom`, qui n'a pas de moteur de rendu réel). Exporte `expectNoA11yViolations(container)` (assertion, lève si violation) et `getA11yViolations(container)` (liste brute, pour les tests qui veulent inspecter le contenu d'une violation attendue).
@@ -112,6 +112,9 @@ Audite la carte interactive : chargement, erreur, vue par défaut (carte + liste
 ### 4.22 `src/lib/sentry.test.ts` (nouveau — 4 tests)
 Teste `initSentry()` (n'appelle `Sentry.init` que si `VITE_SENTRY_DSN` est configuré, avec `tracesSampleRate: 0`) et `logSecurityEvent()` (même garde ; envoie un événement `warning` tagué `security_event: true` quand un DSN est présent). `@sentry/react` est mocké (`vi.mock`), aucun appel réseau réel — chaque cas relit le module dynamiquement après `vi.stubEnv` pour que la constante `dsn`, lue une fois au chargement du module, reflète l'environnement du test. Intérêt : c'est cette fonction qui ferme le volet applicatif d'A09 (`SECURITE.md`) — un refus d'autorisation métier (garde `/municipal`, suppression/modification bloquée par la RLS) doit remonter, un test qui casserait `logSecurityEvent` le ferait disparaître silencieusement.
 
+### 4.23 `src/lib/geocode.test.ts` (nouveau — 7 tests)
+Teste `searchAddress` (autocomplétion Photon utilisée en création de signalement §6 et dans les Paramètres §11) : pas d'appel API sous 3 caractères, construction d'un libellé précis pour un POI (distinct de sa rue), déduplication du nom de rue quand il coïncide avec le nom du lieu, tableau vide sur erreur HTTP ou réseau (pas d'exception qui casserait le formulaire) — et `searchCity`, restreint aux types de lieu ville/village/commune avec un libellé court ("nom, région") plutôt qu'une adresse complète. Intérêt : `GeocodeResult.city` alimente désormais aussi `issues.city` à la création (POST-16) et le champ Ville des Paramètres (SET-08), en plus du centrage carte déjà couvert.
+
 ## 5. Accessibilité (RGAA)
 
 Le référentiel choisi (RGAA 4.1), sa justification, la méthode (automatisé `axe-core` + manuel) et ses limites assumées (contraste non vérifiable sous `jsdom`) sont détaillés dans **`ACCESSIBILITE.md`**. Les tests correspondants sont listés en §4.9–4.21 ci-dessus et tournent avec le reste de la suite (`npm test`), pas dans une commande séparée. **Tous les écrans de l'application ont désormais un test d'accessibilité.**
@@ -122,6 +125,9 @@ Le référentiel choisi (RGAA 4.1), sa justification, la méthode (automatisé `
 - **`src/components/ui/dialog.tsx` et `form.tsx`** : couverts indirectement via `VoteDialog`/`CreatePost`/`Settings`, pas de test dédié à la primitive elle-même.
 - **Interactions non déclenchées par un audit d'accessibilité** : soumission de formulaire (`onSubmit`), suppression (`handleDelete`), partage (`handleShare`), recentrage sur la ville du profil (`handleLocateUser`)… Ces tests rendent l'écran et auditent le DOM obtenu, mais ne cliquent pas sur tous les boutons d'action — d'où le % Fonctions plus bas que le % Lignes dans le tableau du §3. Une passe de tests **fonctionnels** (pas seulement accessibilité) sur ces écrans resterait à faire si on veut aussi verrouiller leur comportement contre les régressions.
 - **Contraste des couleurs** : cf. `ACCESSIBILITE.md` §3 — nécessite un vrai navigateur, pas de solution fiable en test unitaire jsdom.
+- **`src/lib/storage.ts`** (nouveau, 53.57 %) : `uploadToBucket`/`isAllowedImageFile` ne sont exercés qu'indirectement (rendu de `CreatePost`/`Settings`), sans test dédié simulant un upload — nécessiterait de mocker `client.storage.from(bucket).upload(...)`, pas fait faute de valeur ajoutée immédiate (fonction courte, pas de branche métier).
+- **`src/components/PublicProfile.tsx`** (nouveau, 0 %) : aucun test dédié — la fonctionnalité (profil visible/privé selon `profileVisible`) est couverte par recette manuelle (`CAHIER_DE_RECETTES.md` PROF-10/PROF-11), pas par un test unitaire.
+- **`src/components/figma/ImageWithFallback.tsx`** (0 %) : résidu de l'import initial du projet depuis Figma Make, jamais importé par aucun composant — candidat à la suppression plutôt qu'à un test.
 
 ## 7. Défauts d'accessibilité réels trouvés et corrigés au passage
 

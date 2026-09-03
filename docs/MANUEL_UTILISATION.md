@@ -33,8 +33,8 @@ Une session valide redirige automatiquement vers la carte (`/`). Sans session, t
 Depuis n'importe quel écran, le bouton **"Nouveau"** (icône `+`, barre de navigation basse) ouvre le formulaire de création (`/create`) :
 
 1. **Photo** — une image de la dégradation (PNG/JPG, 5 Mo max).
-2. **Titre** et **description** de la dégradation.
-3. **Localisation** — adresse ou lieu précis.
+2. **Titre**, **description** et **catégorie** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) — champs obligatoires, comme la localisation.
+3. **Localisation** — adresse ou lieu précis (obligatoire) ; la ville du signalement est déduite automatiquement de l'adresse choisie.
 4. **Type de voie** :
    - *Voie publique* — cas standard.
    - *Voie privée* — un sous-formulaire apparaît :
@@ -59,7 +59,7 @@ Sur `/post/:id` :
   - Un compte ne peut voter qu'une seule fois par signalement. La jauge affiche le nombre de votes nets (pour − contre) par rapport à l'objectif requis pour faire passer le projet *en cours*. Un bouton "Votants" liste qui a voté et dans quel sens.
 - **Tâches** — visibles et cochables uniquement une fois le projet passé *en cours*, et uniquement par le créateur du signalement. Une barre de progression indique l'avancement.
 - **Matériel nécessaire** — liste informative, non modifiable après création (sauf via "Modifier", §6.1).
-- **Commentaires** — tout utilisateur connecté peut lire et publier un commentaire.
+- **Commentaires** — tout utilisateur connecté peut lire et publier un commentaire ; le nom de chaque auteur est affiché (lien vers son profil public s'il l'a activé, §8) et vos propres commentaires sont repérés par la mention "(vous)".
 - **Partager** — copie le lien du signalement (ou ouvre le partage natif du système sur mobile).
 
 ### 6.1 Modifier ou supprimer son propre signalement
@@ -75,7 +75,7 @@ Ces actions sont également vérifiées côté serveur : un utilisateur qui n'es
 
 Accessible via le bouton bâtiment en haut de l'écran, ou directement sur `/municipal`. Un compte non municipal qui tente d'y accéder est redirigé vers la carte avec un message d'erreur.
 
-La vue propose :
+La vue est automatiquement limitée aux signalements de la ville de l'agent connecté (déduite de son profil) et propose :
 
 - des **statistiques** globales (total, en vote, en cours, terminés) ;
 - un **filtre par catégorie** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) ;
@@ -83,10 +83,13 @@ La vue propose :
 
 ## 8. Profil et paramètres
 
-- **Profil** (`/profile`) — informations du compte connecté et badge "Mairie" si le compte est municipal.
+- **Profil** (`/profile`) — informations du compte connecté, badge "Mairie" si le compte est municipal, et un onglet **Votés** en plus de Tous/En vote/En cours/Terminés, listant les signalements pour lesquels vous avez voté (que vous en soyez l'auteur ou non).
+- **Profil public** (`/user/:id`) — même présentation que son propre profil, en lecture seule (pas de bouton Paramètres), accessible en cliquant sur le nom d'un auteur de commentaire. N'affiche rien (message "Ce profil est privé") tant que le compte visé n'a pas activé "Visibilité du profil" dans ses paramètres.
 - **Paramètres** (`/settings`, accessible depuis le profil) :
-  - nom, téléphone, adresse (l'email n'est pas modifiable ici — géré par l'authentification) ;
-  - préférences : notifications par email, visibilité du profil ;
+  - nom, téléphone, photo de profil (bouton "Changer la photo", PNG/JPG 5 Mo max) ;
+  - adresse — mêmes suggestions de recherche qu'à la création d'un signalement ; la ville est déduite automatiquement de l'adresse choisie (champ en lecture seule) ;
+  - l'email n'est pas modifiable ici — géré par l'authentification ;
+  - **Confidentialité** — "Visibilité du profil" : une fois activé, un lien "Voir mon profil public" apparaît vers `/user/:id` ; rend visibles aux autres membres votre nom, ville, signalements et votes, jamais votre téléphone ni votre adresse ;
   - "Enregistrer les modifications" persiste les changements ; ils sont rechargés à chaque connexion.
   - "Se déconnecter" termine la session et renvoie vers `/login`.
 

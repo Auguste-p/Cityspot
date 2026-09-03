@@ -76,8 +76,15 @@ Pas de serveur applicatif : le frontend interroge directement Postgres via l'API
 | `tasks` / `materials` | ouverte | insert/delete réservés au créateur du signalement parent (sous-requête sur `issues.created_by`) |
 | `comments` / `votes` | ouverte | insertion uniquement en tant que soi-même (`auth.uid() = id_user`), pas d'update/delete |
 | `users` | — | profil du propriétaire uniquement, synchronisé à l'inscription par un trigger (`handle_new_user`) |
+| `public_profiles` (vue) | ouverte (`authenticated`, `anon`) | — (vue en lecture seule) |
 
-Historique complet des migrations et de leur raison d'être : `PLAN_CORRECTION_BOGUES.md` (BUG-09, BUG-10, BUG-13 notamment — toutes les tables ont d'abord porté une policy `"all for all"` héritée du prototypage, retirée et remplacée table par table).
+`public.users` n'autorisant la lecture que de sa propre ligne, deux besoins de lecture croisée entre comptes sont couverts par contournement plutôt que par une RLS plus permissive (qui exposerait `phone`/`address` à tout le monde) :
+- **`comments.author_name`** — dénormalisé à l'écriture (`createComment`), au même titre que `issues.owner_email` : seul l'auteur, au moment où il poste, peut fournir (et lire) son propre nom ; aucun autre lecteur ne pourrait le relire depuis `users`.
+- **Vue `public_profiles`** (`id, name, avatar, city, role`, jamais `phone`/`address`) — n'expose que les comptes ayant activé "Visibilité du profil" (`"profileVisible" = true`), consommée par `/user/:id` (`PublicProfile.tsx`).
+
+**Stockage de fichiers** : les photos de signalement et avatars (jusqu'ici en base64 dans les colonnes) résident dans deux buckets Supabase Storage publics en lecture — `issue-photos`, `avatars` — chemin `{auth.uid()}/{timestamp}.{ext}`, policies RLS sur `storage.objects` vérifiant que le premier segment du chemin correspond à l'appelant (écriture/suppression réservées au propriétaire, même schéma que les tables). `src/lib/storage.ts` centralise l'upload et la résolution d'URL publique.
+
+Historique complet des migrations et de leur raison d'être : `PLAN_CORRECTION_BOGUES.md` (BUG-09, BUG-10, BUG-13 notamment — toutes les tables ont d'abord porté une policy `"all for all"` héritée du prototypage, retirée et remplacée table par table) et `CHANGELOG.md` v2.2.0 pour les ajouts les plus récents (vue `public_profiles`, buckets Storage, `comments.author_name`).
 
 **Pas de fonction serveur** : le projet a porté une Edge Function `delete-issue` jusqu'au 2026-07-19, écrite avant que `issues` porte une policy RLS de suppression — elle revérifiait manuellement, côté serveur, que l'appelant était bien le propriétaire avant de supprimer. Une fois la RLS de `issues` étendue à `DELETE` (BUG-10, même règle `auth.uid() = created_by` que pour `UPDATE`), la fonction faisait exactement le même travail que la base fait déjà nativement, sans rien y ajouter (pas de cascade, pas de nettoyage de stockage) : elle a été retirée (`src/services/issuesService.ts` appelle directement `.from('issues').delete()`, cf. `CHANGELOG.md`). PostgREST ne distingue pas explicitement "refusé" de "rien à supprimer" sur un `DELETE` filtré par RLS (toujours `HTTP 200`) : `deleteIssue()` détecte le refus en vérifiant que le tableau de lignes supprimées (`.select('id')`) n'est pas vide, et lève la même erreur qu'avant côté UI.
 
