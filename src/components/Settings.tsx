@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { ArrowLeft, User, Mail, Phone, MapPin, Save, LogOut, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '../context/UserContext';
-import { getUserProfile, signOut, updateUserProfile } from '../services/authService';
+import { deleteOwnAccount, getUserProfile, signOut, updateUserProfile } from '../services/authService';
 import { settingsFormSchema } from '../schemas/formSchemas';
 import { isAllowedImageFile, uploadToBucket } from '../lib/storage';
 import { searchAddress, type GeocodeResult } from '../lib/geocode';
@@ -146,6 +146,22 @@ export function Settings() {
   const handleLogout = async () => {
     await signOut();
     navigate('/login', { replace: true });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm(
+      'Supprimer définitivement votre compte ? Vous perdrez immédiatement l\'accès. Vos données seront effacées sous 30 jours.'
+    )) return;
+
+    try {
+      await deleteOwnAccount();
+      await signOut();
+      toast.success('Compte supprimé. Vos données seront effacées définitivement sous 30 jours.');
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error(error);
+      toast.error('Erreur lors de la suppression du compte');
+    }
   };
 
   return (
@@ -433,6 +449,24 @@ export function Settings() {
               <LogOut className="size-5" />
               Se déconnecter
             </Button>
+
+            <Card className="p-6 border-destructive/50">
+              <h2 className="mb-2">Zone dangereuse</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                La suppression de votre compte est immédiate : vous perdez l'accès
+                tout de suite. Vos données personnelles sont conservées 30 jours
+                (le temps d'annuler en vous reconnectant) puis effacées
+                définitivement.
+              </p>
+              <Button
+                type="button"
+                onClick={handleDeleteAccount}
+                variant="destructive"
+                className="w-full"
+              >
+                Supprimer mon compte
+              </Button>
+            </Card>
 
             <p className="text-center text-xs text-muted-foreground mt-1">
               {import.meta.env.VITE_APP_VERSION ?? 'dev'}

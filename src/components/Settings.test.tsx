@@ -12,6 +12,7 @@ vi.mock('../services/authService', () => ({
   getUserProfile: vi.fn(),
   signOut: vi.fn(),
   updateUserProfile: vi.fn(),
+  deleteOwnAccount: vi.fn(),
 }));
 
 import { useUser } from '../context/UserContext';
@@ -67,6 +68,29 @@ describe('Settings accessibility (RGAA / axe-core)', () => {
     const { container } = renderSettings();
     await screen.findByText('Paramètres');
     await screen.findByDisplayValue('Jeanne Dupont');
+    await expectNoA11yViolations(container);
+  });
+
+  it('the "danger zone" delete-account section has no violation', async () => {
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedGetUserProfile.mockResolvedValue({
+      id: CITIZEN.id,
+      name: 'Jeanne Dupont',
+      city: 'Lyon',
+      cityLat: null,
+      cityLng: null,
+      role: 'citizen',
+      phone: '0601020304',
+      address: '1 rue de la Paix',
+      avatar: 'J',
+      emailNotifications: true,
+      profileVisible: false,
+      created_at: '2026-01-01T00:00:00.000Z',
+      deleted_at: null,
+    });
+
+    const { container } = renderSettings();
+    await screen.findByText('Supprimer mon compte');
     await expectNoA11yViolations(container);
   });
 });
