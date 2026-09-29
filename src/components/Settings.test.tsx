@@ -61,6 +61,7 @@ describe('Settings accessibility (RGAA / axe-core)', () => {
       emailNotifications: true,
       profileVisible: false,
       created_at: '2026-01-01T00:00:00.000Z',
+      deleted_at: null,
     });
 
     const { container } = renderSettings();

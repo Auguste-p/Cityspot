@@ -143,6 +143,7 @@ export interface Database {
           emailNotifications: boolean;
           profileVisible: boolean;
           created_at: string;
+          deleted_at: string | null;
         };
         Insert: {
           id: string;
@@ -157,6 +158,7 @@ export interface Database {
           emailNotifications?: boolean;
           profileVisible?: boolean;
           created_at?: string;
+          deleted_at?: string | null;
         };
         Update: {
           name?: string | null;
@@ -169,6 +171,7 @@ export interface Database {
           avatar?: string | null;
           emailNotifications?: boolean;
           profileVisible?: boolean;
+          deleted_at?: string | null;
         };
         Relationships: [];
       };
@@ -189,6 +192,14 @@ export interface Database {
       email_exists: {
         Args: { check_email: string };
         Returns: boolean;
+      };
+      delete_own_account: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
+      restore_own_account: {
+        Args: Record<string, never>;
+        Returns: undefined;
       };
     };
   };
