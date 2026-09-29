@@ -39,9 +39,14 @@ vi.mock('maplibre-gl', () => {
   }
   class FakeNavigationControl {}
   return {
-    default: { Map: FakeMap, Marker: FakeMarker, NavigationControl: FakeNavigationControl },
+    Map: FakeMap,
+    Marker: FakeMarker,
+    NavigationControl: FakeNavigationControl,
+    setWorkerUrl: () => {},
   };
 });
+
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({ default: '' }));
 
 vi.mock('../hooks/useIssues', () => ({
   useIssues: vi.fn(),
@@ -52,7 +57,7 @@ vi.mock('../context/UserContext', () => ({
   useUser: vi.fn(),
 }));
 
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { useUser } from '../context/UserContext';
 import { useIssues, useVotes } from '../hooks/useIssues';
 import { MapView } from './MapView';

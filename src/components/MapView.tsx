@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// v6 est ESM-only sous Vite : import.meta.url ne résout pas le worker dans le
+// graphe du bundler, donc l'URL doit être fournie explicitement (?worker&url,
+// pas ?url seul, car le worker importe un fichier "shared" adjacent).
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 import { Post } from '../types/Post';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
