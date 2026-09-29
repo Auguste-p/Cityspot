@@ -3,16 +3,17 @@ import { Outlet, useNavigate, useLocation } from "react-router";
 import { Map, Plus, User, Building2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useUser } from '../context/UserContext';
+import { AccountDeletionGate } from './AccountDeletionGate';
 import { toast } from 'sonner';
 import { logSecurityEvent } from '../lib/sentry';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading, isMunicipalUser } = useUser();
+  const { user, loading, isMunicipalUser, pendingDeletion } = useUser();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || pendingDeletion) return;
 
     if (!user) {
       navigate('/login', { replace: true });
@@ -24,7 +25,7 @@ export function Layout() {
       toast.error('Accès réservé aux comptes municipaux');
       navigate('/', { replace: true });
     }
-  }, [user, loading, isMunicipalUser, location.pathname, navigate]);
+  }, [user, loading, isMunicipalUser, pendingDeletion, location.pathname, navigate]);
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -32,6 +33,10 @@ export function Layout() {
     }
     return location.pathname.startsWith(path);
   };
+
+  if (pendingDeletion) {
+    return <AccountDeletionGate deletedAt={pendingDeletion.deletedAt} />;
+  }
 
   return (
     <div className="h-screen flex flex-col">

@@ -56,4 +56,18 @@ describe('Layout accessibility (RGAA / axe-core)', () => {
     await screen.findByText('Carte des signalements');
     await expectNoA11yViolations(container);
   });
+
+  it('the account-deletion gate has no violation', async () => {
+    mockedUseUser.mockReturnValue({
+      user: null,
+      loading: false,
+      isMunicipalUser: false,
+      refreshUser: vi.fn(),
+      pendingDeletion: { deletedAt: new Date('2026-09-01T00:00:00.000Z') },
+    });
+
+    const { container } = renderLayout();
+    await screen.findByText('Compte supprimé');
+    await expectNoA11yViolations(container);
+  });
 });
