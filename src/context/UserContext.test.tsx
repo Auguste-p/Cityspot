@@ -13,12 +13,13 @@ const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
 
 function stubAuth(
   getUser: () => Promise<{ data: { user: any } }>,
-  profileRow?: { role?: string; cityLat?: number; cityLng?: number },
+  profileRow?: { role?: string; cityLat?: number; cityLng?: number; deleted_at?: string },
 ) {
   return {
     auth: {
       getUser: vi.fn(getUser),
       onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
@@ -31,7 +32,7 @@ function stubAuth(
 }
 
 function Probe() {
-  const { user, loading, isMunicipalUser } = useUser();
+  const { user, loading, isMunicipalUser, pendingDeletion } = useUser();
   if (loading) return <div>loading</div>;
   return (
     <div>
@@ -39,6 +40,7 @@ function Probe() {
       <span data-testid="role">{user?.role ?? 'none'}</span>
       <span data-testid="municipal">{String(isMunicipalUser)}</span>
       <span data-testid="city-coords">{user?.cityLat ?? 'none'},{user?.cityLng ?? 'none'}</span>
+      <span data-testid="pending-deletion">{pendingDeletion ? pendingDeletion.deletedAt.toISOString() : 'none'}</span>
     </div>
   );
 }
@@ -105,6 +107,36 @@ describe('UserProvider', () => {
     render(<UserProvider><Probe /></UserProvider>);
 
     expect((await screen.findByTestId('email')).textContent).toBe('none');
+  });
+
+  it('exposes pendingDeletion for an account deleted less than 30 days ago, without a normal user', async () => {
+    const deletedAt = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000); // 5 days ago
+    mockedGetSupabaseClient.mockReturnValue(
+      stubAuth(
+        async () => ({ data: { user: { id: 'u4', email: 'd@x.com', user_metadata: {} } } }),
+        { role: 'citizen', deleted_at: deletedAt.toISOString() },
+      ),
+    );
+
+    render(<UserProvider><Probe /></UserProvider>);
+
+    expect((await screen.findByTestId('pending-deletion')).textContent).toBe(deletedAt.toISOString());
+    expect(screen.getByTestId('email').textContent).toBe('none');
+  });
+
+  it('signs out silently for an account deleted 30+ days ago', async () => {
+    const deletedAt = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000); // 31 days ago
+    const client = stubAuth(
+      async () => ({ data: { user: { id: 'u5', email: 'old@x.com', user_metadata: {} } } }),
+      { role: 'citizen', deleted_at: deletedAt.toISOString() },
+    );
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    render(<UserProvider><Probe /></UserProvider>);
+
+    expect((await screen.findByTestId('pending-deletion')).textContent).toBe('none');
+    expect(screen.getByTestId('email').textContent).toBe('none');
+    expect(client.auth.signOut).toHaveBeenCalled();
   });
 });
 

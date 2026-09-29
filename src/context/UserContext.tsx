@@ -21,26 +21,46 @@ export interface AppUser {
   cityLng?: number;
 }
 
+export interface PendingDeletion {
+  deletedAt: Date;
+}
+
 interface UserContextValue {
   user: AppUser | null;
   loading: boolean;
   isMunicipalUser: boolean;
   refreshUser: () => Promise<void>;
+  pendingDeletion?: PendingDeletion | null;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
+
+const DELETION_RETENTION_DAYS = 30;
+
+interface Profile {
+  role: UserRole;
+  name?: string;
+  avatar?: string;
+  city?: string;
+  cityLat?: number;
+  cityLng?: number;
+  deletedAt?: Date;
+}
 
 // Source of truth for the municipal role: public.users.role, not
 // auth.users.user_metadata — the app has no write access to auth.users.
 // Coordonnées de la ville : renseignées à l'inscription (LoginPage), utilisées
 // pour centrer la carte à la connexion (MapView) sans devoir géolocaliser.
-async function fetchProfile(
-  userId: string,
-): Promise<{ role: UserRole; name?: string; avatar?: string; city?: string; cityLat?: number; cityLng?: number }> {
+async function fetchProfile(userId: string): Promise<Profile> {
   const client = getSupabaseClient();
   if (!client) return { role: 'citizen' };
 
-  const { data } = await client.from('users').select('role, name, avatar, city, cityLat, cityLng').eq('id', userId).maybeSingle();
+  const { data } = await client
+    .from('users')
+    .select('role, name, avatar, city, cityLat, cityLng, deleted_at')
+    .eq('id', userId)
+    .maybeSingle();
+
   return {
     role: data?.role === 'municipal' ? 'municipal' : 'citizen',
     name: data?.name ?? undefined,
@@ -48,11 +68,11 @@ async function fetchProfile(
     city: data?.city ?? undefined,
     cityLat: data?.cityLat ?? undefined,
     cityLng: data?.cityLng ?? undefined,
+    deletedAt: data?.deleted_at ? new Date(data.deleted_at) : undefined,
   };
 }
 
-async function toAppUser(u: User): Promise<AppUser> {
-  const profile = await fetchProfile(u.id);
+function toAppUser(u: User, profile: Profile): AppUser {
   return {
     id: u.id,
     email: u.email!,
@@ -69,17 +89,62 @@ async function toAppUser(u: User): Promise<AppUser> {
   };
 }
 
+interface ResolvedSession {
+  user: AppUser | null;
+  pendingDeletion: PendingDeletion | null;
+  expiredDeletion: boolean;
+}
+
+// Résout la session Supabase en trois branches : pas de compte (déconnecté),
+// compte marqué supprimé depuis moins de 30 jours (accès bloqué, restauration
+// proposée), ou compte actif normal. Le cas "supprimé depuis 30 jours ou
+// plus" ne devrait pas arriver en pratique (purge_deleted_accounts tourne
+// chaque nuit) mais reste géré : déconnexion silencieuse plutôt que de
+// bloquer indéfiniment sur l'écran de restauration.
+async function resolveSession(u: User): Promise<ResolvedSession> {
+  const profile = await fetchProfile(u.id);
+
+  if (profile.deletedAt) {
+    const ageMs = Date.now() - profile.deletedAt.getTime();
+    const expired = ageMs >= DELETION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    return {
+      user: null,
+      pendingDeletion: expired ? null : { deletedAt: profile.deletedAt },
+      expiredDeletion: expired,
+    };
+  }
+
+  return { user: toAppUser(u, profile), pendingDeletion: null, expiredDeletion: false };
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const applySession = async (sessionUser: User | null) => {
+    if (!sessionUser) {
+      setUser(null);
+      setPendingDeletion(null);
+      return;
+    }
+
+    const resolved = await resolveSession(sessionUser);
+    if (resolved.expiredDeletion) {
+      await getSupabaseClient()!.auth.signOut();
+    }
+    setUser(resolved.user);
+    setPendingDeletion(resolved.pendingDeletion);
+  };
 
   const loadUser = async () => {
     setLoading(true);
     try {
       const { data } = await getSupabaseClient()!.auth.getUser();
-      setUser(data.user ? await toAppUser(data.user) : null);
+      await applySession(data.user);
     } catch {
       setUser(null);
+      setPendingDeletion(null);
     } finally {
       setLoading(false);
     }
@@ -92,14 +157,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       (_event, session) => {
         if (!session?.user) {
           setUser(null);
+          setPendingDeletion(null);
           setLoading(false);
           return;
         }
 
-        void toAppUser(session.user).then((appUser) => {
-          setUser(appUser);
-          setLoading(false);
-        });
+        void applySession(session.user).then(() => setLoading(false));
       }
     );
 
@@ -113,6 +176,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     loading,
     isMunicipalUser: user?.role === 'municipal',
     refreshUser: loadUser,
+    pendingDeletion,
   };
 
   return (
