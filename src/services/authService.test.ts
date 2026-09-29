@@ -13,6 +13,8 @@ import {
   signOut,
   signUp,
   updateUserProfile,
+  deleteOwnAccount,
+  restoreOwnAccount,
 } from './authService';
 
 const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
@@ -189,5 +191,41 @@ describe('updateUserProfile', () => {
 
     expect(update).toHaveBeenCalledWith({ name: 'A', phone: '0601020304' });
     expect(eq).toHaveBeenCalledWith('id', 'u1');
+  });
+});
+
+describe('deleteOwnAccount', () => {
+  it('calls the delete_own_account RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
+
+    await deleteOwnAccount();
+
+    expect(rpc).toHaveBeenCalledWith('delete_own_account');
+  });
+
+  it('throws when the RPC errors', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: new Error('boom') });
+    mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
+
+    await expect(deleteOwnAccount()).rejects.toThrow('boom');
+  });
+});
+
+describe('restoreOwnAccount', () => {
+  it('calls the restore_own_account RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
+
+    await restoreOwnAccount();
+
+    expect(rpc).toHaveBeenCalledWith('restore_own_account');
+  });
+
+  it('throws when the RPC errors', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: new Error('boom') });
+    mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
+
+    await expect(restoreOwnAccount()).rejects.toThrow('boom');
   });
 });

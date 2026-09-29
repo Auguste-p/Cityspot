@@ -118,3 +118,17 @@ export async function updateUserProfile(userId: string, profile: UpdateUserProfi
 
   if (error) throw error;
 }
+
+// 🗑️ Suppression du compte : marque deleted_at et anonymise les
+// commentaires déjà postés (author_name dénormalisé). Voir
+// delete_own_account() côté base — security definer, scopé sur auth.uid().
+export async function deleteOwnAccount() {
+  const { error } = await getSupabaseClient()!.rpc('delete_own_account');
+  if (error) throw error;
+}
+
+// ♻️ Annule une suppression demandée il y a moins de 30 jours.
+export async function restoreOwnAccount() {
+  const { error } = await getSupabaseClient()!.rpc('restore_own_account');
+  if (error) throw error;
+}
