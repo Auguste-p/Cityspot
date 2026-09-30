@@ -31,6 +31,7 @@ import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { deleteIssue } from '../services/issuesService';
+import { PrivateNoteCard } from './PrivateNoteCard';
 import { POST_CATEGORY_CONFIG } from '../lib/postCategory';
 
 function getVoterIdentity(isMe: boolean, userName?: string, otherName?: string) {
@@ -44,7 +45,7 @@ function getVoterIdentity(isMe: boolean, userName?: string, otherName?: string) 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isMunicipalUser } = useUser();
   const { issue: post, loading, error } = useIssue(id);
   const { comments, loading: commentsLoading, error: commentsError, addComment } = useComments(id);
   const { votes, loading: votesLoading, addVote } = useVotes(id);
@@ -344,6 +345,8 @@ export function PostDetail() {
             </div>
           </Card>
         )}
+
+        {isMunicipalUser && user && <PrivateNoteCard issueId={post.id} userId={user.id} />}
 
         {/* Private Property Info */}
         {post.isPrivateProperty && post.ownerEmail && (

@@ -769,3 +769,38 @@ export async function createVote(issueId: string, userId: string, yes: boolean):
   if (error) throw new Error(error.message);
   return data as VoteRow;
 }
+
+// Note privée d'un compte mairie : la RLS (issue_private_notes) ne renvoie que
+// la note de l'appelant, donc pas de filtre sur l'auteur ici.
+export async function getPrivateNote(issueId: string): Promise<string> {
+  const client = getSupabaseClient();
+  if (!client) return '';
+
+  const { data, error } = await (client as any)
+    .from('issue_private_notes')
+    .select('note')
+    .eq('issue_id', issueId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data?.note ?? '';
+}
+
+// Une note vide supprime la ligne (la base impose 1 à 2000 caractères).
+export async function savePrivateNote(issueId: string, userId: string, note: string): Promise<void> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase non configuré');
+
+  const supabase = client as any;
+  const text = note.trim();
+  const { error } = text
+    ? await supabase
+        .from('issue_private_notes')
+        .upsert(
+          { issue_id: issueId, author_id: userId, note: text, updated_at: new Date().toISOString() },
+          { onConflict: 'issue_id,author_id' },
+        )
+    : await supabase.from('issue_private_notes').delete().eq('issue_id', issueId).eq('author_id', userId);
+
+  if (error) throw new Error(error.message);
+}

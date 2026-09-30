@@ -243,4 +243,12 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
 
     await expect(deleteIssue('issue-1')).rejects.toThrow('connection lost');
   });
+
+  it('returns no private note and rejects saving one without Supabase', async () => {
+    vi.resetModules();
+    const { getPrivateNote, savePrivateNote } = await import('./issuesService');
+
+    await expect(getPrivateNote('issue-1')).resolves.toBe('');
+    await expect(savePrivateNote('issue-1', 'user-1', 'note')).rejects.toThrow('Supabase non configuré');
+  });
 });

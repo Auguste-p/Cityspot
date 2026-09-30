@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
@@ -11,12 +11,19 @@ vi.mock('../hooks/useIssues', () => ({
   useVotes: vi.fn(),
 }));
 
+vi.mock('../services/issuesService', () => ({
+  deleteIssue: vi.fn(),
+  getPrivateNote: vi.fn(),
+  savePrivateNote: vi.fn(),
+}));
+
 vi.mock('../context/UserContext', () => ({
   useUser: vi.fn(),
 }));
 
 import { useUser } from '../context/UserContext';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
+import { getPrivateNote } from '../services/issuesService';
 import { PostDetail } from './PostDetail';
 
 const mockedUseUser = vi.mocked(useUser);
@@ -133,6 +140,25 @@ describe('PostDetail accessibility (RGAA / axe-core)', () => {
 
     const { container } = renderPostDetail();
     await screen.findByText('Nid de poule rue Victor Hugo');
+    await expectNoA11yViolations(container);
+  });
+
+  it('shows the private note to a municipal account only, with no violation', async () => {
+    vi.mocked(getPrivateNote).mockResolvedValue('à surveiller');
+    const MUNICIPAL = { id: 'm1', email: 'm@ville.fr', role: 'municipal' as const };
+    mockedUseIssue.mockReturnValue({ issue: post(), loading: false, error: null });
+    mockedUseComments.mockReturnValue({ comments: [], loading: false, error: null, addComment: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    renderPostDetail();
+    await screen.findByText('Nid de poule rue Victor Hugo');
+    expect(screen.queryByLabelText(/Note privée/)).toBeNull();
+    cleanup();
+
+    mockedUseUser.mockReturnValue({ user: MUNICIPAL, loading: false, isMunicipalUser: true, refreshUser: vi.fn() });
+    const { container } = renderPostDetail();
+    expect(await screen.findByDisplayValue('à surveiller')).toBeTruthy();
     await expectNoA11yViolations(container);
   });
 });
