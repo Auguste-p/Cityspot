@@ -25,6 +25,7 @@ const CITIZEN = { id: 'u1', email: 'a@b.com', role: 'citizen' as const };
 function existingPost(overrides: Partial<Post> = {}): Post {
   return {
     id: 'post-1',
+    categories: [],
     title: 'Lampadaire cassé',
     description: 'Ne fonctionne plus depuis une semaine',
     location: { lat: 45.75, lng: 4.85, address: 'Avenue de la République' },

@@ -41,7 +41,7 @@ function post(overrides: Partial<Post> = {}): Post {
     votes: { positive: 3, negative: 1 },
     createdAt: new Date('2026-01-01'),
     status: 'pending',
-    category: 'voirie',
+    categories: ['voirie'],
     ...overrides,
   };
 }
@@ -93,9 +93,9 @@ describe('MunicipalView accessibility (RGAA / axe-core)', () => {
   it('the list of posts across categories has no violation', async () => {
     mockedUseIssues.mockReturnValue({
       issues: [
-        post({ id: 'p1', title: 'Nid de poule rue Victor Hugo', category: 'voirie', status: 'pending' }),
-        post({ id: 'p2', title: 'Lampadaire cassé', category: 'eclairage', status: 'in-progress', isMunicipalProject: true }),
-        post({ id: 'p3', title: 'Trottoir refait', category: 'securite', status: 'completed' }),
+        post({ id: 'p1', title: 'Nid de poule rue Victor Hugo', categories: ['voirie'], status: 'pending' }),
+        post({ id: 'p2', title: 'Lampadaire cassé', categories: ['eclairage'], status: 'in-progress', isMunicipalProject: true }),
+        post({ id: 'p3', title: 'Trottoir refait', categories: ['securite'], status: 'completed' }),
       ],
       loading: false,
       error: null,

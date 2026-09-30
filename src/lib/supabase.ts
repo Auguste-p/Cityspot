@@ -22,7 +22,7 @@ export interface Database {
           created_at: string | null;
           status: IssueStatus | null;
           is_municipal_project: boolean | null;
-          category: string | null;
+          categories: string[];
           city: string | null;
         };
         Insert: {
@@ -39,7 +39,7 @@ export interface Database {
           created_at?: string | null;
           status?: IssueStatus | null;
           is_municipal_project?: boolean | null;
-          category?: string | null;
+          categories?: string[];
           city?: string | null;
         };
         Update: {
@@ -56,7 +56,7 @@ export interface Database {
           created_at?: string | null;
           status?: IssueStatus | null;
           is_municipal_project?: boolean | null;
-          category?: string | null;
+          categories?: string[];
           city?: string | null;
         };
         Relationships: [];

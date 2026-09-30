@@ -22,6 +22,7 @@ import {
   Info,
   Building2,
   Loader2,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
@@ -30,6 +31,7 @@ import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { deleteIssue } from '../services/issuesService';
+import { POST_CATEGORY_CONFIG } from '../lib/postCategory';
 
 function getVoterIdentity(isMe: boolean, userName?: string, otherName?: string) {
   const name = isMe ? userName : otherName;
@@ -316,6 +318,32 @@ export function PostDetail() {
             </div>
           </Card>
         </div>
+
+        {post.categories.length > 0 && (
+          <Card className="p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Tag className="size-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm text-muted-foreground mb-2">
+                  {post.categories.length > 1 ? 'Catégories' : 'Catégorie'}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {post.categories.map((category) => {
+                    const { icon: Icon, label, color } = POST_CATEGORY_CONFIG[category];
+                    return (
+                      <Badge key={category} variant="outline" className="flex items-center gap-1">
+                        <Icon className={`size-3 ${color}`} />
+                        {label}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Private Property Info */}
         {post.isPrivateProperty && post.ownerEmail && (

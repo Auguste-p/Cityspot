@@ -138,7 +138,7 @@ describe('Supabase-backed reads', () => {
               created_at: '2026-01-01T00:00:00.000Z',
               status: 'resolved',
               is_municipal_project: null,
-              category: null,
+              categories: [],
               created_by: 'u1',
             },
           ],

@@ -25,7 +25,7 @@ interface IssueRow {
   created_at: string | null;
   status: DatabaseIssueStatus | null;
   is_municipal_project: boolean | null;
-  category: PostCategory | null;
+  categories: PostCategory[] | null;
   created_by: string | null;
   city: string | null;
 }
@@ -74,7 +74,7 @@ export interface CreateIssueInput {
   positiveVotes?: number;
   negativeVotes?: number;
   isMunicipalProject?: boolean;
-  category?: PostCategory | null;
+  categories?: PostCategory[];
   created_by?: string;
   city?: string;
 }
@@ -243,7 +243,7 @@ function normalizeIssue(
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
     status: normalizeIssueStatus(row.status),
     isMunicipalProject: Boolean(row.is_municipal_project),
-    category: row.category ?? undefined,
+    categories: row.categories ?? [],
     created_by: row.created_by ?? undefined,
   };
 }
@@ -277,7 +277,7 @@ function buildLocalIssue(input: CreateIssueInput): Post {
     createdAt: now,
     status: 'pending',
     isMunicipalProject: input.isMunicipalProject ?? false,
-    category: input.category ?? undefined,
+    categories: input.categories ?? [],
     created_by: input.created_by ?? undefined,
   };
 }
@@ -412,7 +412,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     negative_votes: input.negativeVotes ?? 0,
     status: denormalizePostStatus('pending'),
     is_municipal_project: input.isMunicipalProject ?? false,
-    category: input.category ?? null,
+    categories: input.categories ?? [],
     created_by: input.created_by ?? undefined,
     city: input.city ?? null,
   };
@@ -508,7 +508,7 @@ export interface UpdateIssueInput {
   isPrivateProperty?: boolean;
   isOwnProperty?: boolean;
   ownerEmail?: string;
-  category?: PostCategory | null;
+  categories?: PostCategory[];
   city?: string;
 }
 
@@ -536,7 +536,7 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       isPrivateProperty: input.isPrivateProperty ?? localIssuesStore[index].isPrivateProperty,
       isOwnProperty: input.isOwnProperty ?? localIssuesStore[index].isOwnProperty,
       ownerEmail: input.ownerEmail?.trim() ? input.ownerEmail : localIssuesStore[index].ownerEmail,
-      category: input.category !== undefined ? input.category ?? undefined : localIssuesStore[index].category,
+      categories: input.categories ?? localIssuesStore[index].categories,
     };
     localIssuesStore[index] = updated;
     return clonePost(updated);
@@ -554,7 +554,7 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       is_private_property: input.isPrivateProperty ?? false,
       is_own_property: input.isOwnProperty ?? null,
       owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
-      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.categories !== undefined ? { categories: input.categories } : {}),
       ...(input.city !== undefined ? { city: input.city } : {}),
     })
     .eq('id', issueId)

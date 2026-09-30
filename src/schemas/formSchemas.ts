@@ -24,7 +24,7 @@ export const createPostSchema = z.object({
 
   isOwnProperty: z.enum(['yes', 'no']),
 
-  category: z.enum(['voirie', 'eclairage', 'securite', 'proprete', 'espaces-verts', 'mobilier-urbain']).optional(),
+  categories: z.array(z.enum(['voirie', 'eclairage', 'securite', 'proprete', 'espaces-verts', 'mobilier-urbain'])),
   
   propertyDocument: z.string().default(''),
   
@@ -62,10 +62,10 @@ export const createPostSchema = z.object({
     path: ['ownerEmail'],
   }
 ).refine(
-  (data) => Boolean(data.category),
+  (data) => data.categories.length > 0,
   {
-    message: 'La catégorie est requise',
-    path: ['category'],
+    message: 'Sélectionnez au moins une catégorie',
+    path: ['categories'],
   }
 );
 

@@ -30,6 +30,6 @@ export interface Post {
   createdAt: Date;
   status: 'pending' | 'in-progress' | 'completed';
   isMunicipalProject?: boolean;
-  category?: PostCategory;
+  categories: PostCategory[];
   created_by?: string;
 }

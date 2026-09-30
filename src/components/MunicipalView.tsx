@@ -43,14 +43,9 @@ const CATEGORIES: Array<{
 
 export function MunicipalView() {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
+  const [selectedCategories, setSelectedCategories] = useState<PostCategory[]>([]); // vide = toutes
   const { user } = useUser();
   const { issues: posts, loading, error } = useIssues(getCityName(user?.city));
-
-  const categoryConfigByValue = useMemo(
-    () => new Map(CATEGORIES.map((category) => [category.value, category])),
-    [],
-  );
 
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryValue, number> = {
@@ -64,9 +59,9 @@ export function MunicipalView() {
     };
 
     posts.forEach((post) => {
-      if (post.category) {
-        counts[post.category] += 1;
-      }
+      post.categories.forEach((category) => {
+        counts[category] += 1;
+      });
     });
 
     return counts;
@@ -74,10 +69,10 @@ export function MunicipalView() {
 
   const filteredPosts = useMemo(
     () =>
-      selectedCategory === "all"
+      selectedCategories.length === 0
         ? posts
-        : posts.filter((post) => post.category === selectedCategory),
-    [posts, selectedCategory],
+        : posts.filter((post) => post.categories.some((c) => selectedCategories.includes(c))),
+    [posts, selectedCategories],
   );
 
   const votingPosts = useMemo(
@@ -102,13 +97,6 @@ export function MunicipalView() {
     () => filteredPosts.filter((post) => post.status === "completed"),
     [filteredPosts],
   );
-
-  const getCategoryConfig = (category?: PostCategory) => {
-    if (!category) {
-      return null;
-    }
-    return categoryConfigByValue.get(category) ?? null;
-  };
 
   if (loading) {
     return (
@@ -196,14 +184,22 @@ export function MunicipalView() {
             {CATEGORIES.map((category) => {
               const Icon = category.icon;
               const isSelected =
-                selectedCategory === category.value;
+                category.value === "all"
+                  ? selectedCategories.length === 0
+                  : selectedCategories.includes(category.value);
               const count = categoryCounts[category.value];
 
               return (
                 <Card
                   key={category.value}
                   onClick={() =>
-                    setSelectedCategory(category.value)
+                    setSelectedCategories((prev) =>
+                      category.value === "all"
+                        ? []
+                        : prev.includes(category.value)
+                          ? prev.filter((c) => c !== category.value)
+                          : [...prev, category.value],
+                    )
                   }
                   className={`p-4 cursor-pointer transition-all hover:shadow-md ${
                     isSelected
@@ -256,7 +252,6 @@ export function MunicipalView() {
                   key={post.id}
                   post={post}
                   onClick={() => navigate(`/post/${post.id}`)}
-                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
                 />
               ))
             ) : (
@@ -276,7 +271,6 @@ export function MunicipalView() {
                   key={post.id}
                   post={post}
                   onClick={() => navigate(`/post/${post.id}`)}
-                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
                 />
               ))
             ) : (
@@ -299,7 +293,6 @@ export function MunicipalView() {
                   key={post.id}
                   post={post}
                   onClick={() => navigate(`/post/${post.id}`)}
-                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
                 />
               ))
             ) : (
@@ -319,7 +312,6 @@ export function MunicipalView() {
                   key={post.id}
                   post={post}
                   onClick={() => navigate(`/post/${post.id}`)}
-                  categoryBadge={post.category ? getCategoryConfig(post.category) ?? null : null}
                 />
               ))
             ) : (

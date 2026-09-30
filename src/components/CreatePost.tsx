@@ -366,7 +366,7 @@ export function CreatePost() {
       address: '',
       isPrivateProperty: 'public',
       isOwnProperty: 'yes',
-      category: undefined,
+      categories: [],
       propertyDocument: undefined,
       ownerEmail: '',
       tasks: [],
@@ -389,7 +389,7 @@ export function CreatePost() {
       address: existingPost.location.address,
       isPrivateProperty: existingPost.isPrivateProperty ? 'private' : 'public',
       isOwnProperty: existingPost.isOwnProperty === false ? 'no' : 'yes',
-      category: existingPost.category,
+      categories: existingPost.categories,
       propertyDocument: undefined,
       ownerEmail: existingPost.ownerEmail ?? '',
       tasks: existingPost.tasks.map((task) => ({ id: task.id, title: task.title })),
@@ -493,7 +493,7 @@ export function CreatePost() {
           isPrivateProperty: data.isPrivateProperty === 'private',
           isOwnProperty: data.isOwnProperty === 'yes',
           ownerEmail: data.ownerEmail,
-          category: data.category,
+          categories: data.categories,
           // Pas d'adresse recalculée (coords null) = pas de changement de lieu :
           // on ne touche pas à la ville existante.
           city: coords ? coords.city ?? getCityName(user?.city) : undefined,
@@ -527,7 +527,7 @@ export function CreatePost() {
         positiveVotes: 0,
         negativeVotes: 0,
         isMunicipalProject: false,
-        category: data.category,
+        categories: data.categories,
         created_by: user.id,
         // Ville de l'adresse choisie/géocodée en priorité (le signalement
         // concerne cet endroit) ; repli sur la ville du profil si le
@@ -628,26 +628,29 @@ export function CreatePost() {
 
             <FormField
               control={form.control}
-              name="category"
+              name="categories"
               render={({ field }) => (
                 <Card className="p-6">
                   <FormItem>
                     <Label className="mb-3 block">
-                      Catégorie <span className="text-destructive" aria-hidden="true">*</span>
+                      Catégories <span className="text-destructive" aria-hidden="true">*</span>
                     </Label>
                     <FormControl>
-                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Catégorie" aria-required="true">
+                      <div className="flex flex-wrap gap-2" role="group" aria-label="Catégories">
                         {POST_CATEGORIES.map((category) => {
                           const config = POST_CATEGORY_CONFIG[category];
                           const Icon = config.icon;
-                          const isSelected = field.value === category;
+                          const isSelected = field.value.includes(category);
                           return (
                             <button
                               key={category}
                               type="button"
-                              role="radio"
-                              aria-checked={isSelected}
-                              onClick={() => field.onChange(isSelected ? undefined : category)}
+                              aria-pressed={isSelected}
+                              onClick={() =>
+                                field.onChange(
+                                  isSelected ? field.value.filter((c) => c !== category) : [...field.value, category],
+                                )
+                              }
                               className={cn(
                                 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
                                 isSelected

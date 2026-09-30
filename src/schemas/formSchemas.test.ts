@@ -7,7 +7,7 @@ const validPost = {
   address: '12 rue de la Paix, Paris',
   isPrivateProperty: 'public' as const,
   isOwnProperty: 'no' as const,
-  category: 'voirie' as const,
+  categories: ['voirie' as const],
 };
 
 describe('createPostSchema', () => {
@@ -19,6 +19,14 @@ describe('createPostSchema', () => {
     const { title, description, address, isPrivateProperty, isOwnProperty } = validPost;
     const result = createPostSchema.safeParse({ title, description, address, isPrivateProperty, isOwnProperty });
     expect(result.success).toBe(false);
+  });
+
+  it('accepts several categories', () => {
+    expect(createPostSchema.safeParse({ ...validPost, categories: ['voirie', 'eclairage'] }).success).toBe(true);
+  });
+
+  it('rejects an empty category list', () => {
+    expect(createPostSchema.safeParse({ ...validPost, categories: [] }).success).toBe(false);
   });
 
   it('rejects a title that is too short', () => {

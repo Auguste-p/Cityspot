@@ -29,6 +29,7 @@ const CITIZEN = { id: 'u1', email: 'a@b.com', role: 'citizen' as const };
 function post(overrides: Partial<Post> = {}): Post {
   return {
     id: 'post-1',
+    categories: [],
     title: 'Nid de poule rue Victor Hugo',
     description: 'Un trou dangereux pour les cyclistes',
     location: { lat: 45.75, lng: 4.85, address: '12 rue Victor Hugo, Lyon' },

@@ -1,33 +1,25 @@
 import { memo } from 'react';
 import { Building2, CheckCircle2, Home, MapPin, Vote } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
 import type { Post } from '../types/Post';
+import { POST_CATEGORY_CONFIG } from '../lib/postCategory';
 import { getCityName } from "../lib/geocode";
-
-type CategoryBadge = {
-  label: string;
-  icon: LucideIcon;
-  color: string;
-};
 
 interface PostCardProps {
   post: Post;
   onClick?: () => void;
-  categoryBadge?: CategoryBadge | null;
   className?: string;
 }
 
-function PostCardComponent({ post, onClick, categoryBadge, className }: PostCardProps) {
+function PostCardComponent({ post, onClick, className }: PostCardProps) {
   const actualStatus = getActualStatus(post);
   const statusConfig = getStatusConfig(actualStatus);
   const StatusIcon = statusConfig.icon;
   const completedTasks = post.tasks.filter((task) => task.completed).length;
   const netVotes = getNetVotes(post);
   const clickableClassName = onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : '';
-  const CategoryIcon = categoryBadge?.icon;
 
   return (
     <Card className={`p-4 ${clickableClassName} ${className ?? ''}`.trim()} onClick={onClick}>
@@ -59,18 +51,21 @@ function PostCardComponent({ post, onClick, categoryBadge, className }: PostCard
             {post.description}
           </p>
 
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="size-3" />
               <span className="truncate">{getCityName(post.location.address)}</span>
             </div>
 
-            {categoryBadge && (
-              <div className="flex items-center gap-1">
-                {CategoryIcon && <CategoryIcon className={`size-3 ${categoryBadge.color}`} />}
-                <span>{categoryBadge.label}</span>
-              </div>
-            )}
+            {post.categories.map((category) => {
+              const { icon: CategoryIcon, label, color } = POST_CATEGORY_CONFIG[category];
+              return (
+                <div key={category} className="flex items-center gap-1">
+                  <CategoryIcon className={`size-3 ${color}`} />
+                  <span>{label}</span>
+                </div>
+              );
+            })}
 
             {(actualStatus === 'in-progress' || actualStatus === 'completed') && (
               <div className="flex items-center gap-1">
