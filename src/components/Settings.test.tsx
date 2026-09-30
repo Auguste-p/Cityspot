@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
+
+const mockNavigate = vi.hoisted(() => vi.fn());
+
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 vi.mock('../context/UserContext', () => ({
   useUser: vi.fn(),
@@ -16,11 +23,13 @@ vi.mock('../services/authService', () => ({
 }));
 
 import { useUser } from '../context/UserContext';
-import { getUserProfile } from '../services/authService';
+import { deleteOwnAccount, getUserProfile, signOut } from '../services/authService';
 import { Settings } from './Settings';
 
 const mockedUseUser = vi.mocked(useUser);
 const mockedGetUserProfile = vi.mocked(getUserProfile);
+const mockedSignOut = vi.mocked(signOut);
+const mockedDeleteOwnAccount = vi.mocked(deleteOwnAccount);
 
 const CITIZEN = { id: 'u1', email: 'a@b.com', name: 'Jeanne Dupont', avatar: 'J', role: 'citizen' as const };
 
@@ -92,5 +101,55 @@ describe('Settings accessibility (RGAA / axe-core)', () => {
     const { container } = renderSettings();
     await screen.findByText('Supprimer mon compte');
     await expectNoA11yViolations(container);
+  });
+});
+
+describe('Settings account deletion', () => {
+  const profile = {
+    id: CITIZEN.id,
+    name: 'Jeanne Dupont',
+    city: 'Lyon',
+    cityLat: null,
+    cityLng: null,
+    role: 'citizen' as const,
+    phone: '0601020304',
+    address: '1 rue de la Paix',
+    avatar: 'J',
+    emailNotifications: true,
+    profileVisible: false,
+    created_at: '2026-01-01T00:00:00.000Z',
+    deleted_at: null,
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('confirming calls deleteOwnAccount, then signOut, then redirects to /login', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedGetUserProfile.mockResolvedValue(profile);
+    mockedDeleteOwnAccount.mockResolvedValue(undefined);
+    mockedSignOut.mockResolvedValue(undefined);
+
+    renderSettings();
+    await screen.findByText('Supprimer mon compte');
+    fireEvent.click(screen.getByText('Supprimer mon compte'));
+
+    await waitFor(() => expect(mockedDeleteOwnAccount).toHaveBeenCalled());
+    await waitFor(() => expect(mockedSignOut).toHaveBeenCalled());
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true }));
+  });
+
+  it('cancelling the confirm dialog does not call deleteOwnAccount', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedGetUserProfile.mockResolvedValue(profile);
+
+    renderSettings();
+    await screen.findByText('Supprimer mon compte');
+    fireEvent.click(screen.getByText('Supprimer mon compte'));
+
+    expect(mockedDeleteOwnAccount).not.toHaveBeenCalled();
   });
 });

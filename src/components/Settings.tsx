@@ -155,13 +155,19 @@ export function Settings() {
 
     try {
       await deleteOwnAccount();
-      await signOut();
-      toast.success('Compte supprimé. Vos données seront effacées définitivement sous 30 jours.');
-      navigate('/login', { replace: true });
     } catch (error) {
       console.error(error);
       toast.error('Erreur lors de la suppression du compte');
+      return;
     }
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error(error);
+    }
+    toast.success('Compte supprimé. Vos données seront effacées définitivement sous 30 jours.');
+    navigate('/login', { replace: true });
   };
 
   return (

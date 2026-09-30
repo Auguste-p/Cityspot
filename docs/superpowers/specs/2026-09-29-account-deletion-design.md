@@ -31,6 +31,12 @@ Permettre à un utilisateur connecté de supprimer son propre compte depuis
   exploitable par un client.
 - **Pas de libération de l'email** pour permettre une réinscription — non
   demandé.
+- **Le fichier avatar peut rester dans le bucket S3 sous-jacent** même après
+  la purge. Supprimer la ligne `storage.objects` (ce que fait
+  `purge_deleted_accounts()`) rend le fichier inaccessible via l'app, mais ne
+  supprime pas forcément le fichier physique du bucket S3 : seule l'API
+  Storage de Supabase le fait, ce qui demanderait une clé service-role — hors
+  de l'architecture actuelle (voir plus haut).
 - **Pas de nouveau composant de dialogue** — `window.confirm(...)`, comme la
   suppression d'un signalement dans `PostDetail.tsx`.
 

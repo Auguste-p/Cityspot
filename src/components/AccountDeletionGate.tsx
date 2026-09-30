@@ -31,8 +31,14 @@ export function AccountDeletionGate({ deletedAt }: { deletedAt: Date }) {
 
   const handleDecline = async () => {
     setBusy(true);
-    await signOut();
-    await refreshUser();
+    try {
+      await signOut();
+      await refreshUser();
+    } catch (error) {
+      console.error(error);
+      toast.error('Impossible de se déconnecter');
+      setBusy(false);
+    }
   };
 
   return (
