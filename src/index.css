@@ -748,6 +748,10 @@
     height: calc(var(--spacing) * 9);
   }
 
+  .h-auto {
+    height: auto;
+  }
+
   .h-16 {
     height: calc(var(--spacing) * 16);
   }

@@ -24,6 +24,9 @@ export interface Database {
           is_municipal_project: boolean | null;
           categories: string[];
           city: string | null;
+          created_by: string | null;
+          revoked_at: string | null;
+          revoked_reason: string | null;
         };
         Insert: {
           id?: string;

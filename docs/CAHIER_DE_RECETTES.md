@@ -9,7 +9,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 ### 1.1 Traçabilité avec la grille d'évaluation (C2.3.1)
 
 - *"Le cahier de recettes reprend l'ensemble des fonctionnalités attendues"* → sections 5 à 11 (Authentification, Création de signalement, Carte, Détail, Vue municipale, Profil, Paramètres) couvrent chacune un écran livré, fonctionnalité par fonctionnalité.
-- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-09-03) : 83/97 scénarios ✅, 0 ❌, 14 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, ou hors de portée avec 2 comptes de test). Les 18 scénarios Bloquant sont tous ✅ (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
+- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 85/102 scénarios ✅, 0 ❌, 17 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
 
 ## 2. Périmètre
 
@@ -105,6 +105,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | DET-11 | F | Mineur | Liste des votants | Cliquer sur le badge de score | Modale listant chaque votant avec son choix (Pour/Contre) | ✅ *(exécuté 2026-07-17)* |
 | DET-12 | F | Majeur | Suppression par le créateur | Ouvrir un signalement créé par soi-même, cliquer sur l'icône poubelle, confirmer la boîte de dialogue | Toast "Signalement supprimé", redirection vers `/`, le signalement disparaît de la carte et des listes | ✅ *(exécuté 2026-07-17, confirmation acceptée, disparition vérifiée)* |
 | DET-13 | F | Mineur | Annulation de la suppression | Cliquer sur l'icône poubelle puis annuler la confirmation (`window.confirm`) | Aucun appel à `deleteIssue`, le signalement reste inchangé | ✅ *(exécuté 2026-07-17 — vérifié précisément qu'aucune requête de suppression n'est envoyée quand la boîte de dialogue est annulée ; un premier test avait semblé indiquer le contraire mais c'était un délai réseau mal mesuré, pas une suppression réelle. Mécanisme de suppression changé depuis — RLS directe sur `issues`, plus d'Edge Function — le comportement d'annulation lui-même est inchangé)* |
+| DET-18 | F | Majeur | Signalement révoqué vu par son auteur | Se connecter en tant qu'auteur d'un signalement révoqué, ouvrir son lien | Bannière « révoqué par la mairie » avec motif ; pas de crayon, corbeille, vote ni champ de commentaire | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | DET-14 | F | Majeur | Modification par le créateur | Cliquer sur l'icône crayon d'un signalement créé par soi-même, modifier titre/description/tâches/matériel, enregistrer | Formulaire `/create/:id` pré-rempli avec les données existantes, `updateIssue` appelé (remplace tâches/matériel), toast "Signalement modifié avec succès !", redirection vers `/post/:id` avec les changements visibles | ✅ *(exécuté 2026-07-17, titre modifié avec succès, changement visible après redirection)* |
 | DET-15 | SEC | Majeur | Modification par un non-créateur (accès direct URL) | Naviguer directement vers `/create/:id` d'un signalement créé par un autre utilisateur | Toast "Vous n'êtes pas autorisé à modifier ce signalement", redirection vers `/` (garde côté client dans `CreatePost.tsx`) | ✅ *(garde côté client confirmée 2026-07-17 — redirection effective ; la protection serveur, absente au moment de ce test, a depuis été ajoutée — cf. SEC-10)* |
 | DET-16 | F | Majeur | Édition non interrompue par un événement d'auth | Ouvrir `/create/:id` en édition, modifier un champ dans les toutes premières secondes après le chargement | La modification reste affichée, rien ne revient à la valeur d'origine | ✅ *(aucun retour en arrière observé lors de DET-14, malgré plusieurs secondes d'interaction multi-étapes après le chargement — cohérent avec le correctif `user?.id`)* |
@@ -117,6 +118,9 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | MUN-02 | SEC | Bloquant | Accès direct à `/municipal` par un citoyen | Se connecter avec `role = citizen`, saisir l'URL `/municipal` manuellement | Accès refusé | ✅ *(échec confirmé le 2026-07-17, corrigé le jour même par un garde de route dans `Layout.tsx` — redirection vers `/` + toast "Accès réservé aux comptes municipaux", re-testé en direct : OK)* |
 | MUN-03 | F | Mineur | Filtrage par catégorie | Cliquer sur chaque catégorie (voirie, éclairage, sécurité, propreté, espaces verts, mobilier urbain) | Liste filtrée, compteur par catégorie exact | ✅ *(exécuté 2026-07-17, filtrage "Voirie" fonctionnel)* |
 | MUN-07 | F | Majeur | Vue limitée à la ville de l'agent | Se connecter avec un compte municipal dont la ville de profil diffère de celle d'un signalement existant | Seuls les signalements dont `issues.city` correspond à la ville de l'agent apparaissent (`listIssues(city)`, comportement introduit le 2026-09-02, cf. `CHANGELOG.md` v2.1.1) | ✅ *(exécuté 2026-09-03 par l'utilisateur, 2 comptes sur des villes différentes)* |
+| MUN-08 | F | Majeur | Révocation d'un signalement de sa ville | Compte mairie : ouvrir un signalement de sa ville, cliquer « Révoquer le signalement », constater que « Confirmer » est désactivé sans motif, saisir un motif, confirmer | Retour à la carte, signalement absent de la carte et de `/municipal` ; ouvert par lien direct, bannière avec le motif, vote/commentaire/édition absents | ✅ *(exécuté 2026-10-07 par l'utilisateur : citoyen + compte mairie de la même ville)* |
+| MUN-09 | SEC | Bloquant | Révocation hors périmètre refusée | (a) citoyen : aucun bouton ; (b) mairie d'une autre ville : aucun bouton ; (c) appel direct `rpc('revoke_issue')` par ces comptes ; (d) auteur qui tente un `update` de `revoked_at` | (a)(b) bouton absent ; (c)(d) erreur Postgres, aucune ligne modifiée ; un citoyen tiers ne voit plus le signalement révoqué | ☐ *(non rejoué — ajouté le 2026-10-07)* |
+| MUN-10 | F | Majeur | Mail de révocation à l'auteur | Après MUN-08 (fonction déployée, secrets Resend posés, domaine vérifié), consulter la boîte de l'auteur ; puis recommencer avec `RESEND_API_KEY` volontairement invalide | Mail reçu avec titre, ville et motif ; en cas d'échec, la révocation reste valide et la mairie voit « l'e-mail à l'auteur n'a pas pu être envoyé » | ✅ *(exécuté 2026-10-07 : mail reçu avec Resend ; il est arrivé dans les indésirables — authentification SPF/DKIM/DMARC du domaine expéditeur à vérifier, non bloquant)* |
 | MUN-04 | F | Mineur | Onglets par statut | Parcourir les onglets Tous/En vote/En cours/Terminés | Contenu et compteurs cohérents avec les données | ✅ *(exécuté 2026-07-17)* |
 | MUN-05 | F | Mineur | Statistiques globales | Comparer les cartes de stats en haut de page aux données réelles | Total, en vote, en cours, terminés corrects | ✅ *(exécuté 2026-07-17, statistiques affichées)* |
 | MUN-06 | F | Mineur | État vide | Filtrer une catégorie sans signalement | Message "Aucun signalement dans cette catégorie" | ✅ *(exécuté 2026-07-17, message d'état vide affiché sur "Mobilier urbain")* |
@@ -134,6 +138,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | PROF-07 | F | Mineur | Badge "Mairie" conditionnel | Ouvrir le profil d'un compte `role = municipal`, puis d'un compte `role = citizen` | Badge dégradé bleu "Mairie" (icône bâtiment) visible uniquement dans le premier cas | ✅ *(exécuté 2026-07-17 avec 2 comptes réels, confirmé par capture d'écran : badge visible pour le compte municipal, absent pour le compte citoyen)* |
 | PROF-08 | SEC | Bloquant | Isolation des données de profil | Voir SEC-11 | Cf. section 13 | ✅ *(même exécution que SEC-11)* |
 | PROF-09 | F | Mineur | Onglet "Votés" | Voter sur un signalement créé par un autre utilisateur, ouvrir son propre profil | Le signalement apparaît dans l'onglet "Votés" (5ᵉ onglet, `useUserVotes`), en plus de "Tous" pour les signalements dont on est l'auteur | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
+| PROF-12 | F | Majeur | Onglet « Révoqués » privé | Après MUN-08, ouvrir `/profile` en tant qu'auteur ; puis ouvrir `/user/:id` du même compte (profil rendu public) depuis un autre compte | `/profile` : onglet « Révoqués (n) » avec le badge « Révoqué », absent de « Tous » ; `/user/:id` : aucun onglet « Révoqués », signalement absent | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | PROF-10 | F | Majeur | Visite d'un profil public | Ouvrir `/user/:id` d'un compte ayant activé "Visibilité du profil" | Même présentation que son propre profil (en-tête, stats, onglets), sans bouton Paramètres ; ses signalements/votes publics visibles | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
 | PROF-11 | SEC | Majeur | Profil non public inaccessible | Ouvrir `/user/:id` d'un compte n'ayant pas activé "Visibilité du profil" | Message "Ce profil est privé", aucune donnée du compte visé exposée (`public_profiles` filtrée par `profileVisible = true`) | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
 
@@ -186,24 +191,24 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 
 | Catégorie (type) | Nombre de scénarios |
 |---|---|
-| Fonctionnels (F) | 68 |
+| Fonctionnels (F) | 72 |
 | Structurels (S) | 11 |
-| Sécurité (SEC) | 18 |
-| **Total** | **97** |
+| Sécurité (SEC) | 19 |
+| **Total** | **102** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
-| Bloquant | 18 |
-| Majeur | 38 |
+| Bloquant | 19 |
+| Majeur | 42 |
 | Mineur | 41 |
-| **Total** | **97** |
+| **Total** | **102** |
 
 | État d'exécution | Nombre |
 |---|---|
-| ✅ OK | 83 *(73 le 2026-07-17 + 10 le 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
+| ✅ OK | 85 *(73 le 2026-07-17 + 10 le 2026-09-03 + 2 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 14 |
-| **Total** | **97** |
+| ☐ Non exécuté (raison documentée par ligne) | 17 *(dont 3 ajoutés le 2026-10-07 avec la révocation par la mairie : MUN-09, DET-18, PROF-12)* |
+| **Total** | **102** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

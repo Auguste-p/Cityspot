@@ -4,7 +4,7 @@ import { Card } from './ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { VOTE_GOAL, getNetVotes } from '../lib/postStatus';
 import { useUser } from '../context/UserContext';
-import { useIssues, useUserVotes } from '../hooks/useIssues';
+import { useIssues, useRevokedIssues, useUserVotes } from '../hooks/useIssues';
 import { getUserProfile } from '../services/authService';
 import { ProfileView } from './ProfileView';
 
@@ -13,6 +13,7 @@ export function Profile() {
   const { user, isMunicipalUser } = useUser();
   const { issues, loading, error } = useIssues();
   const { votes: userVotes, loading: userVotesLoading } = useUserVotes(user?.id);
+  const { issues: revokedPosts, loading: revokedLoading } = useRevokedIssues(user?.id);
   const myPosts = issues.filter((post) => post.created_by === user?.id);
   const votedPostIds = new Set(userVotes.map((vote) => vote.id_issue));
   const votedPosts = issues.filter((post) => votedPostIds.has(post.id));
@@ -47,7 +48,7 @@ export function Profile() {
 
   const completedPosts = myPosts.filter((p) => p.status === 'completed');
 
-  if (loading || userVotesLoading) {
+  if (loading || userVotesLoading || revokedLoading) {
     return (
       <div className="min-h-full flex items-center justify-center p-6">
         <Card className="p-8 text-center max-w-sm w-full">
@@ -81,6 +82,7 @@ export function Profile() {
       inProgressPosts={inProgressPosts}
       completedPosts={completedPosts}
       votedPosts={votedPosts}
+      revokedPosts={revokedPosts}
       onSettingsClick={() => navigate('/settings')}
       onPostClick={(postId) => navigate(`/post/${postId}`)}
     />

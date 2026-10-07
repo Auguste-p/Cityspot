@@ -62,6 +62,8 @@ Sur `/post/:id` :
 - **Commentaires** — tout utilisateur connecté peut lire et publier un commentaire ; le nom de chaque auteur est affiché (lien vers son profil public s'il l'a activé, §8) et vos propres commentaires sont repérés par la mention "(vous)".
 - **Partager** — copie le lien du signalement (ou ouvre le partage natif du système sur mobile).
 
+- **Signalement révoqué** — si la mairie de la ville a révoqué le signalement, un badge rouge « Révoqué » remplace le statut et une bannière en affiche le motif ; le vote, les commentaires, la modification et la suppression ne sont plus proposés. Le signalement n'apparaît plus sur la carte ni dans les listes, seul son lien direct reste ouvrable (auteur et mairie de la ville).
+
 ### 6.1 Modifier ou supprimer son propre signalement
 
 Les icônes crayon (modifier) et corbeille (supprimer) n'apparaissent que pour le créateur du signalement, en haut de l'écran de détail.
@@ -81,9 +83,13 @@ La vue est automatiquement limitée aux signalements de la ville de l'agent conn
 - un **filtre par catégorie** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) ;
 - des **onglets** par statut (Tous / En vote / En cours / Terminés), chaque signalement menant à son détail (§6).
 
+### 7.1 Révoquer un signalement de sa ville
+
+Sur le détail d'un signalement de **sa propre ville**, un compte mairie voit une icône « interdit » (*Révoquer le signalement*) à côté de Partager. Elle ouvre une fenêtre demandant un **motif obligatoire** (500 caractères max) ; après confirmation, le signalement est retiré de la carte et des listes, et son auteur reçoit un e-mail avec le motif (si l'envoi échoue, la révocation reste valide et un avertissement l'indique). L'action n'est pas proposée pour une autre ville, et n'est pas annulable depuis l'application.
+
 ## 8. Profil et paramètres
 
-- **Profil** (`/profile`) — informations du compte connecté, badge "Mairie" si le compte est municipal, et un onglet **Votés** en plus de Tous/En vote/En cours/Terminés, listant les signalements pour lesquels vous avez voté (que vous en soyez l'auteur ou non).
+- **Profil** (`/profile`) — informations du compte connecté, badge "Mairie" si le compte est municipal, et un onglet **Votés** en plus de Tous/En vote/En cours/Terminés, listant les signalements pour lesquels vous avez voté (que vous en soyez l'auteur ou non). Un onglet **Révoqués**, visible de vous seul, regroupe vos signalements révoqués par la mairie (badge « Révoqué », ouverture du détail pour relire le motif) ; ils n'apparaissent ni dans Tous ni sur le profil public.
 - **Profil public** (`/user/:id`) — même présentation que son propre profil, en lecture seule (pas de bouton Paramètres), accessible en cliquant sur le nom d'un auteur de commentaire. N'affiche rien (message "Ce profil est privé") tant que le compte visé n'a pas activé "Visibilité du profil" dans ses paramètres.
 - **Paramètres** (`/settings`, accessible depuis le profil) :
   - nom, téléphone, photo de profil (bouton "Changer la photo", PNG/JPG 5 Mo max) ;

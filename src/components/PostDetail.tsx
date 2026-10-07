@@ -23,14 +23,16 @@ import {
   Building2,
   Loader2,
   Tag,
+  Ban,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
 import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, VOTE_GOAL_LABEL, getActualStatus, getStatusConfig } from '../lib/postStatus';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { deleteIssue } from '../services/issuesService';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { deleteIssue, revokeIssue } from '../services/issuesService';
+import { getCityName } from '../lib/geocode';
 import { PrivateNoteCard } from './PrivateNoteCard';
 import { POST_CATEGORY_CONFIG } from '../lib/postCategory';
 
@@ -54,6 +56,9 @@ export function PostDetail() {
   const [votersDialogOpen, setVotersDialogOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revoking, setRevoking] = useState(false);
 
   const positiveVotes = votes.filter((v) => v.yes).length;
   const negativeVotes = votes.filter((v) => !v.yes).length;
@@ -145,6 +150,28 @@ export function PostDetail() {
     toast.success('Tâche mise à jour');
   };
 
+  const isRevoked = Boolean(post.revoked);
+  // Même règle que la RPC revoke_issue (qui reste la vraie garde, côté Postgres).
+  const canRevoke =
+    isMunicipalUser && !isRevoked && !!post.city && getCityName(user?.city) === post.city;
+
+  const handleRevoke = async () => {
+    setRevoking(true);
+    try {
+      const { emailSent } = await revokeIssue(post.id, revokeReason.trim());
+      if (emailSent) {
+        toast.success("Signalement révoqué, l'auteur a été prévenu par e-mail");
+      } else {
+        toast.warning("Signalement révoqué, mais l'e-mail à l'auteur n'a pas pu être envoyé");
+      }
+      navigate('/');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Impossible de révoquer le signalement');
+    } finally {
+      setRevoking(false);
+    }
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -221,7 +248,18 @@ export function PostDetail() {
               >
                 <Share2 className="size-5" />
               </Button>
-              {user?.id === post.created_by && (
+              {canRevoke && (
+                <Button
+                  onClick={() => setRevokeDialogOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 text-destructive hover:text-destructive/80"
+                  aria-label="Révoquer le signalement"
+                >
+                  <Ban className="size-5" />
+                </Button>
+              )}
+              {user?.id === post.created_by && !isRevoked && (
                 <>
                   <Button
                     onClick={() => navigate(`/create/${post.id}`)}
@@ -263,13 +301,20 @@ export function PostDetail() {
           <div className="flex items-start justify-between gap-4 mb-3">
             <h1>{post.title}</h1>
             <div className="flex flex-col gap-2 flex-shrink-0">
-              <Badge
-                variant="outline"
-                className={`${statusConfig.bgColor} ${statusConfig.textColor} border-0 flex items-center gap-1.5 px-3 py-1`}
-              >
-                <StatusIcon className="size-4" />
-                {statusConfig.label}
-              </Badge>
+              {post.revoked ? (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-0 flex items-center gap-1.5 px-3 py-1">
+                  <Ban className="size-4" />
+                  Révoqué
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className={`${statusConfig.bgColor} ${statusConfig.textColor} border-0 flex items-center gap-1.5 px-3 py-1`}
+                >
+                  <StatusIcon className="size-4" />
+                  {statusConfig.label}
+                </Badge>
+              )}
               {post.isMunicipalProject && (
                 <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 shadow-lg`}>
                   <Building2 className="size-3 mr-1" />
@@ -280,6 +325,17 @@ export function PostDetail() {
           </div>
           <p className="text-muted-foreground">{post.description}</p>
         </div>
+
+        {post.revoked && (
+          <div role="status" className="mb-6 flex items-start gap-3 p-4 bg-red-50 rounded-lg text-sm text-red-700">
+            <Ban className="size-5 flex-shrink-0" />
+            <p>
+              <strong>Signalement révoqué par la mairie</strong>
+              {' — '}
+              {post.revoked.reason}
+            </p>
+          </div>
+        )}
 
         {/* Info Cards */}
         <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -412,7 +468,7 @@ export function PostDetail() {
               )}
             </div>
 
-            {actualStatus === 'pending' && (
+            {actualStatus === 'pending' && !isRevoked && (
               hasVoted ? (
                 <p className="text-center text-sm text-muted-foreground py-2">Vous avez déjà voté pour ce projet.</p>
               ) : (
@@ -576,7 +632,7 @@ export function PostDetail() {
             </div>
           )}
 
-          {user && (
+          {user && !isRevoked && (
             <div className="pt-4 border-t border-border">
               <label htmlFor="comment-text" className="sr-only">
                 Ajouter un commentaire
@@ -611,6 +667,37 @@ export function PostDetail() {
         postTitle={post.title}
         currentVotes={{ positive: displayPositive, negative: displayNegative }}
       />
+
+      {/* Revoke Dialog */}
+      <Dialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Révoquer ce signalement</DialogTitle>
+            <DialogDescription>
+              Il sera retiré de la carte et des listes. Seuls son auteur et la mairie pourront encore l'ouvrir, avec le motif.
+            </DialogDescription>
+          </DialogHeader>
+          <label htmlFor="revoke-reason" className="text-sm">
+            Motif de la révocation <span aria-hidden="true">*</span>
+          </label>
+          <textarea
+            id="revoke-reason"
+            value={revokeReason}
+            maxLength={500}
+            aria-required="true"
+            onChange={(e) => setRevokeReason(e.target.value)}
+            className="w-full p-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            rows={3}
+          />
+          <Button
+            variant="destructive"
+            onClick={handleRevoke}
+            disabled={revoking || !revokeReason.trim()}
+          >
+            {revoking ? 'Révocation...' : 'Confirmer la révocation'}
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       {/* Voters Dialog */}
       <Dialog open={votersDialogOpen} onOpenChange={setVotersDialogOpen}>

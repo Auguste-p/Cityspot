@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
@@ -13,6 +13,7 @@ vi.mock('../hooks/useIssues', () => ({
 
 vi.mock('../services/issuesService', () => ({
   deleteIssue: vi.fn(),
+  revokeIssue: vi.fn(),
   getPrivateNote: vi.fn(),
   savePrivateNote: vi.fn(),
 }));
@@ -23,7 +24,7 @@ vi.mock('../context/UserContext', () => ({
 
 import { useUser } from '../context/UserContext';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
-import { getPrivateNote } from '../services/issuesService';
+import { getPrivateNote, revokeIssue } from '../services/issuesService';
 import { PostDetail } from './PostDetail';
 
 const mockedUseUser = vi.mocked(useUser);
@@ -162,3 +163,65 @@ describe('PostDetail accessibility (RGAA / axe-core)', () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe('PostDetail revocation by the city hall', () => {
+  const MAIRIE = { id: 'm1', email: 'm@ville.fr', role: 'municipal' as const, city: 'Castelnau-le-Lez, Occitanie' };
+  const asUser = (user: typeof CITIZEN | typeof MAIRIE) =>
+    mockedUseUser.mockReturnValue({ user, loading: false, isMunicipalUser: user.role === 'municipal', refreshUser: vi.fn() });
+  const withIssue = (overrides: Partial<Post> = {}) => {
+    mockedUseIssue.mockReturnValue({ issue: post({ city: 'Castelnau-le-Lez', ...overrides }), loading: false, error: null });
+    mockedUseComments.mockReturnValue({ comments: [], loading: false, error: null, addComment: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+    vi.mocked(getPrivateNote).mockResolvedValue('');
+  };
+
+  it('is offered to the city hall of the issue city only', async () => {
+    withIssue();
+    asUser(CITIZEN);
+    renderPostDetail();
+    await screen.findByText('Nid de poule rue Victor Hugo');
+    expect(screen.queryByRole('button', { name: 'Révoquer le signalement' })).toBeNull();
+    cleanup();
+
+    asUser({ ...MAIRIE, city: 'Montpellier, Occitanie' });
+    renderPostDetail();
+    await screen.findByText('Nid de poule rue Victor Hugo');
+    expect(screen.queryByRole('button', { name: 'Révoquer le signalement' })).toBeNull();
+    cleanup();
+
+    asUser(MAIRIE);
+    renderPostDetail();
+    expect(await screen.findByRole('button', { name: 'Révoquer le signalement' })).toBeTruthy();
+  });
+
+  it('requires a reason, then calls revokeIssue', async () => {
+    withIssue();
+    asUser(MAIRIE);
+    vi.mocked(revokeIssue).mockResolvedValue({ emailSent: true });
+    renderPostDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Révoquer le signalement' }));
+    const confirm = await screen.findByRole('button', { name: 'Confirmer la révocation' });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText(/Motif de la révocation/), { target: { value: '  Doublon  ' } });
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(revokeIssue).toHaveBeenCalledWith('post-1', 'Doublon'));
+  });
+
+  it('shows the banner with the reason and hides the actions on a revoked issue, with no violation', async () => {
+    withIssue({ revoked: { at: new Date('2026-10-07'), reason: 'Hors compétence communale' } });
+    asUser(MAIRIE);
+    const { container } = renderPostDetail();
+
+    expect(await screen.findByText(/Hors compétence communale/)).toBeTruthy();
+    expect(screen.getByText('Révoqué')).toBeTruthy();
+    expect(screen.queryByText('En vote')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Révoquer le signalement' })).toBeNull();
+    expect(screen.queryByText('Voter pour ce projet')).toBeNull();
+    expect(screen.queryByLabelText('Ajouter un commentaire')).toBeNull();
+    await expectNoA11yViolations(container);
+  });
+});
+

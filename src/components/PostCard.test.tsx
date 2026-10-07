@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import { PostCard } from './PostCard';
 import type { Post } from '../types/Post';
@@ -44,6 +44,15 @@ describe('PostCard accessibility (RGAA / axe-core)', () => {
 
   it('a clickable card (button role) has no violation', async () => {
     const { container } = render(<PostCard post={buildPost()} onClick={() => {}} />);
+    await expectNoA11yViolations(container);
+  });
+
+  it('a revoked signalement shows the "Révoqué" badge instead of its status, with no violation', async () => {
+    const { container } = render(
+      <PostCard post={buildPost({ revoked: { at: new Date('2026-10-07'), reason: 'Doublon' } })} />,
+    );
+    expect(screen.getByText('Révoqué')).toBeTruthy();
+    expect(screen.queryByText('En vote')).toBeNull();
     await expectNoA11yViolations(container);
   });
 });

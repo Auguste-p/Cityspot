@@ -32,4 +32,6 @@ export interface Post {
   isMunicipalProject?: boolean;
   categories: PostCategory[];
   created_by?: string;
+  city?: string;
+  revoked?: { at: Date; reason: string };
 }

@@ -12,33 +12,33 @@ Ce document liste les tests unitaires du projet, explique ce que chacun vérifie
 - **Accessibilité** : `axe-core`, exécuté directement dans les tests de composants (voir `src/test/a11y.ts` et `ACCESSIBILITE.md`).
 
 ```bash
-npm test              # exécute les 122 tests
+npm test              # exécute les 153 tests
 npm run test:coverage # exécute les tests + génère le rapport de couverture (table ci-dessous)
 ```
 
 La couverture est calculée uniquement sur `src/**` (le dossier `build/`, qui contient le bundle compilé, est explicitement exclu de la configuration — l'inclure aurait fait chuter le pourcentage sans rapport avec le code réellement écrit). Voir `vite.config.ts`, clé `test.coverage`.
 
-**En CI** (`.github/workflows/ci.yml`, C2.1.2) : `npm run test:coverage` s'exécute sur chaque push/PR vers `main` — mêmes 122 tests que `npm test` (le build échoue pareillement si l'un d'eux casse), plus le rapport de couverture, déposé en artefact `coverage-report` (HTML + JSON, 30 jours) consultable depuis l'onglet *Actions* du dépôt. Le résumé est aussi recopié dans `README.md` (§ Tests & couverture).
+**En CI** (`.github/workflows/ci.yml`, C2.1.2) : `npm run test:coverage` s'exécute sur chaque push/PR vers `main` — mêmes 153 tests que `npm test` (le build échoue pareillement si l'un d'eux casse), plus le rapport de couverture, déposé en artefact `coverage-report` (HTML + JSON, 30 jours) consultable depuis l'onglet *Actions* du dépôt. Le résumé est aussi recopié dans `README.md` (§ Tests & couverture).
 
 ## 3. Couverture globale
 
-Mesurée le 2026-09-03 avec `npm run test:coverage` (122 tests, 21 fichiers de test, tous verts).
+Mesurée le 2026-10-07 avec `npm run test:coverage` (153 tests, 22 fichiers de test, tous verts).
 
 | Dossier | % Instructions | % Branches | % Fonctions | % Lignes |
 |---|---|---|---|---|
-| **`src` (ensemble)** | **79.73 %** | 70.71 % | 55.61 % | **79.73 %** |
+| **`src` (ensemble)** | **80.41 %** | 74.55 % | 57.53 % | **80.41 %** |
 | `src/constants` | 100 % | 100 % | 100 % | 100 % |
-| `src/schemas` | 100 % | 77.77 % | 100 % | 100 % |
-| `src/lib` | 92.01 % | 92.72 % | 87.5 % | 92.01 % |
-| `src/context` | 88.5 % | 96 % | 100 % | 88.5 % |
-| `src/hooks` | 82.9 % | 78.57 % | 83.33 % | 82.9 % |
+| `src/schemas` | 100 % | 80 % | 100 % | 100 % |
+| `src/lib` | 92.05 % | 92.59 % | 87.5 % | 92.05 % |
+| `src/context` | 93.54 % | 97.22 % | 100 % | 93.54 % |
+| `src/hooks` | 73.68 % | 78.57 % | 71.42 % | 73.68 % |
 | `src/components/ui` | 84.91 % | 80.95 % | 75.67 % | 84.91 % |
-| `src/components` (écrans) | 83.56 % | 75.31 % | 28.12 % | 83.56 % |
-| `src/services` | 64.39 % | 45.8 % | 88.88 % | 64.39 % |
+| `src/components` (écrans) | 83.9 % | 79.66 % | 32.11 % | 83.9 % |
+| `src/services` | 68.24 % | 54.21 % | 91.17 % | 68.24 % |
 | `src/test` (helper `a11y.ts`) | 75 % | 66.66 % | 100 % | 75 % |
 | `src/components/figma`, `src` racine (`App.tsx`, `main.tsx`, `routes.ts`), `src/types` | 0 % | — | — | 0 % |
 
-**Lecture** : le critère C2.2.2 (« majorité du code développé ») reste dépassé — **79.73 % des lignes de `src`** sont exercées par au moins un test, en léger retrait par rapport à la mesure du 2026-07-19 (80.88 %) : le lot du 2026-09-02 (`CHANGELOG.md` v2.1.1/v2.2.0) a ajouté plus de code neuf (profils publics, Storage) que de tests dédiés. `src/lib` redescend à 92.01 % (n'était plus à 100 % depuis l'ajout de `storage.ts`, §4.23) ; tout le reste de `src/lib` (`geocode.ts`, `postCategory.ts`, `postStatus.ts`, `sentry.ts`, `supabase.ts`) reste couvert. Tous les écrans (`MapView`, `CreatePost`, `PostDetail`, `MunicipalView`, `Profile`, `Settings`, `Layout`, `LoginPage`, `VoteDialog`, `PostCard`) ont des tests, chacun sous l'angle accessibilité (§5) — ce qui, en exerçant le rendu complet de chaque écran, a couvert la logique de rendu et les branches conditionnelles au passage ; `ProfileView.tsx` en hérite (98.16 %, réutilisé par `Profile.test.tsx`) mais `PublicProfile.tsx`, nouveau, n'a aucun test dédié (0 %, cf. §6). La colonne « % Fonctions » reste plus basse (55.61 %) : beaucoup de gestionnaires d'événements (`onSubmit`, `handleDelete`, `handleShare`…) ne sont pas déclenchés par un simple audit d'accessibilité, qui rend l'écran mais ne simule pas toutes les interactions. Ce qui reste à 0 % (`App.tsx`, `main.tsx`, `routes.ts`, `src/types`, `src/components/figma/ImageWithFallback.tsx`) est du câblage/bootstrap sans logique propre, à l'exception d'`ImageWithFallback.tsx` : résidu de l'import initial depuis Figma Make, jamais utilisé par un composant du projet — voir §6.
+**Lecture** : le critère C2.2.2 (« majorité du code développé ») reste dépassé — **80.41 % des lignes de `src`** sont exercées par au moins un test (79.73 % le 2026-09-03, 80.88 % le 2026-07-19) : la révocation par la mairie (`CHANGELOG.md`, « Non publié » du 2026-10-07) a ajouté du code accompagné de ses tests. `src/lib` est à 92.05 % (n'était plus à 100 % depuis l'ajout de `storage.ts`, §4.23) ; la Edge Function `supabase/functions/notify-revocation` (Deno) est hors du périmètre mesuré (`src` seul) et n'a pas de test automatisé ; tout le reste de `src/lib` (`geocode.ts`, `postCategory.ts`, `postStatus.ts`, `sentry.ts`, `supabase.ts`) reste couvert. Tous les écrans (`MapView`, `CreatePost`, `PostDetail`, `MunicipalView`, `Profile`, `Settings`, `Layout`, `LoginPage`, `VoteDialog`, `PostCard`) ont des tests, chacun sous l'angle accessibilité (§5) — ce qui, en exerçant le rendu complet de chaque écran, a couvert la logique de rendu et les branches conditionnelles au passage ; `ProfileView.tsx` en hérite (réutilisé par `Profile.test.tsx`) mais `PublicProfile.tsx`, nouveau, n'a aucun test dédié (0 %, cf. §6). La colonne « % Fonctions » reste plus basse (57.53 %) : beaucoup de gestionnaires d'événements (`onSubmit`, `handleDelete`, `handleShare`…) ne sont pas déclenchés par un simple audit d'accessibilité, qui rend l'écran mais ne simule pas toutes les interactions. Ce qui reste à 0 % (`App.tsx`, `main.tsx`, `routes.ts`, `src/types`, `src/components/figma/ImageWithFallback.tsx`) est du câblage/bootstrap sans logique propre, à l'exception d'`ImageWithFallback.tsx` : résidu de l'import initial depuis Figma Make, jamais utilisé par un composant du projet — voir §6.
 
 ## 4. Détail par fichier de test
 
@@ -57,7 +57,7 @@ Teste `hasSupabaseConfig` et `getSupabaseClient()` : absence de config → clien
 ### 4.5 `src/services/authService.test.ts` (nouveau — 15 tests)
 Teste chaque fonction du service d'authentification (`signUp`, `signIn`, `signOut`, `getCurrentUser`, `getUserProfile`, `updateUserProfile`) : cas de succès (bon appel à Supabase, bonne donnée renvoyée) et cas d'erreur (l'erreur Supabase est bien propagée via `throw`, pas avalée — sauf `AuthSessionMissingError` sur `getCurrentUser()`, qui résout `null`, cf. `PLAN_CORRECTION_BOGUES.md` BUG-15). Le client Supabase est mocké (`vi.mock('../lib/supabase')`) — aucun appel réseau réel. Intérêt : ce service est sur le chemin critique de toutes les pages protégées (AUTH-01 à AUTH-08).
 
-### 4.6 `src/services/issuesService.test.ts` (nouveau — 13 tests)
+### 4.6 `src/services/issuesService.test.ts` (nouveau — 13 tests, +8 le 2026-10-07 : catégories inconnues écartées, `revokeIssue` — appel RPC puis Edge Function, échec du mail sans effet sur la révocation, aucun mail si la RPC refuse —, `listRevokedIssuesByUser`, mapping `city`/`revoked`)
 Le fichier le plus volumineux du projet, testé sous trois angles :
 - **Mode local (fallback sans Supabase configuré)** : `createIssue` → `listIssues` → `getIssueById` → `updateIssue` sur le store en mémoire, y compris le cas « signalement introuvable ». Ce mode est celui qui tourne si `.env` est absent — donc celui que verra un correcteur qui clone le repo sans configurer Supabase.
 - **Mode Supabase (lectures)** : `listIssues`/`getIssueById` avec un faux client Supabase chaînable (`.from().select().eq()...`), y compris la vérification que `status: 'resolved'` (base) devient bien `status: 'completed'` (app) — le mapping `normalizeIssueStatus` — et la propagation d'une erreur base de données.
@@ -79,7 +79,7 @@ En plus des tests clavier existants, un test `expectNoA11yViolations` sur une `C
 ### 4.11 `src/components/ui/formControls.a11y.test.tsx` (nouveau — 8 tests)
 Audite les primitives de formulaire dans un usage réaliste (pas isolées) : `Input`/`Textarea` associés à un `Label` via `htmlFor`/`id`, `RadioGroup` avec items labellisés, `Switch` labellisé, `Tabs` avec triggers nommés, `Button` icône-seule avec `aria-label`, `Badge` utilisé comme pastille de statut. Un test négatif délibéré (`Input` **sans** label) vérifie que le harnais détecte bien une vraie violation — pas seulement qu'il ne remonte jamais rien. Intérêt : ce sont les briques utilisées par tous les formulaires de l'app (`CreatePost`, `LoginPage`, `Settings`) ; un défaut ici se répercute partout.
 
-### 4.12 `src/components/PostCard.test.tsx` (nouveau — 3 tests)
+### 4.12 `src/components/PostCard.test.tsx` (nouveau — 3 tests, +1 le 2026-10-07 : badge « Révoqué » à la place du statut)
 Audite le composant d'affichage d'un signalement dans trois configurations : standard, municipal + en cours + propriété privée (toutes les branches conditionnelles de rendu actives en même temps), et cliquable (rôle `button` hérité de `Card`). Intérêt : composant affiché en boucle sur la carte et dans la vue municipale — le plus vu par les utilisateurs.
 
 ### 4.13 `src/components/LoginPage.test.tsx` (nouveau — 3 tests)
@@ -91,13 +91,15 @@ Audite la coquille de navigation (bandeau + nav basse) pour un compte citoyen et
 ### 4.15 `src/components/CreatePost.test.tsx` (nouveau — 5 tests)
 Audite le formulaire le plus complexe de l'app (627 lignes) : état par défaut, branche « voie privée + non propriétaire » (révèle le champ email), branche « voie privée + propriétaire » (révèle l'upload de document), mode édition pré-rempli depuis un signalement existant, et l'état de chargement en mode édition. `useIssue` et `useUser` sont mockés. Intérêt : formulaire avec le plus de champs et de branches conditionnelles — chaque radio qui révèle une nouvelle section est un point où un label peut se perdre.
 
-### 4.16 `src/components/PostDetail.test.tsx` (nouveau — 5 tests)
+### 4.16 `src/components/PostDetail.test.tsx` (nouveau — 5 tests, +3 le 2026-10-07 : révocation par la mairie)
+Les trois derniers couvrent la révocation : bouton réservé à la mairie de la ville du signalement, motif obligatoire avant appel à `revokeIssue`, bannière/actions masquées sur un signalement révoqué (avec audit axe-core).
 Audite les quatre branches de rendu (chargement, erreur, introuvable, chargé) plus une variante « signalement terminé, municipal, propriété privée » qui masque l'appel à voter. `useIssue`/`useComments`/`useVotes` et `useUser` sont mockés. **A débusqué un vrai défaut** : la barre de progression des tâches (`Progress`, Radix) n'avait pas de nom accessible — corrigé en §7.
 
 ### 4.17 `src/components/MunicipalView.test.tsx` (nouveau — 4 tests)
 Audite le tableau de bord municipal : chargement, erreur, état vide (filtres de catégorie seuls), et liste de signalements répartis sur plusieurs catégories/statuts. `useIssues` est mocké.
 
-### 4.18 `src/components/Profile.test.tsx` (nouveau — 4 tests)
+### 4.18 `src/components/Profile.test.tsx` (nouveau — 4 tests, +1 le 2026-10-07 : onglet « Révoqués »)
+Le test ajouté vérifie qu'un signalement révoqué n'apparaît que dans l'onglet « Révoqués » (et pas dans « Tous »). `useRevokedIssues` est mocké.
 Audite le profil citoyen : chargement, erreur, profil avec signalements, et variante « badge Mairie » (compte `cityWorker`). `useUser`, `useIssues` et `authService.getUserProfile` sont mockés.
 
 ### 4.19 `src/components/Settings.test.tsx` (nouveau — 2 tests)

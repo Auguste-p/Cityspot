@@ -1,6 +1,7 @@
 import {getSupabaseClient, type IssueStatus} from '../lib/supabase';
 import { logSecurityEvent } from '../lib/sentry';
 import { getDefaultIssuePhotoUrl } from '../lib/storage';
+import { POST_CATEGORIES } from '../lib/postCategory';
 import type { Post, PostCategory, Task } from '../types/Post';
 
 type DatabaseIssueStatus = IssueStatus;
@@ -28,6 +29,8 @@ interface IssueRow {
   categories: PostCategory[] | null;
   created_by: string | null;
   city: string | null;
+  revoked_at?: string | null;
+  revoked_reason?: string | null;
 }
 
 interface TaskRow {
@@ -243,8 +246,14 @@ function normalizeIssue(
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
     status: normalizeIssueStatus(row.status),
     isMunicipalProject: Boolean(row.is_municipal_project),
-    categories: row.categories ?? [],
+    // Une valeur héritée de l'ancienne colonne `category` peut ne plus exister dans
+    // POST_CATEGORIES : l'UI en lit l'icône sans garde, d'où le filtre ici.
+    categories: (row.categories ?? []).filter((category) => POST_CATEGORIES.includes(category)),
     created_by: row.created_by ?? undefined,
+    city: row.city ?? undefined,
+    revoked: row.revoked_at
+      ? { at: new Date(row.revoked_at), reason: row.revoked_reason ?? '' }
+      : undefined,
   };
 }
 
@@ -289,7 +298,9 @@ export async function listIssues(city?: string): Promise<Post[]> {
     return localIssuesStore.map(clonePost);
   }
 
-  let query = client.from('issues').select('*');
+  // Les signalements révoqués sont exclus des listes (carte, profils, stats) pour
+  // tous ; la RLS ne les laisse ouvrir en détail qu'à l'auteur et à la mairie.
+  let query = client.from('issues').select('*').is('revoked_at', null);
   if (city) {
     query = query.eq('city', city);
   }
@@ -300,7 +311,30 @@ export async function listIssues(city?: string): Promise<Post[]> {
     throw new Error(issuesError.message);
   }
 
-  const issues = (issueRows ?? []) as IssueRow[];
+  return hydrateIssues(client, (issueRows ?? []) as IssueRow[]);
+}
+
+// Profil privé : la RLS ne renvoie les signalements révoqués qu'à leur auteur (et à la
+// mairie de la ville) ; le filtre sur `created_by` écarte ceux d'une mairie qui n'est pas l'auteur.
+export async function listRevokedIssuesByUser(userId: string): Promise<Post[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+
+  const { data, error } = await client
+    .from('issues')
+    .select('*')
+    .eq('created_by', userId)
+    .not('revoked_at', 'is', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return hydrateIssues(client, (data ?? []) as IssueRow[]);
+}
+
+async function hydrateIssues(client: NonNullable<ReturnType<typeof getSupabaseClient>>, issues: IssueRow[]): Promise<Post[]> {
   const issueIds = issues.map((issue) => issue.id);
 
   if (issueIds.length === 0) {
@@ -655,6 +689,28 @@ export async function deleteIssue(issueId: string) {
   }
 
   return true;
+}
+
+// Réservé à la mairie de la ville du signalement : tout est vérifié par la RPC
+// (rôle, ville, motif), un refus remonte comme erreur Postgres. Le mail à l'auteur
+// est un effet secondaire : son échec ne remet pas en cause la révocation, il est
+// seulement remonté (`emailSent: false`) pour que la mairie en soit avertie.
+export async function revokeIssue(issueId: string, reason: string): Promise<{ emailSent: boolean }> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase non configuré');
+
+  const { error } = await (client as any).rpc('revoke_issue', { p_issue_id: issueId, p_reason: reason });
+  if (error) {
+    logSecurityEvent('Révocation refusée', { issueId });
+    throw new Error(error.message);
+  }
+
+  const { error: mailError } = await client.functions.invoke('notify-revocation', { body: { issueId } });
+  if (mailError) {
+    logSecurityEvent("Mail de révocation non envoyé", { issueId });
+    return { emailSent: false };
+  }
+  return { emailSent: true };
 }
 
 export interface Comment {

@@ -131,7 +131,7 @@ Pas de serveur applicatif : le frontend interroge directement Postgres via l'API
 | `comments` / `votes` | ouverte | insertion uniquement en tant que soi-même |
 | `users` | profil du propriétaire uniquement | profil du propriétaire uniquement, synchronisé à l'inscription par un trigger serveur (`handle_new_user`) |
 
-**Pas de fonction serveur** : une Edge Function `delete-issue` a existé jusqu'à ce que la RLS de `issues` soit étendue au `DELETE` (même règle que pour `UPDATE`) — elle faisait alors exactement le même travail que la base fait nativement, sans rien y ajouter. Retirée en v1.2.0.
+**Pas de fonction serveur** : une Edge Function `delete-issue` a existé jusqu'à ce que la RLS de `issues` soit étendue au `DELETE` (même règle que pour `UPDATE`) — elle faisait alors exactement le même travail que la base fait nativement, sans rien y ajouter. Retirée en v1.2.0. Depuis le 2026-10-07, une Edge Function existe de nouveau, `notify-revocation` (mail à l'auteur d'un signalement révoqué par sa mairie, via Resend) : elle est justifiée par le besoin d'un secret (clé Resend) et de la lecture de `auth.users`, impossibles côté client ou par RLS (cf. `ARCHITECTURE.md` §4).
 
 ### 3.3 Frontières de confiance
 

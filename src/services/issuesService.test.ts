@@ -14,7 +14,7 @@ const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
 function tableStub(result: { data: unknown; error: unknown }) {
   const resolved = Promise.resolve(result);
   const chain: any = resolved;
-  for (const method of ['select', 'eq', 'in', 'order', 'insert', 'update', 'delete']) {
+  for (const method of ['select', 'eq', 'is', 'not', 'in', 'order', 'insert', 'update', 'delete']) {
     chain[method] = () => chain;
   }
   chain.single = () => Promise.resolve(result);
@@ -250,5 +250,123 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
 
     await expect(getPrivateNote('issue-1')).resolves.toBe('');
     await expect(savePrivateNote('issue-1', 'user-1', 'note')).rejects.toThrow('Supabase non configuré');
+  });
+  it('revokes an issue through the revoke_issue RPC', async () => {
+    const { revokeIssue } = await import('./issuesService');
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const invoke = vi.fn().mockResolvedValue({ error: null });
+    mockedGetSupabaseClient.mockReturnValue({ rpc, functions: { invoke } } as any);
+
+    await expect(revokeIssue('issue-1', 'Hors compétence communale')).resolves.toEqual({ emailSent: true });
+
+    expect(rpc).toHaveBeenCalledWith('revoke_issue', {
+      p_issue_id: 'issue-1',
+      p_reason: 'Hors compétence communale',
+    });
+    expect(invoke).toHaveBeenCalledWith('notify-revocation', { body: { issueId: 'issue-1' } });
+  });
+
+  it('keeps the revocation valid when the notification email fails', async () => {
+    const { revokeIssue } = await import('./issuesService');
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const invoke = vi.fn().mockResolvedValue({ error: new Error('resend down') });
+    mockedGetSupabaseClient.mockReturnValue({ rpc, functions: { invoke } } as any);
+
+    await expect(revokeIssue('issue-1', 'Doublon')).resolves.toEqual({ emailSent: false });
+  });
+
+  it('does not send any email when the revocation itself is refused', async () => {
+    const { revokeIssue } = await import('./issuesService');
+    const rpc = vi.fn().mockResolvedValue({ error: { message: 'Révocation refusée' } });
+    const invoke = vi.fn();
+    mockedGetSupabaseClient.mockReturnValue({ rpc, functions: { invoke } } as any);
+
+    await expect(revokeIssue('issue-1', 'Doublon')).rejects.toThrow('Révocation refusée');
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('lists the revoked issues of a user, hydrated like the others', async () => {
+    const { listRevokedIssuesByUser } = await import('./issuesService');
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: {
+          data: [{
+            id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
+            is_private_property: false, is_own_property: null, owner_email: null,
+            positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
+            is_municipal_project: false, categories: [], created_by: 'u1', city: 'Castelnau-le-Lez',
+            revoked_at: '2026-10-07T10:00:00Z', revoked_reason: 'Doublon',
+          }],
+          error: null,
+        },
+        tasks: { data: [], error: null },
+        materials: { data: [], error: null },
+      }),
+    );
+
+    const posts = await listRevokedIssuesByUser('u1');
+    expect(posts).toHaveLength(1);
+    expect(posts[0].revoked?.reason).toBe('Doublon');
+  });
+
+  it('returns no revoked issue without Supabase', async () => {
+    mockedGetSupabaseClient.mockReturnValue(null);
+    vi.resetModules();
+    const { listRevokedIssuesByUser } = await import('./issuesService');
+    await expect(listRevokedIssuesByUser('u1')).resolves.toEqual([]);
+  });
+
+  it('surfaces the RPC refusal when revoking is not allowed', async () => {
+    const { revokeIssue } = await import('./issuesService');
+    const rpc = vi.fn().mockResolvedValue({ error: { message: 'Révocation refusée' } });
+    mockedGetSupabaseClient.mockReturnValue({ rpc, functions: { invoke: vi.fn() } } as any);
+
+    await expect(revokeIssue('issue-1', 'motif')).rejects.toThrow('Révocation refusée');
+  });
+
+  it('maps revocation columns and city onto the post', async () => {
+    const { getIssueById } = await import('./issuesService');
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: {
+          data: {
+            id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
+            is_private_property: false, is_own_property: null, owner_email: null,
+            positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
+            is_municipal_project: false, categories: [], created_by: 'u1', city: 'Castelnau-le-Lez',
+            revoked_at: '2026-10-07T10:00:00Z', revoked_reason: 'Doublon',
+          },
+          error: null,
+        },
+        tasks: { data: [], error: null },
+        materials: { data: [], error: null },
+      }),
+    );
+
+    const post = await getIssueById('issue-1');
+    expect(post?.city).toBe('Castelnau-le-Lez');
+    expect(post?.revoked).toEqual({ at: new Date('2026-10-07T10:00:00Z'), reason: 'Doublon' });
+  });
+
+  it('drops categories unknown to the app instead of letting the UI crash on them', async () => {
+    const { getIssueById } = await import('./issuesService');
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: {
+          data: {
+            id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
+            is_private_property: false, is_own_property: null, owner_email: null,
+            positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
+            is_municipal_project: false, categories: ['voirie', 'pothole', ''], created_by: 'u1', city: null,
+          },
+          error: null,
+        },
+        tasks: { data: [], error: null },
+        materials: { data: [], error: null },
+      }),
+    );
+
+    const post = await getIssueById('issue-1');
+    expect(post?.categories).toEqual(['voirie']);
   });
 });

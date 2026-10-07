@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, beforeEach, describe, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
 vi.mock('../hooks/useIssues', () => ({
   useIssues: vi.fn(),
   useUserVotes: vi.fn(),
+  useRevokedIssues: vi.fn(),
 }));
 
 vi.mock('../context/UserContext', () => ({
@@ -19,13 +20,14 @@ vi.mock('../services/authService', () => ({
 }));
 
 import { useUser } from '../context/UserContext';
-import { useIssues, useUserVotes } from '../hooks/useIssues';
+import { useIssues, useRevokedIssues, useUserVotes } from '../hooks/useIssues';
 import { getUserProfile } from '../services/authService';
 import { Profile } from './Profile';
 
 const mockedUseUser = vi.mocked(useUser);
 const mockedUseIssues = vi.mocked(useIssues);
 const mockedUseUserVotes = vi.mocked(useUserVotes);
+const mockedUseRevokedIssues = vi.mocked(useRevokedIssues);
 const mockedGetUserProfile = vi.mocked(getUserProfile);
 
 const CITIZEN = { id: 'u1', email: 'a@b.com', name: 'Jeanne Dupont', avatar: 'J', role: 'citizen' as const };
@@ -65,6 +67,7 @@ afterEach(() => {
 describe('Profile accessibility (RGAA / axe-core)', () => {
   beforeEach(() => {
     mockedUseUserVotes.mockReturnValue({ votes: [], loading: false, error: null });
+    mockedUseRevokedIssues.mockReturnValue({ issues: [], loading: false, error: null });
   });
 
   it('the loading state has no violation', async () => {
@@ -140,3 +143,27 @@ describe('Profile accessibility (RGAA / axe-core)', () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe('Profile — revoked tab (private)', () => {
+  it('lists revoked signalements in a dedicated "Révoqués" tab, not in "Tous"', async () => {
+    mockedUseUserVotes.mockReturnValue({ votes: [], loading: false, error: null });
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssues.mockReturnValue({ issues: [post({ id: 'p1', title: 'Lampadaire cassé' })], loading: false, error: null, reload: vi.fn() });
+    mockedUseRevokedIssues.mockReturnValue({
+      issues: [post({ id: 'p2', title: 'Dépôt sauvage', revoked: { at: new Date('2026-10-07'), reason: 'Doublon' } })],
+      loading: false,
+      error: null,
+    });
+    mockedGetUserProfile.mockResolvedValue(null);
+
+    const { container } = renderProfile();
+    expect(await screen.findByText('Lampadaire cassé')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Tous (1)' })).toBeTruthy();
+    expect(screen.queryByText('Dépôt sauvage')).toBeNull();
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Révoqués (1)' }));
+    expect(await screen.findByText('Dépôt sauvage')).toBeTruthy();
+    await expectNoA11yViolations(container);
+  });
+});
+

@@ -1,6 +1,6 @@
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Settings, MapPin, CheckCircle2, Clock, Award, TrendingUp, Vote, Building2 } from 'lucide-react';
+import { Settings, MapPin, CheckCircle2, Clock, Award, TrendingUp, Vote, Building2, Ban } from 'lucide-react';
 import { PostCard } from './PostCard';
 import { Badge } from './ui/badge';
 import { EMPTY_STATE_LABELS, MUNICIPAL_GRADIENT_CLASS } from '../lib/postStatus';
@@ -16,6 +16,8 @@ interface ProfileViewProps {
   inProgressPosts: Post[];
   completedPosts: Post[];
   votedPosts: Post[];
+  // Profil privé uniquement : absent = pas d'onglet « Révoqués » (profil public).
+  revokedPosts?: Post[];
   // Absent = pas de bouton réglages (profil public, en lecture seule).
   onSettingsClick?: () => void;
   onPostClick: (postId: string) => void;
@@ -36,6 +38,7 @@ export function ProfileView({
   inProgressPosts,
   completedPosts,
   votedPosts,
+  revokedPosts,
   onSettingsClick,
   onPostClick,
 }: ProfileViewProps) {
@@ -120,12 +123,15 @@ export function ProfileView({
         </div>
 
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          {/* flex-wrap, pas de grid-cols-N : le CSS est un export statique (pas de build Tailwind), une
+              classe absente d'index.css n'a aucun effet — et les onglets passent à la ligne sur écran étroit. */}
+          <TabsList className="flex flex-wrap w-full h-auto gap-1 mb-6">
             <TabsTrigger value="all">Tous ({allPosts.length})</TabsTrigger>
             <TabsTrigger value="voting">En vote ({votingPosts.length})</TabsTrigger>
             <TabsTrigger value="in-progress">En cours ({inProgressPosts.length})</TabsTrigger>
             <TabsTrigger value="completed">Terminés ({completedPosts.length})</TabsTrigger>
             <TabsTrigger value="voted">Votés ({votedPosts.length})</TabsTrigger>
+            {revokedPosts && <TabsTrigger value="revoked">Révoqués ({revokedPosts.length})</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
@@ -182,6 +188,19 @@ export function ProfileView({
               </Card>
             )}
           </TabsContent>
+
+          {revokedPosts && (
+            <TabsContent value="revoked" className="space-y-4">
+              {revokedPosts.length > 0 ? (
+                revokedPosts.map((post) => <PostCard key={post.id} post={post} onClick={() => onPostClick(post.id)} />)
+              ) : (
+                <Card className="p-8 text-center">
+                  <Ban className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">{EMPTY_STATE_LABELS.revoked}</p>
+                </Card>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Building2, CheckCircle2, Home, MapPin, Vote } from 'lucide-react';
+import { Ban, Building2, CheckCircle2, Home, MapPin, Vote } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, getActualStatus, getNetVotes, getStatusConfig } from '../lib/postStatus';
@@ -34,10 +34,17 @@ function PostCardComponent({ post, onClick, className }: PostCardProps) {
           <div className="flex items-start justify-between gap-2 mb-2">
             <h3 className="text-sm truncate">{post.title}</h3>
             <div className="flex flex-col gap-1 flex-shrink-0">
-              <Badge variant="outline" className={`${statusConfig.bgColor} ${statusConfig.textColor} border-0`}>
-                <StatusIcon className="size-3 mr-1" />
-                {statusConfig.label}
-              </Badge>
+              {post.revoked ? (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-0">
+                  <Ban className="size-3 mr-1" />
+                  Révoqué
+                </Badge>
+              ) : (
+                <Badge variant="outline" className={`${statusConfig.bgColor} ${statusConfig.textColor} border-0`}>
+                  <StatusIcon className="size-3 mr-1" />
+                  {statusConfig.label}
+                </Badge>
+              )}
               {post.isMunicipalProject && (
                 <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 text-xs`}>
                   <Building2 className="size-2.5 mr-1" />
