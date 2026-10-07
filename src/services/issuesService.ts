@@ -334,6 +334,26 @@ export async function listRevokedIssuesByUser(userId: string): Promise<Post[]> {
   return hydrateIssues(client, (data ?? []) as IssueRow[]);
 }
 
+// Tableau de bord mairie : la RLS ne renvoie les révoqués d'une ville qu'à sa mairie (et à
+// leur auteur) ; un compte sans droit reçoit simplement une liste vide.
+export async function listRevokedIssuesByCity(city: string): Promise<Post[]> {
+  const client = getSupabaseClient();
+  if (!client || !city) return [];
+
+  const { data, error } = await client
+    .from('issues')
+    .select('*')
+    .eq('city', city)
+    .not('revoked_at', 'is', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return hydrateIssues(client, (data ?? []) as IssueRow[]);
+}
+
 async function hydrateIssues(client: NonNullable<ReturnType<typeof getSupabaseClient>>, issues: IssueRow[]): Promise<Post[]> {
   const issueIds = issues.map((issue) => issue.id);
 

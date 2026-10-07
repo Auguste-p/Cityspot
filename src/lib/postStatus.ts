@@ -20,6 +20,7 @@ export const EMPTY_STATE_LABELS = {
   completed: 'Aucun signalement terminé',
   voted: 'Vous n\'avez voté pour aucun signalement',
   revoked: 'Aucun de vos signalements n\'a été révoqué',
+  revokedCity: 'Aucun signalement révoqué dans votre ville',
 } as const;
 
 export interface StatusConfig {

@@ -443,4 +443,39 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('notify-mairie'), 401, expect.stringContaining('Non authentifié'));
     consoleError.mockRestore();
   });
+
+  it('lists the revoked issues of a city, hydrated like the others', async () => {
+    const { listRevokedIssuesByCity } = await import('./issuesService');
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        issues: {
+          data: [{
+            id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
+            is_private_property: false, is_own_property: null, owner_email: null,
+            positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
+            is_municipal_project: false, categories: ['voirie'], created_by: 'u1', city: 'Lyon',
+            revoked_at: '2026-10-07T10:00:00Z', revoked_reason: 'Doublon',
+          }],
+          error: null,
+        },
+        tasks: { data: [], error: null },
+        materials: { data: [], error: null },
+      }),
+    );
+
+    const posts = await listRevokedIssuesByCity('Lyon');
+    expect(posts).toHaveLength(1);
+    expect(posts[0].revoked?.reason).toBe('Doublon');
+  });
+
+  it('returns no revoked issue for an empty city or without Supabase', async () => {
+    const { listRevokedIssuesByCity } = await import('./issuesService');
+    mockedGetSupabaseClient.mockReturnValue(fakeClient({}));
+    await expect(listRevokedIssuesByCity('')).resolves.toEqual([]);
+
+    mockedGetSupabaseClient.mockReturnValue(null);
+    vi.resetModules();
+    const mod = await import('./issuesService');
+    await expect(mod.listRevokedIssuesByCity('Lyon')).resolves.toEqual([]);
+  });
 });

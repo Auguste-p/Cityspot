@@ -9,7 +9,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 ### 1.1 Traçabilité avec la grille d'évaluation (C2.3.1)
 
 - *"Le cahier de recettes reprend l'ensemble des fonctionnalités attendues"* → sections 5 à 11 (Authentification, Création de signalement, Carte, Détail, Vue municipale, Profil, Paramètres) couvrent chacune un écran livré, fonctionnalité par fonctionnalité.
-- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 87/106 scénarios ✅, 0 ❌, 19 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
+- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 87/107 scénarios ✅, 0 ❌, 20 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
 
 ## 2. Périmètre
 
@@ -125,6 +125,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | MUN-08 | F | Majeur | Révocation d'un signalement de sa ville | Compte mairie : ouvrir un signalement de sa ville, cliquer « Révoquer le signalement », constater que « Confirmer » est désactivé sans motif, saisir un motif, confirmer | Retour à la carte, signalement absent de la carte et de `/municipal` ; ouvert par lien direct, bannière avec le motif, vote/commentaire/édition absents | ✅ *(exécuté 2026-10-07 par l'utilisateur : citoyen + compte mairie de la même ville)* |
 | MUN-09 | SEC | Bloquant | Révocation hors périmètre refusée | (a) citoyen : aucun bouton ; (b) mairie d'une autre ville : aucun bouton ; (c) appel direct `rpc('revoke_issue')` par ces comptes ; (d) auteur qui tente un `update` de `revoked_at` | (a)(b) bouton absent ; (c)(d) erreur Postgres, aucune ligne modifiée ; un citoyen tiers ne voit plus le signalement révoqué | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | MUN-10 | F | Majeur | Mail de révocation à l'auteur | Après MUN-08 (fonction déployée, secrets Resend posés, domaine vérifié), consulter la boîte de l'auteur ; puis recommencer avec `RESEND_API_KEY` volontairement invalide | Mail reçu avec titre, ville et motif ; en cas d'échec, la révocation reste valide et la mairie voit « l'e-mail à l'auteur n'a pas pu être envoyé » | ✅ *(exécuté 2026-10-07 : mail reçu avec Resend ; il est arrivé dans les indésirables — authentification SPF/DKIM/DMARC du domaine expéditeur à vérifier, non bloquant)* |
+| MUN-11 | F | Majeur | Onglet « Révoqués » du tableau de bord | Après MUN-08, ouvrir `/municipal` avec un compte mairie de la ville (puis d'une autre ville) ; filtrer par catégorie | Onglet « Révoqués (n) » listant le signalement avec son badge, la date et le motif, absent des autres onglets et des statistiques ; la mairie d'une autre ville ne le voit pas ; le filtre de catégorie s'applique | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | MUN-04 | F | Mineur | Onglets par statut | Parcourir les onglets Tous/En vote/En cours/Terminés | Contenu et compteurs cohérents avec les données | ✅ *(exécuté 2026-07-17)* |
 | MUN-05 | F | Mineur | Statistiques globales | Comparer les cartes de stats en haut de page aux données réelles | Total, en vote, en cours, terminés corrects | ✅ *(exécuté 2026-07-17, statistiques affichées)* |
 | MUN-06 | F | Mineur | État vide | Filtrer une catégorie sans signalement | Message "Aucun signalement dans cette catégorie" | ✅ *(exécuté 2026-07-17, message d'état vide affiché sur "Mobilier urbain")* |
@@ -195,24 +196,24 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 
 | Catégorie (type) | Nombre de scénarios |
 |---|---|
-| Fonctionnels (F) | 75 |
+| Fonctionnels (F) | 76 |
 | Structurels (S) | 11 |
 | Sécurité (SEC) | 20 |
-| **Total** | **106** |
+| **Total** | **107** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 19 |
-| Majeur | 44 |
+| Majeur | 45 |
 | Mineur | 43 |
-| **Total** | **106** |
+| **Total** | **107** |
 
 | État d'exécution | Nombre |
 |---|---|
 | ✅ OK | 87 *(73 le 2026-07-17 + 10 le 2026-09-03 + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 19 *(dont 5 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires)* |
-| **Total** | **106** |
+| ☐ Non exécuté (raison documentée par ligne) | 20 *(dont 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
+| **Total** | **107** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

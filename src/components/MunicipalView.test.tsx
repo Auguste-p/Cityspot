@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, beforeEach, describe, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
 vi.mock('../hooks/useIssues', () => ({
   useIssues: vi.fn(),
+  useRevokedCityIssues: vi.fn(),
 }));
 
 vi.mock('../context/UserContext', () => ({
@@ -14,11 +15,12 @@ vi.mock('../context/UserContext', () => ({
 }));
 
 import { useUser } from '../context/UserContext';
-import { useIssues } from '../hooks/useIssues';
+import { useIssues, useRevokedCityIssues } from '../hooks/useIssues';
 import { MunicipalView } from './MunicipalView';
 
 const mockedUseIssues = vi.mocked(useIssues);
 const mockedUseUser = vi.mocked(useUser);
+const mockedUseRevokedCityIssues = vi.mocked(useRevokedCityIssues);
 
 const MUNICIPAL_AGENT = {
   id: 'agent-1',
@@ -67,6 +69,7 @@ describe('MunicipalView accessibility (RGAA / axe-core)', () => {
       isMunicipalUser: true,
       refreshUser: vi.fn(),
     });
+    mockedUseRevokedCityIssues.mockReturnValue({ issues: [], loading: false, error: null });
   });
 
   it('the loading state has no violation', async () => {
@@ -107,3 +110,60 @@ describe('MunicipalView accessibility (RGAA / axe-core)', () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe('MunicipalView — revoked tab', () => {
+  beforeEach(() => {
+    mockedUseUser.mockReturnValue({ user: MUNICIPAL_AGENT, loading: false, isMunicipalUser: true, refreshUser: vi.fn() });
+    mockedUseIssues.mockReturnValue({ issues: [post({ id: 'p1', title: 'Trottoir refait' })], loading: false, error: null, reload: vi.fn() });
+  });
+
+  const revoked = (id: string, title: string, categories: Post['categories']) =>
+    post({ id, title, categories, revoked: { at: new Date('2026-10-07T10:00:00Z'), reason: `Motif de ${title}` } });
+
+  it('lists the revoked signalements with their date and reason, not in the other tabs, with no violation', async () => {
+    mockedUseRevokedCityIssues.mockReturnValue({
+      issues: [revoked('r1', 'Dépôt sauvage', ['proprete'])],
+      loading: false,
+      error: null,
+    });
+
+    const { container } = renderMunicipalView();
+    await screen.findByText('Trottoir refait');
+    expect(screen.getByRole('tab', { name: 'Tous (1)' })).toBeTruthy();
+    expect(screen.queryByText('Dépôt sauvage')).toBeNull();
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Révoqués (1)' }));
+    expect(await screen.findByText('Dépôt sauvage')).toBeTruthy();
+    expect(screen.getByText(/Motif de Dépôt sauvage/)).toBeTruthy();
+    expect(screen.getByText(/Révoqué le 7 octobre 2026/)).toBeTruthy();
+    await expectNoA11yViolations(container);
+  });
+
+  it('follows the category filter', async () => {
+    mockedUseRevokedCityIssues.mockReturnValue({
+      issues: [revoked('r1', 'Dépôt sauvage', ['proprete']), revoked('r2', 'Nid de poule', ['voirie'])],
+      loading: false,
+      error: null,
+    });
+
+    renderMunicipalView();
+    await screen.findByText('Trottoir refait');
+    // « Voirie » apparaît aussi sur les cartes : on cible la tuile de filtre (le texte dans un <div>).
+    fireEvent.click(screen.getAllByText('Voirie').find((el) => el.tagName === 'DIV')!);
+
+    expect(screen.getByRole('tab', { name: 'Révoqués (1)' })).toBeTruthy();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Révoqués (1)' }));
+    expect(await screen.findByText('Nid de poule')).toBeTruthy();
+    expect(screen.queryByText('Dépôt sauvage')).toBeNull();
+  });
+
+  it('keeps the dashboard usable and says so when the revoked list cannot be loaded', async () => {
+    mockedUseRevokedCityIssues.mockReturnValue({ issues: [], loading: false, error: new Error('Panne réseau') });
+
+    renderMunicipalView();
+    await screen.findByText('Trottoir refait');
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Révoqués (0)' }));
+    expect(await screen.findByText(/Impossible de charger les signalements révoqués/)).toBeTruthy();
+  });
+});
+

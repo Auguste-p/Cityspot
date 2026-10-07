@@ -10,6 +10,14 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### Non publié — 2026-10-07 — Onglet « Révoqués » dans le tableau de bord mairie
+
+- **Onglet « Révoqués (n) »** dans `MunicipalView.tsx` (après « Terminés ») : liste les signalements révoqués de la ville de l'agent, avec le badge « Révoqué » (`PostCard`) et, sous chaque carte, « Révoqué le … — motif : … » (date et motif lus sur `Post.revoked`). Ils ne figurent dans aucun autre onglet ni dans les statistiques du haut, qui ne comptent que les projets actifs. Le filtre par catégorie s'applique aussi à cet onglet.
+- **Données** : `listRevokedIssuesByCity(city)` (`issuesService.ts`, hydratation `hydrateIssues` partagée avec `listIssues`) via le hook `useRevokedCityIssues`. La RLS (`is_municipal_of_city`, migration `20261007010000`) ne renvoie ces lignes qu'à la mairie de la ville (et à leur auteur) : aucune migration. Le chargement de cette liste est secondaire : s'il échoue, le tableau de bord reste utilisable et l'onglet affiche « Impossible de charger les signalements révoqués ».
+- **Mise en page** : la liste d'onglets passe de `grid-cols-4` à `flex flex-wrap` (`h-auto` déjà ajouté en v2.2.5) — cinq onglets, qui passent à la ligne sur écran étroit. Classes vérifiées dans `src/index.css` (export statique : une classe absente est sans effet) ; `px-1`, absente, remplacée par `px-2`.
+- Tests : `MunicipalView.test.tsx` (+3, axe-core), `issuesService.test.ts` (+2), `useIssues.test.tsx` (+2, qui couvrent aussi `useRevokedIssues`, resté sans test propre depuis l'onglet du profil).
+- Documentation mise à jour : `MANUEL_UTILISATION.md` §7, `CAHIER_DE_RECETTES.md` (MUN-11, non rejoué), `TESTS.md` §3/§4.6/§4.7/§4.17, `README.md`.
+
 ### v2.2.6 — 2026-10-07 — Badge « Mairie » sur les commentaires
 
 - **Badge** : un commentaire écrit par un compte mairie porte le badge « Mairie » (même rendu que sur le profil : icône `Building2`, dégradé bleu) à côté du nom de l'auteur, dans `PostDetail.tsx`. Pour son propre commentaire, un compte mairie voit le badge sans relire la base (`isMunicipalUser`).

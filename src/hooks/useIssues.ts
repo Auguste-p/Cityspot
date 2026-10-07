@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Post } from '../types/Post';
-import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listRevokedIssuesByUser, listVotes, listVotesByUser } from '../services/issuesService';
+import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listRevokedIssuesByCity, listRevokedIssuesByUser, listVotes, listVotesByUser } from '../services/issuesService';
 
 export function useIssues(city?: string) {
   const [issues, setIssues] = useState<Post[]>([]);
@@ -139,6 +139,25 @@ export function useRevokedIssues(userId?: string) {
       .finally(() => { if (isActive) setLoading(false); });
     return () => { isActive = false; };
   }, [userId]);
+
+  return { issues, loading, error };
+}
+
+export function useRevokedCityIssues(city?: string) {
+  const [issues, setIssues] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!city) { setIssues([]); setLoading(false); return; }
+    setLoading(true);
+    listRevokedIssuesByCity(city)
+      .then((data) => { if (isActive) setIssues(data); })
+      .catch((err) => { if (isActive) setError(err instanceof Error ? err : new Error('Impossible de charger les signalements révoqués')); })
+      .finally(() => { if (isActive) setLoading(false); });
+    return () => { isActive = false; };
+  }, [city]);
 
   return { issues, loading, error };
 }

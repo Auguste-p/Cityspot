@@ -9,6 +9,8 @@ vi.mock('../services/issuesService', () => ({
   createComment: vi.fn(),
   listVotes: vi.fn(),
   createVote: vi.fn(),
+  listRevokedIssuesByUser: vi.fn(),
+  listRevokedIssuesByCity: vi.fn(),
 }));
 
 import {
@@ -17,9 +19,11 @@ import {
   getIssueById,
   listComments,
   listIssues,
+  listRevokedIssuesByCity,
+  listRevokedIssuesByUser,
   listVotes,
 } from '../services/issuesService';
-import { useComments, useIssue, useIssues, useVotes } from './useIssues';
+import { useComments, useIssue, useIssues, useRevokedCityIssues, useRevokedIssues, useVotes } from './useIssues';
 
 afterEach(() => {
   vi.resetAllMocks();
@@ -122,3 +126,32 @@ describe('useVotes', () => {
     ]);
   });
 });
+
+describe('useRevokedIssues / useRevokedCityIssues', () => {
+  it('loads the revoked issues of a user, and nothing without a user id', async () => {
+    vi.mocked(listRevokedIssuesByUser).mockResolvedValue([{ id: 'r1' } as any]);
+    const { result } = renderHook(() => useRevokedIssues('u1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.issues).toEqual([{ id: 'r1' }]);
+    expect(listRevokedIssuesByUser).toHaveBeenCalledWith('u1');
+
+    const { result: anonymous } = renderHook(() => useRevokedIssues(undefined));
+    await waitFor(() => expect(anonymous.current.loading).toBe(false));
+    expect(anonymous.current.issues).toEqual([]);
+  });
+
+  it('loads the revoked issues of a city, and captures an error without crashing', async () => {
+    vi.mocked(listRevokedIssuesByCity).mockResolvedValueOnce([{ id: 'r1' } as any]);
+    const { result } = renderHook(() => useRevokedCityIssues('Lyon'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.issues).toEqual([{ id: 'r1' }]);
+    expect(listRevokedIssuesByCity).toHaveBeenCalledWith('Lyon');
+
+    vi.mocked(listRevokedIssuesByCity).mockRejectedValueOnce(new Error('network down'));
+    const { result: failing } = renderHook(() => useRevokedCityIssues('Paris'));
+    await waitFor(() => expect(failing.current.loading).toBe(false));
+    expect(failing.current.error?.message).toBe('network down');
+    expect(failing.current.issues).toEqual([]);
+  });
+});
+

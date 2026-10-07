@@ -16,11 +16,12 @@ import {
   Building2,
   AlertCircle,
   Loader2,
+  Ban,
 } from "lucide-react";
 import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from "../lib/postStatus";
 import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from "../lib/postCategory";
 import { PostCard } from "./PostCard";
-import { useIssues } from "../hooks/useIssues";
+import { useIssues, useRevokedCityIssues } from "../hooks/useIssues";
 import { getCityName } from "../lib/geocode";
 import { useUser } from "../context/UserContext";
 
@@ -45,7 +46,10 @@ export function MunicipalView() {
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<PostCategory[]>([]); // vide = toutes
   const { user } = useUser();
-  const { issues: posts, loading, error } = useIssues(getCityName(user?.city));
+  const cityName = getCityName(user?.city);
+  const { issues: posts, loading, error } = useIssues(cityName);
+  // Lecture secondaire : son échec ne bloque pas le tableau de bord, il est signalé dans l'onglet.
+  const { issues: revokedPosts, error: revokedError } = useRevokedCityIssues(cityName);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryValue, number> = {
@@ -96,6 +100,14 @@ export function MunicipalView() {
   const completedPosts = useMemo(
     () => filteredPosts.filter((post) => post.status === "completed"),
     [filteredPosts],
+  );
+
+  const filteredRevokedPosts = useMemo(
+    () =>
+      selectedCategories.length === 0
+        ? revokedPosts
+        : revokedPosts.filter((post) => post.categories.some((c) => selectedCategories.includes(c))),
+    [revokedPosts, selectedCategories],
   );
 
   if (loading) {
@@ -230,7 +242,8 @@ export function MunicipalView() {
 
         {/* Tabs for different post statuses */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          {/* flex-wrap et non grid-cols-N : le CSS est un export statique, une classe absente d'index.css est sans effet. */}
+          <TabsList className="flex flex-wrap w-full h-auto gap-1 mb-6">
             <TabsTrigger value="all">
               Tous ({filteredPosts.length})
             </TabsTrigger>
@@ -242,6 +255,9 @@ export function MunicipalView() {
             </TabsTrigger>
             <TabsTrigger value="completed">
               Terminés ({completedPosts.length})
+            </TabsTrigger>
+            <TabsTrigger value="revoked">
+              Révoqués ({filteredRevokedPosts.length})
             </TabsTrigger>
           </TabsList>
 
@@ -320,6 +336,33 @@ export function MunicipalView() {
                 <p className="text-muted-foreground">
                   {EMPTY_STATE_LABELS.completed}
                 </p>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="revoked" className="space-y-4">
+            {revokedError ? (
+              <Card className="p-8 text-center">
+                <AlertCircle className="size-12 mx-auto mb-4 text-destructive" />
+                <p className="text-muted-foreground">Impossible de charger les signalements révoqués</p>
+              </Card>
+            ) : filteredRevokedPosts.length > 0 ? (
+              filteredRevokedPosts.map((post) => (
+                <div key={post.id} className="space-y-1">
+                  <PostCard post={post} onClick={() => navigate(`/post/${post.id}`)} />
+                  {post.revoked && (
+                    <p className="text-xs text-muted-foreground px-2">
+                      Révoqué le{" "}
+                      {post.revoked.at.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                      {" — "}motif : {post.revoked.reason}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <Card className="p-8 text-center">
+                <Ban className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">{EMPTY_STATE_LABELS.revokedCity}</p>
               </Card>
             )}
           </TabsContent>

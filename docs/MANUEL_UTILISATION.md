@@ -81,7 +81,8 @@ La vue est automatiquement limitée aux signalements de la ville de l'agent conn
 
 - des **statistiques** globales (total, en vote, en cours, terminés) ;
 - un **filtre par catégorie** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) ;
-- des **onglets** par statut (Tous / En vote / En cours / Terminés), chaque signalement menant à son détail (§6).
+- des **onglets** par statut (Tous / En vote / En cours / Terminés), chaque signalement menant à son détail (§6) ;
+- un onglet **Révoqués**, qui liste les signalements de la ville révoqués par la mairie (§7.1), avec la date et le motif de chaque révocation. Il suit le filtre de catégorie, et ces signalements ne sont comptés ni dans les autres onglets ni dans les statistiques du haut de page.
 
 ### 7.1 Révoquer un signalement de sa ville
 
