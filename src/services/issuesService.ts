@@ -744,6 +744,8 @@ export interface Comment {
   id_issue: string;
   comment: string;
   authorName?: string;
+  // Posé seulement quand l'auteur est un compte mairie (vue municipal_user_ids).
+  authorIsMunicipal?: boolean;
 }
 
 export async function listComments(issueId: string): Promise<Comment[]> {
@@ -758,14 +760,34 @@ export async function listComments(issueId: string): Promise<Comment[]> {
 
   if (error) throw new Error(error.message);
 
-  return ((data ?? []) as CommentRow[]).map((row) => ({
+  const rows = (data ?? []) as CommentRow[];
+  const municipalIds = await getMunicipalAuthorIds(rows.map((row) => row.id_user));
+
+  return rows.map((row) => ({
     id: row.id,
     created_at: row.created_at,
     id_user: row.id_user,
     id_issue: row.id_issue,
     comment: row.comment,
     authorName: row.author_name ?? undefined,
+    ...(municipalIds.has(row.id_user) ? { authorIsMunicipal: true } : {}),
   }));
+}
+
+// Le badge est décoratif : si la vue est illisible, les commentaires s'affichent sans lui
+// plutôt que de faire échouer tout le fil.
+async function getMunicipalAuthorIds(authorIds: string[]): Promise<Set<string>> {
+  const client = getSupabaseClient();
+  const ids = [...new Set(authorIds)];
+  if (!client || ids.length === 0) return new Set();
+
+  try {
+    const { data, error } = await (client as any).from('municipal_user_ids').select('id').in('id', ids);
+    if (error) return new Set();
+    return new Set((data ?? []).map((row: { id: string }) => row.id));
+  } catch {
+    return new Set();
+  }
 }
 
 // author_name est dénormalisé sur la ligne à l'écriture (même raison que

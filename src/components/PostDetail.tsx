@@ -610,7 +610,7 @@ export function PostDetail() {
                         {avatarChar}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium flex flex-wrap items-center gap-2">
                           {isMe ? (
                             authorLabel
                           ) : (
@@ -619,6 +619,12 @@ export function PostDetail() {
                             </Link>
                           )}
                           {isMe && <span className="text-muted-foreground font-normal"> (vous)</span>}
+                          {(comment.authorIsMunicipal || (isMe && isMunicipalUser)) && (
+                            <Badge className={`${MUNICIPAL_GRADIENT_CLASS} text-white border-0 text-xs`}>
+                              <Building2 className="size-2.5 mr-1" aria-hidden="true" />
+                              Mairie
+                            </Badge>
+                          )}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(comment.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}

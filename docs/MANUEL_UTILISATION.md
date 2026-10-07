@@ -59,7 +59,7 @@ Sur `/post/:id` :
   - Un compte ne peut voter qu'une seule fois par signalement. La jauge affiche le nombre de votes nets (pour − contre) par rapport à l'objectif requis pour faire passer le projet *en cours*. Un bouton "Votants" liste qui a voté et dans quel sens.
 - **Tâches** — visibles et cochables uniquement une fois le projet passé *en cours*, et uniquement par le créateur du signalement. Une barre de progression indique l'avancement.
 - **Matériel nécessaire** — liste informative, non modifiable après création (sauf via "Modifier", §6.1).
-- **Commentaires** — tout utilisateur connecté peut lire et publier un commentaire ; le nom de chaque auteur est affiché (lien vers son profil public s'il l'a activé, §8) et vos propres commentaires sont repérés par la mention "(vous)".
+- **Commentaires** — tout utilisateur connecté peut lire et publier un commentaire ; le nom de chaque auteur est affiché (lien vers son profil public s'il l'a activé, §8) et vos propres commentaires sont repérés par la mention "(vous)". Les commentaires écrits par un compte mairie portent le badge bleu **« Mairie »** à côté du nom, pour les identifier d'un coup d'œil.
 - **Partager** — copie le lien du signalement (ou ouvre le partage natif du système sur mobile).
 
 - **Signalement révoqué** — si la mairie de la ville a révoqué le signalement, un badge rouge « Révoqué » remplace le statut et une bannière en affiche le motif ; le vote, les commentaires, la modification et la suppression ne sont plus proposés. Le signalement n'apparaît plus sur la carte ni dans les listes, seul son lien direct reste ouvrable (auteur et mairie de la ville).

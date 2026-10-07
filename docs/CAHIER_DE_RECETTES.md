@@ -9,7 +9,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 ### 1.1 Traçabilité avec la grille d'évaluation (C2.3.1)
 
 - *"Le cahier de recettes reprend l'ensemble des fonctionnalités attendues"* → sections 5 à 11 (Authentification, Création de signalement, Carte, Détail, Vue municipale, Profil, Paramètres) couvrent chacune un écran livré, fonctionnalité par fonctionnalité.
-- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 87/105 scénarios ✅, 0 ❌, 18 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
+- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 87/106 scénarios ✅, 0 ❌, 19 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
 
 ## 2. Périmètre
 
@@ -101,6 +101,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | DET-05 | F | Majeur | Visibilité des tâches selon statut | Consulter un post "en vote" puis "en cours" | En vote : tâches masquées avec message informatif · en cours : tâches visibles avec barre de progression | ☐ *(dépend du même seuil de +10 votes que DET-04, non atteignable avec 2 comptes)* |
 | DET-06 | SEC | Majeur | Édition des tâches restreinte | Se connecter avec un compte différent du créateur, tenter de cocher une tâche sur un post "en cours" | Action bloquée, toast "Les tâches ne sont plus modifiables..." (contrôle `canEditTasks`) | ✅ *(vérification partielle exécutée 2026-07-17 : sur un post "en vote" (pending), cliquer une tâche affiche bien le toast d'information au lieu de la cocher. Le cas exact "en cours + non-créateur" reste hors de portée, bloqué par le seuil de vote de DET-04)* |
 | DET-07 | F | Majeur | Ajout de commentaire | Saisir un commentaire, publier | Commentaire ajouté en fin de liste avec auteur et date | ✅ *(exécuté 2026-07-17)* |
+| DET-19 | F | Mineur | Badge « Mairie » sur les commentaires | Avec un compte mairie, commenter un signalement ; ouvrir le même signalement avec un compte citoyen, qui commente aussi | Le commentaire de la mairie porte le badge « Mairie » (vu par la mairie et par le citoyen), celui du citoyen n'en porte pas | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | DET-17 | F | Mineur | Nom de l'auteur et lien vers le profil public | Ouvrir un signalement avec des commentaires d'un autre utilisateur | Nom réel de l'auteur affiché (au lieu de "Citoyen"), cliquable vers `/user/:id` ; ses propres commentaires portent la mention "(vous)" et ne sont pas cliquables | ✅ *(exécuté 2026-09-03 par l'utilisateur avec 2 comptes réels)* |
 | DET-08 | F | Mineur | Partage | Cliquer sur "Partager" (navigateur sans Web Share API) | Lien copié dans le presse-papier, toast de confirmation | ✅ *(exécuté 2026-07-17, repli presse-papier confirmé en environnement headless)* |
 | DET-09 | SEC | Bloquant | Icônes Modifier/Supprimer réservées au créateur | Ouvrir un post créé par un autre utilisateur, puis le même post en étant le créateur | Absentes dans le premier cas, visibles dans le second (garde `user?.id === post.created_by`) | ✅ *(exécuté 2026-07-17 avec 2 comptes réels : non-propriétaire → Modifier/Supprimer absents ; propriétaire → Modifier/Supprimer visibles)* |
@@ -194,24 +195,24 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 
 | Catégorie (type) | Nombre de scénarios |
 |---|---|
-| Fonctionnels (F) | 74 |
+| Fonctionnels (F) | 75 |
 | Structurels (S) | 11 |
 | Sécurité (SEC) | 20 |
-| **Total** | **105** |
+| **Total** | **106** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 19 |
 | Majeur | 44 |
-| Mineur | 42 |
-| **Total** | **105** |
+| Mineur | 43 |
+| **Total** | **106** |
 
 | État d'exécution | Nombre |
 |---|---|
 | ✅ OK | 87 *(73 le 2026-07-17 + 10 le 2026-09-03 + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 18 *(dont 4 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail)* |
-| **Total** | **105** |
+| ☐ Non exécuté (raison documentée par ligne) | 19 *(dont 5 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires)* |
+| **Total** | **106** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

@@ -195,6 +195,44 @@ describe('comments and votes', () => {
     ]);
   });
 
+  it('flags the comments written by a city hall account (municipal_user_ids view)', async () => {
+    const { listComments } = await import('./issuesService');
+
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        comments: {
+          data: [
+            { id: 'c1', created_at: 'now', id_user: 'mairie', id_issue: 'i1', comment: 'Pris en charge', author_name: 'Mairie de Lyon' },
+            { id: 'c2', created_at: 'now', id_user: 'u1', id_issue: 'i1', comment: 'Merci', author_name: 'Jeanne' },
+          ],
+          error: null,
+        },
+        municipal_user_ids: { data: [{ id: 'mairie' }], error: null },
+      }),
+    );
+
+    const comments = await listComments('i1');
+    expect(comments.map((c) => c.authorIsMunicipal)).toEqual([true, undefined]);
+  });
+
+  it('still returns the comments, without badge, when the municipal view cannot be read', async () => {
+    const { listComments } = await import('./issuesService');
+
+    mockedGetSupabaseClient.mockReturnValue(
+      fakeClient({
+        comments: {
+          data: [{ id: 'c1', created_at: 'now', id_user: 'mairie', id_issue: 'i1', comment: 'Pris en charge', author_name: null }],
+          error: null,
+        },
+        municipal_user_ids: { data: null, error: new Error('permission denied') },
+      }),
+    );
+
+    const comments = await listComments('i1');
+    expect(comments).toHaveLength(1);
+    expect(comments[0].authorIsMunicipal).toBeUndefined();
+  });
+
   it('maps vote rows to the public Vote shape', async () => {
     const { listVotes } = await import('./issuesService');
 

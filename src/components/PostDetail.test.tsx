@@ -164,6 +164,38 @@ describe('PostDetail accessibility (RGAA / axe-core)', () => {
   });
 });
 
+describe('PostDetail city hall badge on comments', () => {
+  const comment = (id: string, id_user: string, authorIsMunicipal?: boolean) => ({
+    id, created_at: '2026-10-07T10:00:00Z', id_issue: 'post-1', id_user, comment: `Message ${id}`, authorName: `Auteur ${id}`, authorIsMunicipal,
+  });
+  const withComments = (comments: ReturnType<typeof comment>[]) => {
+    mockedUseIssue.mockReturnValue({ issue: post(), loading: false, error: null });
+    mockedUseComments.mockReturnValue({ comments, loading: false, error: null, addComment: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+  };
+
+  it('marks only the comments written by a city hall account, with no violation', async () => {
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    withComments([comment('c1', 'mairie', true), comment('c2', 'someone')]);
+
+    const { container } = renderPostDetail();
+    await screen.findByText('Message c1');
+    expect(screen.getAllByText('Mairie')).toHaveLength(1);
+    await expectNoA11yViolations(container);
+  });
+
+  it('marks my own comment when I am a city hall account (no need to re-read the view)', async () => {
+    const MAIRIE = { id: 'm1', email: 'm@ville.fr', role: 'municipal' as const };
+    vi.mocked(getPrivateNote).mockResolvedValue('');
+    mockedUseUser.mockReturnValue({ user: MAIRIE, loading: false, isMunicipalUser: true, refreshUser: vi.fn() });
+    withComments([comment('c1', 'm1')]);
+
+    renderPostDetail();
+    await screen.findByText('Message c1');
+    expect(screen.getAllByText('Mairie')).toHaveLength(1);
+  });
+});
+
 describe('PostDetail revocation by the city hall', () => {
   const MAIRIE = { id: 'm1', email: 'm@ville.fr', role: 'municipal' as const, city: 'Castelnau-le-Lez, Occitanie' };
   const asUser = (user: typeof CITIZEN | typeof MAIRIE) =>
