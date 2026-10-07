@@ -3,7 +3,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router';
 import { z } from 'zod';
-import { Camera, Check, FileText, Loader2, MapPin, Package, Plus, X } from 'lucide-react';
+import { Camera, Check, FileText, Info, Loader2, MapPin, Package, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -11,6 +11,7 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
 import { createPostSchema } from '../schemas/formSchemas';
 import { createIssue, updateIssue } from '../services/issuesService';
@@ -348,6 +349,7 @@ export function CreatePost() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const isEditMode = Boolean(id);
+  const [certificationInfoOpen, setCertificationInfoOpen] = useState(false);
   const { user } = useUser();
   const { issue: existingPost, loading: existingPostLoading } = useIssue(id);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -367,6 +369,7 @@ export function CreatePost() {
       isPrivateProperty: 'public',
       isOwnProperty: 'yes',
       categories: [],
+      certified: false,
       propertyDocument: undefined,
       ownerEmail: '',
       tasks: [],
@@ -390,6 +393,7 @@ export function CreatePost() {
       isPrivateProperty: existingPost.isPrivateProperty ? 'private' : 'public',
       isOwnProperty: existingPost.isOwnProperty === false ? 'no' : 'yes',
       categories: existingPost.categories,
+      certified: true, // case affichée uniquement à la création
       propertyDocument: undefined,
       ownerEmail: existingPost.ownerEmail ?? '',
       tasks: existingPost.tasks.map((task) => ({ id: task.id, title: task.title })),
@@ -764,6 +768,44 @@ export function CreatePost() {
               icon={Package}
             />
 
+            {!isEditMode && (
+              <FormField
+                control={form.control}
+                name="certified"
+                render={({ field }) => (
+                  <Card className="p-4">
+                    <FormItem>
+                      <div className="flex items-start gap-3">
+                        <FormControl>
+                          <input
+                            id="certified"
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            onBlur={field.onBlur}
+                            className="mt-1 size-4 accent-primary"
+                          />
+                        </FormControl>
+                        <Label htmlFor="certified" className="font-normal leading-snug">
+                          Je certifie que les informations fournies sont exactes.
+                          <span className="text-destructive" aria-hidden="true">*</span>
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => setCertificationInfoOpen(true)}
+                          aria-label="En savoir plus sur la certification des informations"
+                          className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <Info className="size-4" />
+                        </button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  </Card>
+                )}
+              />
+            )}
+
             <FormActions
               onCancel={() => navigate(isEditMode && id ? `/post/${id}` : '/')}
               isSubmitting={form.formState.isSubmitting}
@@ -771,6 +813,24 @@ export function CreatePost() {
             />
           </form>
         </Form>
+
+        <Dialog open={certificationInfoOpen} onOpenChange={setCertificationInfoOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Certification des informations</DialogTitle>
+              <DialogDescription>
+                - Le lieu déclaré doit correspondre à la localisation réelle de la dégradation.<br />
+                - Le lieu déclaré n'est pas protégé par l'UNESCO<br />
+                - Le lieu n'est pas un site privé, ou si tel est le cas, vous devez être le propriétaire ou avoir l'autorisation du propriétaire pour signaler la dégradation.<br />
+                - Le lieu déclaré n'est pas un site sensible ou dangereux.<br />
+                - Le signalement doit être fait de bonne foi et dans un but d'amélioration de l'espace public.<br /> 
+                - Les travaux de voirie, de sécurité, d'éclairage ou autre nécessitant l'autorisation de la mairie, doit faire l'objet d'une demande préalable.<br />
+                - Les informations fournies doivent être exactes et vérifiables.<br />
+                - Toute fausse déclaration peut entraîner des sanctions, conformément aux CGU.
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

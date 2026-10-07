@@ -8,6 +8,7 @@ const validPost = {
   isPrivateProperty: 'public' as const,
   isOwnProperty: 'no' as const,
   categories: ['voirie' as const],
+  certified: true,
 };
 
 describe('createPostSchema', () => {
@@ -27,6 +28,10 @@ describe('createPostSchema', () => {
 
   it('rejects an empty category list', () => {
     expect(createPostSchema.safeParse({ ...validPost, categories: [] }).success).toBe(false);
+  });
+
+  it('rejects a post whose accuracy is not certified', () => {
+    expect(createPostSchema.safeParse({ ...validPost, certified: false }).success).toBe(false);
   });
 
   it('rejects a title that is too short', () => {

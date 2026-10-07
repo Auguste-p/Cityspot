@@ -26,6 +26,8 @@ export const createPostSchema = z.object({
 
   categories: z.array(z.enum(['voirie', 'eclairage', 'securite', 'proprete', 'espaces-verts', 'mobilier-urbain'])),
   
+  certified: z.boolean().refine((value) => value, 'Cochez cette case pour certifier que les informations sont exactes avant de créer le signalement'),
+
   propertyDocument: z.string().default(''),
   
   ownerEmail: z.string()
