@@ -14,12 +14,12 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
 import { createPostSchema } from '../schemas/formSchemas';
-import { createIssue, updateIssue } from '../services/issuesService';
+import { createIssue, notifyMairie, updateIssue } from '../services/issuesService';
 import { useIssue } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
-import { getCityName, searchAddress, type GeocodeResult } from '../lib/geocode';
+import { searchAddress, type GeocodeResult } from '../lib/geocode';
 import { FALLBACK_CITY } from '../constants/map';
-import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from '../lib/postCategory';
+import { POST_CATEGORIES, POST_CATEGORY_CONFIG, requiresAuthorization } from '../lib/postCategory';
 import { MAX_UPLOAD_SIZE, isAllowedImageFile, uploadToBucket } from '../lib/storage';
 import { cn } from './ui/utils';
 
@@ -498,9 +498,10 @@ export function CreatePost() {
           isOwnProperty: data.isOwnProperty === 'yes',
           ownerEmail: data.ownerEmail,
           categories: data.categories,
-          // Pas d'adresse recalculée (coords null) = pas de changement de lieu :
-          // on ne touche pas à la ville existante.
-          city: coords ? coords.city ?? getCityName(user?.city) : undefined,
+          // Pas d'adresse recalculée (coords null) ou ville non résolue = on ne touche pas à
+          // la ville existante. Jamais de repli sur la ville du profil : le mail à la mairie
+          // part selon issues.city, qui doit être celle du lieu, pas celle de l'auteur.
+          city: coords?.city,
         });
 
         toast.success('Signalement modifié avec succès !');
@@ -513,7 +514,7 @@ export function CreatePost() {
       // pour ne jamais créer un signalement à (0, 0).
       const coords = selectedLocation ?? (await searchAddress(data.address))[0] ?? null;
 
-      await createIssue({
+      const created = await createIssue({
         title: data.title,
         description: data.description,
         address: data.address,
@@ -533,13 +534,18 @@ export function CreatePost() {
         isMunicipalProject: false,
         categories: data.categories,
         created_by: user.id,
-        // Ville de l'adresse choisie/géocodée en priorité (le signalement
-        // concerne cet endroit) ; repli sur la ville du profil si le
-        // géocodage n'a pas résolu de ville (ex. lieu-dit, hors commune).
-        city: coords?.city ?? getCityName(user?.city),
+        // Ville du lieu choisi/géocodé, et rien d'autre : pas de repli sur la ville du profil
+        // de l'auteur (le mail à la mairie et la vue municipale se basent sur cette valeur).
+        // Ville non résolue (lieu-dit, hors commune) = null : personne n'est prévenu.
+        city: coords?.city,
       });
 
       toast.success('Signalement créé avec succès !');
+      if (requiresAuthorization(data.categories)) {
+        const mailStatus = await notifyMairie(created.id);
+        if (mailStatus === 'failed') toast.warning("La mairie n'a pas pu être prévenue par mail");
+        if (mailStatus === 'none') toast.info("Aucun compte mairie n'est encore inscrit pour votre ville : personne n'a été prévenu par mail");
+      }
       navigate('/');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer le signalement");
@@ -669,6 +675,15 @@ export function CreatePost() {
                         })}
                       </div>
                     </FormControl>
+                    {/* Zone live toujours présente : le lecteur d'écran annonce le texte à son apparition. */}
+                    <div role="status" className="mt-3">
+                      {!isEditMode && requiresAuthorization(field.value) && (
+                        <p className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                          <Info className="mt-0.5 size-4 flex-shrink-0" aria-hidden="true" />
+                          Un mail sera envoyé à la mairie pour ce signalement car il ne peut pas être réalisé sans autorisation et matériel spécifique.
+                        </p>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 </Card>

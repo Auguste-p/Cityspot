@@ -16,4 +16,12 @@ export const POST_CATEGORY_CONFIG: Record<PostCategory, PostCategoryConfig> = {
   'mobilier-urbain': { label: 'Mobilier urbain', icon: Armchair, color: 'text-orange-600' },
 };
 
+// Catégories dont les travaux exigent autorisation et matériel spécifique : la mairie est
+// prévenue par mail à la création (Edge Function notify-mairie, qui duplique cette liste
+// côté Deno — à garder synchronisée).
+export const AUTHORIZATION_CATEGORIES: PostCategory[] = ['voirie', 'eclairage', 'securite', 'mobilier-urbain'];
+
+export const requiresAuthorization = (categories: PostCategory[]) =>
+  categories.some((category) => AUTHORIZATION_CATEGORIES.includes(category));
+
 export const POST_CATEGORIES = Object.keys(POST_CATEGORY_CONFIG) as PostCategory[];

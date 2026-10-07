@@ -12,6 +12,7 @@ interface PhotonProperties {
   housenumber?: string;
   street?: string;
   city?: string;
+  osm_value?: string;
   county?: string;
   state?: string;
   postcode?: string;
@@ -46,6 +47,13 @@ function toLabel(p: PhotonProperties): string {
   }
 
   return parts.join(', ');
+}
+
+// Photon ne renseigne `city` que sur les adresses/lieux *dans* une commune ; quand le résultat
+// est la commune elle-même (ex. « Montpellier »), son nom est dans `name`. Sans ça la ville
+// serait vide, et le signalement retomberait sur une ville qui n'est pas celle choisie.
+function toCity(p: PhotonProperties): string | undefined {
+  return p.city ?? (['city', 'town', 'village'].includes(p.osm_value ?? '') ? p.name : undefined);
 }
 
 function toCityLabel(p: PhotonProperties): string {
@@ -99,7 +107,7 @@ async function photonSearch(
         label: toResultLabel(feature.properties),
         lat: feature.geometry.coordinates[1],
         lng: feature.geometry.coordinates[0],
-        city: feature.properties.city,
+        city: toCity(feature.properties),
       }))
       .filter((result) => result.label.length > 0);
   } catch {

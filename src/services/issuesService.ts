@@ -707,10 +707,34 @@ export async function revokeIssue(issueId: string, reason: string): Promise<{ em
 
   const { error: mailError } = await client.functions.invoke('notify-revocation', { body: { issueId } });
   if (mailError) {
+    await logFunctionError('notify-revocation', mailError);
     logSecurityEvent("Mail de révocation non envoyé", { issueId });
     return { emailSent: false };
   }
   return { emailSent: true };
+}
+
+// Une erreur de Edge Function (FunctionsHttpError) n'expose le statut/corps de la réponse
+// que dans `error.context` ; sans lecture, la console du navigateur ne montre qu'un « 401 ».
+async function logFunctionError(name: string, error: unknown) {
+  const response = (error as { context?: Response } | null)?.context;
+  const body = response ? await response.text().catch(() => '') : '';
+  console.error(`Edge Function ${name} en échec :`, response?.status, body || (error as Error)?.message);
+}
+
+// Mail aux comptes mairie de la ville pour un signalement exigeant autorisation. Effet
+// secondaire de la création : ne lève jamais, le résultat sert seulement au message affiché.
+export async function notifyMairie(issueId: string): Promise<'sent' | 'none' | 'failed'> {
+  const client = getSupabaseClient();
+  if (!client) return 'none';
+
+  const { data, error } = await client.functions.invoke('notify-mairie', { body: { issueId } });
+  if (error) {
+    await logFunctionError('notify-mairie', error);
+    logSecurityEvent('Mail mairie non envoyé', { issueId });
+    return 'failed';
+  }
+  return data?.sent > 0 ? 'sent' : 'none';
 }
 
 export interface Comment {

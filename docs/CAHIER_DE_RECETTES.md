@@ -9,7 +9,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 ### 1.1 Traçabilité avec la grille d'évaluation (C2.3.1)
 
 - *"Le cahier de recettes reprend l'ensemble des fonctionnalités attendues"* → sections 5 à 11 (Authentification, Création de signalement, Carte, Détail, Vue municipale, Profil, Paramètres) couvrent chacune un écran livré, fonctionnalité par fonctionnalité.
-- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 85/102 scénarios ✅, 0 ❌, 17 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
+- *"Les tests fonctionnels, structurels et de sécurité exécutés sont conformes au plan défini"* → sections 12 (Structurels) et 13 (Sécurité) complètent la couverture fonctionnelle ; la colonne Statut (§4) matérialise l'exécution une fois les cases cochées. **État actuel (2026-10-07) : 87/105 scénarios ✅, 0 ❌, 18 non exécutés (raison documentée sur chaque ligne : action jugée trop intrusive pour être automatisée, hors de portée avec 2 comptes de test, ou ajoutés le 2026-10-07 avec la révocation par la mairie et pas encore rejoués). Les 18 scénarios Bloquant antérieurs sont tous ✅ ; MUN-09 (Bloquant, révocation) est à rejouer (SEC-02/SEC-03 re-vérifiés le 2026-07-19 contre le nouveau mécanisme de suppression par RLS directe, cf. `CHANGELOG.md` v1.2.0).**
 
 ## 2. Périmètre
 
@@ -72,6 +72,9 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | POST-13 | F | Mineur | Annulation | Cliquer "Annuler" | Retour à `/` sans création | ✅ *(exécuté 2026-07-17)* |
 | POST-14 | S | Mineur | Formulaire non bloquant pendant soumission | Observer le bouton pendant l'envoi | Bouton désactivé + spinner "Création..." | ✅ *(observé visuellement lors des créations répétées de cette session)* |
 | POST-15 | F | Majeur | Catégorie obligatoire | Laisser le sélecteur de catégorie vide, valider | Erreur "La catégorie est requise", formulaire bloqué (catégorie désormais requise au même titre que titre/description/localisation, `createPostSchema`) | ✅ *(exécuté 2026-09-03 par l'utilisateur avec 2 comptes réels)* |
+| POST-17 | F | Mineur | Message « mail envoyé à la mairie » | Dans `/create`, cocher « Propreté » seule, puis ajouter « Voirie » (puis tester éclairage, sécurité, mobilier urbain), puis tout décocher ; ouvrir ensuite un signalement en modification | Message visible dès qu'une des 4 catégories est cochée, absent pour propreté/espaces verts seuls, absent en modification | ✅ *(exécuté 2026-10-07 par l'utilisateur)* |
+| POST-18 | F | Majeur | Mail aux comptes mairie de la ville | Avec un compte mairie dans la ville X, créer en citoyen (ville X) un signalement « Voirie » ; recréer un signalement « Propreté » seule ; tenter de rappeler la fonction pour le même signalement | Mail reçu par le compte mairie (titre, catégories, adresse, lien si `SITE_URL`) pour le premier signalement seulement ; aucun mail pour « Propreté » ; pas de second mail ; ville sans compte mairie : information « personne n'a été prévenu » et création réussie | ✅ *(exécuté 2026-10-07 par l'utilisateur : mail reçu par le compte mairie, aucun mail pour « Propreté » seule ; un 401 transitoire de la passerelle juste après le déploiement de la fonction, disparu de lui-même — cf. `MANUEL_DEPLOIEMENT.md` §8.5)* |
+| POST-19 | SEC | Majeur | Le mail suit la ville du lieu choisi | Avec un citoyen de la ville X (profil) et un compte mairie dans chacune des villes X et Y : créer un signalement « Voirie » en choisissant l'adresse (ou la commune seule) de la ville Y ; puis un signalement dans un lieu-dit sans commune | Seule la mairie de Y reçoit le mail (jamais celle de X) ; le signalement apparaît dans la vue municipale de Y et pas de X ; lieu-dit : aucun mail, signalement sans ville | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | POST-16 | F | Mineur | Ville dérivée de l'adresse | Créer un signalement en choisissant une suggestion d'adresse, vérifier `issues.city` en base | La ville correspond à celle retournée par la suggestion sélectionnée (Photon), sans ressaisie | ✅ *(exécuté 2026-09-03 par l'utilisateur)* |
 
 ## 7. Carte interactive (`/`)
@@ -191,24 +194,24 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 
 | Catégorie (type) | Nombre de scénarios |
 |---|---|
-| Fonctionnels (F) | 72 |
+| Fonctionnels (F) | 74 |
 | Structurels (S) | 11 |
-| Sécurité (SEC) | 19 |
-| **Total** | **102** |
+| Sécurité (SEC) | 20 |
+| **Total** | **105** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 19 |
-| Majeur | 42 |
-| Mineur | 41 |
-| **Total** | **102** |
+| Majeur | 44 |
+| Mineur | 42 |
+| **Total** | **105** |
 
 | État d'exécution | Nombre |
 |---|---|
-| ✅ OK | 85 *(73 le 2026-07-17 + 10 le 2026-09-03 + 2 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
+| ✅ OK | 87 *(73 le 2026-07-17 + 10 le 2026-09-03 + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 17 *(dont 3 ajoutés le 2026-10-07 avec la révocation par la mairie : MUN-09, DET-18, PROF-12)* |
-| **Total** | **102** |
+| ☐ Non exécuté (raison documentée par ligne) | 18 *(dont 4 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail)* |
+| **Total** | **105** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

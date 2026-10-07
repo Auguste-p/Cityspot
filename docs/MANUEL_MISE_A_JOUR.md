@@ -61,7 +61,7 @@ Pour une nouvelle migration :
 1. Créer le fichier `supabase/migrations/<horodatage>_<description>.sql`.
 2. Écrire le DDL (colonnes, contraintes, policies RLS). Toute nouvelle table exposée à l'API doit recevoir des policies RLS explicites — ne jamais laisser de policy permissive du type `"all for all"` (cf. `PLAN_CORRECTION_BOGUES.md`, BUG-10/BUG-13, pour l'exemple de ce qu'il ne faut pas reproduire).
 3. `supabase db push`.
-   - Les migrations `20261007010000_add_issues_revocation.sql` et `20261007020000_add_revocation_notification.sql` (révocation d'un signalement) vont de pair avec la Edge Function `notify-revocation`, déployée séparément : `supabase functions deploy notify-revocation` (secrets `RESEND_API_KEY`, `RESEND_FROM`, cf. `MANUEL_DEPLOIEMENT.md` §8.5). `deploy.yml` ne la déploie pas.
+   - Les migrations `20261007010000_add_issues_revocation.sql`, `20261007020000_add_revocation_notification.sql` et `20261008010000_add_mairie_notification.sql` vont de pair avec les Edge Functions `notify-revocation` et `notify-mairie`, déployées séparément : `supabase functions deploy <nom>` (secrets `RESEND_API_KEY`, `RESEND_FROM`, `SITE_URL` optionnel, cf. `MANUEL_DEPLOIEMENT.md` §8.5). `deploy.yml` ne la déploie pas.
 4. Vérifier avec une sonde REST directe (avec et sans authentification, avec un compte tiers) que les policies bloquent bien l'accès non autorisé — méthode utilisée pour SEC-10/SEC-11 dans `CAHIER_DE_RECETTES.md`.
 
 ## 6. Tâches d'administration courantes

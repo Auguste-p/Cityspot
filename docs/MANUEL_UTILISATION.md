@@ -33,8 +33,8 @@ Une session valide redirige automatiquement vers la carte (`/`). Sans session, t
 Depuis n'importe quel écran, le bouton **"Nouveau"** (icône `+`, barre de navigation basse) ouvre le formulaire de création (`/create`) :
 
 1. **Photo** — une image de la dégradation (PNG/JPG, 5 Mo max).
-2. **Titre**, **description** et **catégorie** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) — champs obligatoires, comme la localisation.
-3. **Localisation** — adresse ou lieu précis (obligatoire) ; la ville du signalement est déduite automatiquement de l'adresse choisie.
+2. **Titre**, **description** et **catégorie(s)** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) — champs obligatoires, comme la localisation. Si vous cochez Voirie, Éclairage, Sécurité ou Mobilier urbain, un message précise qu'un mail sera envoyé à la mairie, ces signalements ne pouvant pas être réalisés sans autorisation et matériel spécifique : à la validation, les comptes mairie de la ville du signalement reçoivent un mail (un seul par signalement). Si le mail ne peut pas partir, ou si aucun compte mairie n'existe encore dans la ville, le signalement est créé quand même et un message vous le dit.
+3. **Localisation** — adresse ou lieu précis (obligatoire) ; la ville du signalement est déduite automatiquement de l'adresse choisie (jamais de votre ville de profil) : c'est elle qui détermine la mairie prévenue par mail et la vue municipale qui affichera le signalement. Si la ville ne peut pas être déterminée (lieu-dit hors commune), le signalement est créé sans ville : aucun mail n'est envoyé et aucune mairie ne le voit dans sa vue.
 4. **Type de voie** :
    - *Voie publique* — cas standard.
    - *Voie privée* — un sous-formulaire apparaît :

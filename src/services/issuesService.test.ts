@@ -369,4 +369,40 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
     const post = await getIssueById('issue-1');
     expect(post?.categories).toEqual(['voirie']);
   });
+
+  it('reports whether the mairie notification was sent, found nobody, or failed', async () => {
+    const { notifyMairie } = await import('./issuesService');
+    const invoke = vi.fn();
+    mockedGetSupabaseClient.mockReturnValue({ functions: { invoke } } as any);
+
+    invoke.mockResolvedValueOnce({ data: { sent: 2 }, error: null });
+    await expect(notifyMairie('issue-1')).resolves.toBe('sent');
+    expect(invoke).toHaveBeenCalledWith('notify-mairie', { body: { issueId: 'issue-1' } });
+
+    invoke.mockResolvedValueOnce({ data: { sent: 0 }, error: null });
+    await expect(notifyMairie('issue-1')).resolves.toBe('none');
+
+    invoke.mockResolvedValueOnce({ data: null, error: new Error('resend down') });
+    await expect(notifyMairie('issue-1')).resolves.toBe('failed');
+  });
+
+  it('does not notify anyone without Supabase', async () => {
+    mockedGetSupabaseClient.mockReturnValue(null);
+    vi.resetModules();
+    const { notifyMairie } = await import('./issuesService');
+    await expect(notifyMairie('issue-1')).resolves.toBe('none');
+  });
+
+  it('logs the HTTP status and body of a failing Edge Function so the cause is readable in the console', async () => {
+    const { notifyMairie } = await import('./issuesService');
+    const context = new Response(JSON.stringify({ error: 'Non authentifié' }), { status: 401 });
+    const invoke = vi.fn().mockResolvedValue({ data: null, error: Object.assign(new Error('non-2xx'), { context }) });
+    mockedGetSupabaseClient.mockReturnValue({ functions: { invoke } } as any);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(notifyMairie('issue-1')).resolves.toBe('failed');
+
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('notify-mairie'), 401, expect.stringContaining('Non authentifié'));
+    consoleError.mockRestore();
+  });
 });

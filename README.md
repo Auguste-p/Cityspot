@@ -21,7 +21,7 @@ N'utilisez pas de rôle de service ni de clé secrète dans le navigateur. Si la
 ## Tests & couverture
 
 ```bash
-npm test              # 153 tests (unitaires + accessibilité RGAA)
+npm test              # 165 tests (unitaires + accessibilité RGAA)
 npm run test:coverage # idem + rapport de couverture
 ```
 

@@ -70,6 +70,42 @@ describe('searchAddress', () => {
     expect(results).toEqual([{ label: 'Rue de la République, 69001 Lyon', lat: 45.7675252, lng: 4.836052, city: 'Lyon' }]);
   });
 
+  it('takes the city from the name when the result is itself a city (Photon sets no `city` on it)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        photonResponse([
+          {
+            properties: { name: 'Montpellier', osm_key: 'place', osm_value: 'city', country: 'France' },
+            geometry: { coordinates: [3.8767337, 43.6112422] },
+          },
+        ]),
+      ),
+    );
+
+    const results = await searchAddress('Montpellier');
+
+    expect(results[0].city).toBe('Montpellier');
+  });
+
+  it('leaves the city undefined when the result has none and is not a city (never guess)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        photonResponse([
+          {
+            properties: { name: 'Lieu-dit Les Bruyères', osm_key: 'place', osm_value: 'locality', country: 'France' },
+            geometry: { coordinates: [3.1, 43.2] },
+          },
+        ]),
+      ),
+    );
+
+    const results = await searchAddress('Les Bruyères');
+
+    expect(results[0].city).toBeUndefined();
+  });
+
   it('resolves an empty array on an HTTP error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
 

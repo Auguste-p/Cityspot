@@ -132,17 +132,20 @@ Ferme le point ouvert §10.4/A09 (aucune supervision en prod) de la session pré
 
 ⚠️ **Limite assumée** : self-hébergement de Sentry écarté volontairement — le stack officiel `getsentry/self-hosted` recommande 16 Go RAM, hors de portée du VPS (4 Go). Le tier gratuit SaaS (5k erreurs/mois) est largement suffisant pour ce volume de trafic.
 
-### 8.5 Mail de révocation (Edge Function `notify-revocation`, Supabase + Resend)
+### 8.5 Mails applicatifs (Edge Functions `notify-revocation` et `notify-mairie`, Supabase + Resend)
 
-Hors VPS : la fonction vit chez Supabase. À faire une fois, puis à chaque modification de `supabase/functions/notify-revocation/` :
+`notify-revocation` prévient l'auteur d'un signalement révoqué ; `notify-mairie` prévient les comptes mairie de la ville quand un signalement de voirie, éclairage, sécurité ou mobilier urbain est créé. Hors VPS : les fonctions vivent chez Supabase. À faire une fois, puis à chaque modification de `supabase/functions/` :
 
 1. Créer un compte [Resend](https://resend.com), générer une clé d'API, et **vérifier un domaine** (enregistrements DNS) — sans domaine vérifié, Resend n'envoie qu'à l'adresse de votre propre compte, donc les vrais auteurs ne recevraient rien.
 2. Poser les secrets : `supabase secrets set RESEND_API_KEY=re_... RESEND_FROM="City Spot <noreply@votre-domaine>"` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` sont injectés automatiquement). Jamais commités.
-3. Appliquer les migrations `20261007010000_add_issues_revocation.sql` et `20261007020000_add_revocation_notification.sql`.
-4. Déployer : `supabase functions deploy notify-revocation` (le JWT est vérifié par défaut — ne pas passer `--no-verify-jwt`).
-5. Contrôle : révoquer un signalement de test avec un compte mairie ; consulter les logs (`supabase functions logs notify-revocation` ou Dashboard → Edge Functions) en cas d'avertissement « e-mail non envoyé ».
+3. Appliquer les migrations `20261007010000_add_issues_revocation.sql`, `20261007020000_add_revocation_notification.sql` et `20261008010000_add_mairie_notification.sql`.
+4. Déployer : `supabase functions deploy notify-revocation` et `supabase functions deploy notify-mairie` (le JWT est vérifié par défaut — ne pas passer `--no-verify-jwt`).
+   - Optionnel, pour `notify-mairie` : `supabase secrets set SITE_URL=https://projet-cityspot.fr` ajoute un lien vers le signalement dans le mail (sans ce secret, le mail part sans lien).
+5. Contrôle : révoquer un signalement de test avec un compte mairie, puis créer un signalement « Voirie » avec un compte citoyen de la même ville qu'un compte mairie ; consulter les logs (`supabase functions logs <nom>` ou Dashboard → Edge Functions) en cas d'avertissement « e-mail non envoyé ».
 
-Cette fonction n'est pas déployée par `deploy.yml` (qui ne gère que le VPS).
+Après un premier déploiement, attendre quelques minutes avant de tester : juste après le déploiement de `notify-mairie`, un appel a été rejeté en 401 par la passerelle Supabase (aucune trace dans les logs de la fonction) puis a fonctionné sans aucune modification quelques minutes plus tard — cause non établie, un délai de propagation est l'hypothèse la plus probable. Si le 401 persiste, `supabase functions deploy <nom> --no-verify-jwt` est le correctif de repli sans risque : chaque fonction vérifie elle-même l'appelant (`auth.getUser()`).
+
+Ces fonctions ne sont pas déployées par `deploy.yml` (qui ne gère que le VPS).
 
 ## 9. Critères de qualité et de performance
 

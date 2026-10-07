@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 import type { Post } from '../types/Post';
 
@@ -115,3 +115,36 @@ describe('CreatePost accessibility (RGAA / axe-core)', () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe('CreatePost — notice « mail envoyé à la mairie »', () => {
+  const NOTICE = /Un mail sera envoyé à la mairie/;
+
+  it('appears as soon as a category needing authorization is selected, with no violation', async () => {
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssue.mockReturnValue({ issue: null, loading: false, error: null });
+
+    const { container } = renderCreatePost('/create');
+    await screen.findByLabelText(/Titre du signalement/);
+    expect(screen.queryByText(NOTICE)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Propreté' }));
+    expect(screen.queryByText(NOTICE)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voirie' }));
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    await expectNoA11yViolations(container);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voirie' }));
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+
+  it('is not shown when editing (the mail is only sent at creation)', async () => {
+    mockedUseUser.mockReturnValue({ user: CITIZEN, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssue.mockReturnValue({ issue: existingPost({ categories: ['voirie'] }), loading: false, error: null });
+
+    renderCreatePost('/create/post-1');
+    await screen.findByDisplayValue('Lampadaire cassé');
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+});
+
