@@ -4,7 +4,7 @@ export interface Task {
   completed: boolean;
 }
 
-export type PostCategory = 'voirie' | 'eclairage' | 'securite' | 'proprete' | 'espaces-verts' | 'mobilier-urbain';
+export type PostCategory = 'voirie' | 'eclairage' | 'securite' | 'proprete' | 'espaces-verts' | 'mobilier-urbain' | 'peinture';
 
 export interface Post {
   id: string;

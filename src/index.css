@@ -94,6 +94,7 @@
     --color-green-900: oklch(.393 .095 152.535);
     --color-emerald-50: oklch(.979 .021 166.113);
     --color-cyan-600: oklch(.609 .126 221.723);
+    --color-purple-600: oklch(.558 .288 302.321);
     --color-blue-50: oklch(.97 .014 254.604);
     --color-blue-500: oklch(.623 .214 259.815);
     --color-blue-600: oklch(.546 .245 262.881);
@@ -1686,6 +1687,10 @@
 
   .text-orange-600 {
     color: var(--color-orange-600);
+  }
+
+  .text-purple-600 {
+    color: var(--color-purple-600);
   }
 
   .text-primary {

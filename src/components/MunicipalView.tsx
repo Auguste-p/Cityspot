@@ -60,6 +60,7 @@ export function MunicipalView() {
       proprete: 0,
       "espaces-verts": 0,
       "mobilier-urbain": 0,
+      peinture: 0,
     };
 
     posts.forEach((post) => {

@@ -24,7 +24,7 @@ export const createPostSchema = z.object({
 
   isOwnProperty: z.enum(['yes', 'no']),
 
-  categories: z.array(z.enum(['voirie', 'eclairage', 'securite', 'proprete', 'espaces-verts', 'mobilier-urbain'])),
+  categories: z.array(z.enum(['voirie', 'eclairage', 'securite', 'proprete', 'espaces-verts', 'mobilier-urbain', 'peinture'])).min(1, 'Sélectionnez au moins une catégorie'),
   
   certified: z.boolean().refine((value) => value, 'Cochez cette case pour certifier que les informations sont exactes avant de créer le signalement'),
 
