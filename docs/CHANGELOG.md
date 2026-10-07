@@ -10,7 +10,7 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
-### Non publié — 2026-10-07 — Badge « Mairie » sur les commentaires
+### v2.2.6 — 2026-10-07 — Badge « Mairie » sur les commentaires
 
 - **Badge** : un commentaire écrit par un compte mairie porte le badge « Mairie » (même rendu que sur le profil : icône `Building2`, dégradé bleu) à côté du nom de l'auteur, dans `PostDetail.tsx`. Pour son propre commentaire, un compte mairie voit le badge sans relire la base (`isMunicipalUser`).
 - **Lecture du rôle** — migration `20261009010000_add_municipal_user_ids_view.sql` : `public.users` n'étant lisible que par son propriétaire (RLS, SEC-11), un citoyen ne peut pas lire le rôle de l'auteur d'un commentaire. Nouvelle vue `public.municipal_user_ids` n'exposant que l'`id` des comptes `municipal` actifs (jamais nom, e-mail ni ville), `select` réservé à `authenticated` (révoqué pour `anon`), sur le modèle de `public_profiles`. `listComments` interroge cette vue avec les auteurs du fil (`authorIsMunicipal`, posé seulement quand vrai) ; l'échec de cette lecture n'empêche pas l'affichage des commentaires, seulement du badge.
@@ -18,7 +18,7 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 - Tests : `issuesService.test.ts` (+2), `PostDetail.test.tsx` (+2, axe-core).
 - Documentation mise à jour : `ARCHITECTURE.md` §4, `SECURITE.md` §2 (A01), `MANUEL_UTILISATION.md` §6, `CAHIER_DE_RECETTES.md` (DET-19, non rejoué), `TESTS.md`, `README.md`.
 
-### Non publié — 2026-10-07 — Mail à la mairie pour les signalements exigeant autorisation et matériel
+### v2.2.6 — 2026-10-07 — Mail à la mairie pour les signalements exigeant autorisation et matériel
 
 - **Message dans le formulaire de création** (`CreatePost.tsx`) : dès qu'au moins une des catégories **voirie, éclairage, sécurité, mobilier urbain** est cochée, un message s'affiche sous les boutons de catégories (zone `role="status"` toujours présente, annoncée par les lecteurs d'écran) : « Un mail sera envoyé à la mairie pour ce signalement car il ne peut pas être réalisé sans autorisation et matériel spécifique. » Pas affiché en modification (le mail ne part qu'à la création). Liste dans `AUTHORIZATION_CATEGORIES` / `requiresAuthorization()` (`postCategory.ts`).
 - **Mail réel** — Edge Function `supabase/functions/notify-mairie/index.ts` (Resend), appelée par `notifyMairie()` (`issuesService.ts`) après `createIssue` : vérifie le JWT, que l'appelant est l'auteur, relit les catégories en base (`overlaps`), réserve l'envoi de façon atomique (`mairie_notified_at`, un seul envoi par signalement, libéré si rien ne part), résout les destinataires — comptes `municipal` actifs dont le premier segment de `users.city` égale `issues.city` — via la clé service (adresses jamais côté client), et envoie **un mail par agent** (titre, catégories, adresse, description, lien si `SITE_URL` est défini). La liste des catégories est dupliquée côté Deno (à garder synchronisée).
