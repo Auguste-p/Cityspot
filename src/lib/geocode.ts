@@ -129,6 +129,16 @@ export interface Commune {
   insee: string;
 }
 
+// API Géo : liste de communes, ou [] si l'API répond en erreur ou est injoignable.
+async function geoFetch(params: Record<string, string>): Promise<GeoApiCommune[]> {
+  try {
+    const response = await fetch(`${GEO_API_COMMUNES_URL}?${new URLSearchParams(params)}`);
+    return response.ok ? ((await response.json()) as GeoApiCommune[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 // Recherche de commune au fil de la frappe (inscription) : commune officielle, code INSEE et
 // coordonnées de son centre pour centrer la carte à la connexion. Les communes les plus
 // peuplées passent en premier (`boost=population`).
@@ -138,48 +148,21 @@ export async function searchCity(query: string): Promise<GeocodeResult[]> {
     return [];
   }
 
-  const params = new URLSearchParams({
-    nom: trimmed,
-    fields: 'nom,code,centre,departement',
-    boost: 'population',
-    limit: '5',
-  });
-
-  try {
-    const response = await fetch(`${GEO_API_COMMUNES_URL}?${params}`);
-    if (!response.ok) {
-      return [];
-    }
-
-    const communes = (await response.json()) as GeoApiCommune[];
-    return communes
-      .filter((commune) => commune.centre)
-      .map((commune) => ({
-        label: [commune.nom, commune.departement?.nom].filter(Boolean).join(', '),
-        lat: commune.centre!.coordinates[1],
-        lng: commune.centre!.coordinates[0],
-        insee: commune.code,
-      }));
-  } catch {
-    return [];
-  }
+  const communes = await geoFetch({ nom: trimmed, fields: 'nom,code,centre,departement', boost: 'population', limit: '5' });
+  return communes
+    .filter((commune) => commune.centre)
+    .map((commune) => ({
+      label: [commune.nom, commune.departement?.nom].filter(Boolean).join(', '),
+      lat: commune.centre!.coordinates[1],
+      lng: commune.centre!.coordinates[0],
+      insee: commune.code,
+    }));
 }
 
 // Commune qui contient un point GPS : c'est elle, et non le nom de ville renvoyé par le géocodeur
 // d'adresses, qui rattache un signalement à une mairie. Marche aussi pour un lieu-dit. `null` si le
 // point est hors de France ou si l'API est injoignable — l'appelant continue sans code INSEE.
 export async function reverseCommune(lat: number, lng: number): Promise<Commune | null> {
-  const params = new URLSearchParams({ lat: String(lat), lon: String(lng), fields: 'nom,code' });
-
-  try {
-    const response = await fetch(`${GEO_API_COMMUNES_URL}?${params}`);
-    if (!response.ok) {
-      return null;
-    }
-
-    const [commune] = (await response.json()) as GeoApiCommune[];
-    return commune ? { name: commune.nom, insee: commune.code } : null;
-  } catch {
-    return null;
-  }
+  const [commune] = await geoFetch({ lat: String(lat), lon: String(lng), fields: 'nom,code' });
+  return commune ? { name: commune.nom, insee: commune.code } : null;
 }

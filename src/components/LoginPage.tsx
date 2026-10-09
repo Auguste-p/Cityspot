@@ -26,7 +26,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     getCurrentUser().then((user) => {
@@ -201,8 +200,6 @@ export default function LoginPage() {
               <input
                 id="terms"
                 type="checkbox"
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
                 required
                 className="mt-1 size-4 shrink-0"
               />

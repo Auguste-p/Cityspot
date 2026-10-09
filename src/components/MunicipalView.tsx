@@ -57,7 +57,7 @@ export function MunicipalView() {
   // Lecture secondaire : son échec ne bloque pas le tableau de bord, il est signalé dans l'onglet.
   const { issues: revokedPosts, error: revokedError } = useRevokedCityIssues(cityInsee);
   // Statistiques anonymes de la commune (RPC) : indicateurs dans l'en-tête, graphiques dépliables.
-  const { stats, loading: statsLoading, error: statsError } = useMunicipalStats(12, Boolean(cityInsee));
+  const { stats, loading: statsLoading, error: statsError } = useMunicipalStats(Boolean(cityInsee));
   const [statsOpen, setStatsOpen] = useState(false);
 
   const categoryCounts = useMemo(() => {

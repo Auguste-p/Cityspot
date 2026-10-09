@@ -112,18 +112,16 @@ export interface UpdateUserProfileInput {
   city?: string;
   cityLat?: number;
   cityLng?: number;
-  cityInsee?: string | null;
+  city_insee?: string | null;
   avatar?: string;
   emailNotifications?: boolean;
   profileVisible?: boolean;
 }
 
 export async function updateUserProfile(userId: string, profile: UpdateUserProfileInput) {
-  // La colonne s'appelle city_insee (snake_case), contrairement à cityLat/cityLng.
-  const { cityInsee, ...rest } = profile;
   const { error } = await getSupabaseClient()!
     .from('users')
-    .update({ ...rest, ...(cityInsee !== undefined ? { city_insee: cityInsee } : {}) })
+    .update(profile)
     .eq('id', userId);
 
   if (error) throw error;

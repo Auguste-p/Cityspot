@@ -684,17 +684,14 @@ describe("e-mail du propriétaire dans une table à part", () => {
 });
 
 describe('getMunicipalStats', () => {
-  it('calls the municipal_stats RPC with the requested window and returns its payload as is', async () => {
+  it('calls the municipal_stats RPC (no argument) and returns its payload as is', async () => {
     const { getMunicipalStats } = await import('./issuesService');
     const payload = { registeredUsers: 3, issues: { total: 4 } };
     const rpc = vi.fn().mockResolvedValue({ data: payload, error: null });
     mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
 
-    await expect(getMunicipalStats(6)).resolves.toBe(payload);
-    expect(rpc).toHaveBeenCalledWith('municipal_stats', { p_months: 6 });
-
-    await getMunicipalStats();
-    expect(rpc).toHaveBeenLastCalledWith('municipal_stats', { p_months: 12 });
+    await expect(getMunicipalStats()).resolves.toBe(payload);
+    expect(rpc).toHaveBeenCalledWith('municipal_stats');
   });
 
   it('surfaces the refusal of a non-municipal account, and a missing Supabase configuration', async () => {

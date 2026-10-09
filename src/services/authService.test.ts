@@ -210,10 +210,10 @@ describe('updateUserProfile', () => {
     const update = vi.fn().mockReturnValue({ eq });
     mockedGetSupabaseClient.mockReturnValue({ from: vi.fn().mockReturnValue({ update }) } as any);
 
-    await updateUserProfile('u1', { name: 'A', cityInsee: '34172' });
+    await updateUserProfile('u1', { name: 'A', city_insee: '34172' });
     expect(update).toHaveBeenLastCalledWith({ name: 'A', city_insee: '34172' });
 
-    await updateUserProfile('u1', { name: 'A', cityInsee: null });
+    await updateUserProfile('u1', { name: 'A', city_insee: null });
     expect(update).toHaveBeenLastCalledWith({ name: 'A', city_insee: null });
 
     await updateUserProfile('u1', { name: 'A' });

@@ -104,7 +104,7 @@ export function Settings() {
         ...(selectedLocation ? { cityLat: selectedLocation.lat, cityLng: selectedLocation.lng } : {}),
         // Code INSEE de la commune choisie. Jamais pour un compte mairie : c'est sa clé d'accès aux
         // signalements d'une commune, la base refuse qu'il la change lui-même.
-        ...(selectedLocation && !isMunicipalUser ? { cityInsee: selectedLocation.insee ?? null } : {}),
+        ...(selectedLocation && !isMunicipalUser ? { city_insee: selectedLocation.insee ?? null } : {}),
         avatar,
         emailNotifications: data.emailNotifications,
         profileVisible: data.profileVisible,

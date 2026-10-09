@@ -64,10 +64,11 @@ describe('MunicipalStats (indicateurs et graphiques)', () => {
     await expectNoA11yViolations(container);
   });
 
-  it('states that nothing personal is shown', () => {
-    renderAll(stats());
+  it('shows only counts and averages: nothing that looks like a person or an e-mail address', () => {
+    const { container } = renderAll(stats());
 
-    expect(screen.getByText(/aucun nom, e-mail ou identifiant d’habitant/i)).toBeTruthy();
+    expect(container.textContent).not.toMatch(/@/);
+    expect(container.querySelectorAll('a, img, input').length).toBe(0);
   });
 
   it('reads each month of the charts to screen readers, with the category labels of the app', () => {

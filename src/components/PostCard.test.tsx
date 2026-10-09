@@ -56,3 +56,39 @@ describe('PostCard accessibility (RGAA / axe-core)', () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe('PostCard layout', () => {
+  it('puts the address, the categories and the votes on three separate lines', () => {
+    render(<PostCard post={buildPost({ categories: ['voirie', 'peinture'] })} />);
+
+    const address = screen.getByTestId('card-address');
+    const categories = screen.getByTestId('card-categories');
+    const progress = screen.getByTestId('card-progress');
+
+    expect(new Set([address, categories, progress]).size).toBe(3);
+    expect(address.parentElement).toBe(categories.parentElement);
+    expect(categories.parentElement).toBe(progress.parentElement);
+    expect(address.textContent).toContain('12 rue Victor Hugo');
+    expect(categories.textContent).toMatch(/Voirie.*Peinture/);
+    expect(progress.textContent).toContain('/');
+    expect(progress.textContent).toContain('votes');
+    // L'adresse ne contient ni catégorie ni vote.
+    expect(address.textContent).not.toMatch(/Voirie|votes/);
+  });
+
+  it('omits the lines that have nothing to show', () => {
+    render(<PostCard post={buildPost({ categories: [], status: 'completed', tasks: [] })} />);
+
+    expect(screen.queryByTestId('card-categories')).toBeNull();
+    expect(screen.getByTestId('card-progress').textContent).toContain('0/0');
+    expect(screen.queryByText(/votes/)).toBeNull();
+  });
+
+  it('shows the private-property mention on the last line with the votes', () => {
+    render(<PostCard post={buildPost({ isPrivateProperty: true })} />);
+
+    const progress = screen.getByTestId('card-progress');
+    expect(progress.textContent).toContain('votes');
+    expect(progress.textContent).toContain('Privé');
+  });
+});

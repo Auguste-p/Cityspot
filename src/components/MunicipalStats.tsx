@@ -30,14 +30,9 @@ function StatTile({ label, value, hint }: { label: string; value: string; hint?:
   );
 }
 
-interface ColumnDatum {
-  month: string;
-  value: number;
-}
-
 // Colonnes d'une seule série, une teinte, valeur écrite seulement sur le maximum et le dernier mois ;
 // les autres valeurs sont dans le texte lu par les lecteurs d'écran, l'infobulle et le tableau.
-function ColumnChart({ title, unit, data }: { title: string; unit: (n: number) => string; data: ColumnDatum[] }) {
+function ColumnChart({ title, unit, data }: { title: string; unit: (n: number) => string; data: { month: string; value: number }[] }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   const lastIndex = data.length - 1;
 
@@ -150,47 +145,45 @@ export function MunicipalStatsTiles({ stats }: { stats: Stats }) {
         : `Sur ${nf(stats.resolutionSample)} ${plural(stats.resolutionSample, 'signalement terminé', 'signalements terminés')}`;
 
   return (
-    <div>
-      <div className="stats-grid">
-        <StatTile
-          label={`${plural(stats.registeredUsers, 'inscrit')} dans la commune`}
-          value={nf(stats.registeredUsers)}
-          hint={`${nf(stats.activeUsers30d)} ${plural(stats.activeUsers30d, 'actif')} ces 30 derniers jours`}
-        />
-        <StatTile
-          label={plural(issues.total, 'signalement')}
-          value={nf(issues.total)}
-          hint={issues.revoked > 0 ? `${nf(issues.revoked)} ${plural(issues.revoked, 'révoqué')} non comptés` : undefined}
-        />
-        <StatTile
-          label="Taux de résolution"
-          value={resolutionRate === null ? '—' : `${resolutionRate} %`}
-          hint={issues.total > 0 ? `${nf(issues.resolved)} terminés sur ${nf(issues.total)}` : undefined}
-        />
-        <StatTile
-          label="Délai moyen de résolution"
-          value={
-            stats.avgResolutionDays === null
-              ? '—'
-              : `${stats.avgResolutionDays.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ${plural(stats.avgResolutionDays, 'jour')}`
-          }
-          hint={delayHint}
-        />
-        <StatTile
-          label={plural(stats.votes, 'vote')}
-          value={nf(stats.votes)}
-          hint={
-            votesPerIssue === null
-              ? undefined
-              : `${votesPerIssue.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} par signalement`
-          }
-        />
-        <StatTile
-          label={plural(stats.comments, 'commentaire')}
-          value={nf(stats.comments)}
-          hint={`${nf(stats.participants)} ${plural(stats.participants, 'personne a participé', 'personnes ont participé')}`}
-        />
-      </div>
+    <div className="stats-grid">
+      <StatTile
+        label={`${plural(stats.registeredUsers, 'inscrit')} dans la commune`}
+        value={nf(stats.registeredUsers)}
+        hint={`${nf(stats.activeUsers30d)} ${plural(stats.activeUsers30d, 'actif')} ces 30 derniers jours`}
+      />
+      <StatTile
+        label={plural(issues.total, 'signalement')}
+        value={nf(issues.total)}
+        hint={issues.revoked > 0 ? `${nf(issues.revoked)} ${plural(issues.revoked, 'révoqué')} non comptés` : undefined}
+      />
+      <StatTile
+        label="Taux de résolution"
+        value={resolutionRate === null ? '—' : `${resolutionRate} %`}
+        hint={issues.total > 0 ? `${nf(issues.resolved)} terminés sur ${nf(issues.total)}` : undefined}
+      />
+      <StatTile
+        label="Délai moyen de résolution"
+        value={
+          stats.avgResolutionDays === null
+            ? '—'
+            : `${stats.avgResolutionDays.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ${plural(stats.avgResolutionDays, 'jour')}`
+        }
+        hint={delayHint}
+      />
+      <StatTile
+        label={plural(stats.votes, 'vote')}
+        value={nf(stats.votes)}
+        hint={
+          votesPerIssue === null
+            ? undefined
+            : `${votesPerIssue.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} par signalement`
+        }
+      />
+      <StatTile
+        label={plural(stats.comments, 'commentaire')}
+        value={nf(stats.comments)}
+        hint={`${nf(stats.participants)} ${plural(stats.participants, 'personne a participé', 'personnes ont participé')}`}
+      />
     </div>
   );
 }

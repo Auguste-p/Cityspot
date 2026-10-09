@@ -145,7 +145,7 @@ export function useRevokedIssues(userId?: string) {
 }
 
 // `enabled` faux (compte mairie sans commune) : aucun appel, la RPC refuserait de toute façon.
-export function useMunicipalStats(months = 12, enabled = true) {
+export function useMunicipalStats(enabled = true) {
   const [stats, setStats] = useState<MunicipalStats | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
@@ -155,12 +155,12 @@ export function useMunicipalStats(months = 12, enabled = true) {
     if (!enabled) { setStats(null); setLoading(false); return; }
     setLoading(true);
     setError(null);
-    getMunicipalStats(months)
+    getMunicipalStats()
       .then((data) => { if (isActive) setStats(data); })
       .catch((err) => { if (isActive) setError(err instanceof Error ? err : new Error('Impossible de charger les statistiques')); })
       .finally(() => { if (isActive) setLoading(false); });
     return () => { isActive = false; };
-  }, [months, enabled]);
+  }, [enabled]);
 
   return { stats, loading, error };
 }

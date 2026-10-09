@@ -895,11 +895,11 @@ export interface MunicipalStats {
   monthly: { month: string; issues: number; votes: number; comments: number; byCategory: Record<string, number> }[];
 }
 
-export async function getMunicipalStats(months = 12): Promise<MunicipalStats> {
+export async function getMunicipalStats(): Promise<MunicipalStats> {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase non configuré');
 
-  const { data, error } = await (client as any).rpc('municipal_stats', { p_months: months });
+  const { data, error } = await (client as any).rpc('municipal_stats');
   if (error) throw new Error(error.message);
   return data as MunicipalStats;
 }

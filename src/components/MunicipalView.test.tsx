@@ -172,12 +172,12 @@ describe('MunicipalView — statistiques anonymes dans l\'en-tête', () => {
     await expectNoA11yViolations(container);
   });
 
-  it('asks for the 12-month statistics of the commune once, on mount', async () => {
+  it('asks for the statistics of the commune once, on mount', async () => {
     vi.mocked(useMunicipalStats).mockReturnValue({ stats: STATS, loading: false, error: null });
     renderMunicipalView();
     await screen.findByText('50 %');
 
-    expect(useMunicipalStats).toHaveBeenCalledWith(12, true);
+    expect(useMunicipalStats).toHaveBeenCalledWith(true);
   });
 
   it('unfolds the charts on demand, and folds them back, with no violation', async () => {
@@ -220,7 +220,7 @@ describe('MunicipalView — statistiques anonymes dans l\'en-tête', () => {
     renderMunicipalView();
     await screen.findByText('Compte non rattaché à une commune');
 
-    expect(useMunicipalStats).toHaveBeenCalledWith(12, false);
+    expect(useMunicipalStats).toHaveBeenCalledWith(false);
   });
 });
 

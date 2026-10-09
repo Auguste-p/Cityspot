@@ -3307,12 +3307,6 @@ html:has(.app-shell) {
   font-weight: 500;
 }
 
-.stats-note {
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
 .stats-tile-hint {
   margin-top: 0.25rem;
   font-size: 0.75rem;

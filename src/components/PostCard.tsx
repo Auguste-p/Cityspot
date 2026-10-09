@@ -19,6 +19,8 @@ function PostCardComponent({ post, onClick, className }: PostCardProps) {
   const StatusIcon = statusConfig.icon;
   const completedTasks = post.tasks.filter((task) => task.completed).length;
   const netVotes = getNetVotes(post);
+  const showProgress = actualStatus === 'in-progress' || actualStatus === 'completed';
+  const showVotes = netVotes < VOTE_GOAL && post.status === 'pending';
   const clickableClassName = onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : '';
 
   return (
@@ -58,42 +60,52 @@ function PostCardComponent({ post, onClick, className }: PostCardProps) {
             {post.description}
           </p>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
+          {/* Trois lignes : adresse, catégories, puis avancement / votes. `gap-x-*` et `gap-y-*` n'existent pas
+              dans le CSS statique du projet : on n'utilise que `gap-1` et `gap-3`. */}
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1" data-testid="card-address">
               <MapPin className="size-3" />
               <span className="truncate">{getCityName(post.location.address)}</span>
             </div>
 
-            {post.categories.map((category) => {
-              const { icon: CategoryIcon, label, color } = POST_CATEGORY_CONFIG[category];
-              return (
-                <div key={category} className="flex items-center gap-1">
-                  <CategoryIcon className={`size-3 ${color}`} />
-                  <span>{label}</span>
-                </div>
-              );
-            })}
-
-            {(actualStatus === 'in-progress' || actualStatus === 'completed') && (
-              <div className="flex items-center gap-1">
-                <CheckCircle2 className="size-3" />
-                <span>
-                  {completedTasks}/{post.tasks.length}
-                </span>
+            {post.categories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3" data-testid="card-categories">
+                {post.categories.map((category) => {
+                  const { icon: CategoryIcon, label, color } = POST_CATEGORY_CONFIG[category];
+                  return (
+                    <div key={category} className="flex items-center gap-1">
+                      <CategoryIcon className={`size-3 ${color}`} />
+                      <span>{label}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {netVotes < VOTE_GOAL && post.status === 'pending' && (
-              <div className="flex items-center gap-1">
-                <Vote className="size-3" />
-                <span>{netVotes}/{VOTE_GOAL} votes</span>
-              </div>
-            )}
+            {(showProgress || showVotes || post.isPrivateProperty) && (
+              <div className="flex flex-wrap items-center gap-3" data-testid="card-progress">
+                {showProgress && (
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="size-3" />
+                    <span>
+                      {completedTasks}/{post.tasks.length}
+                    </span>
+                  </div>
+                )}
 
-            {post.isPrivateProperty && (
-              <div className="flex items-center gap-1">
-                <Home className="size-3" />
-                <span>Privé</span>
+                {showVotes && (
+                  <div className="flex items-center gap-1">
+                    <Vote className="size-3" />
+                    <span>{netVotes}/{VOTE_GOAL} votes</span>
+                  </div>
+                )}
+
+                {post.isPrivateProperty && (
+                  <div className="flex items-center gap-1">
+                    <Home className="size-3" />
+                    <span>Privé</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
