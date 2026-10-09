@@ -79,6 +79,15 @@ describe('Settings accessibility (RGAA / axe-core)', () => {
     await screen.findByText('Paramètres');
     await screen.findByDisplayValue('Jeanne Dupont');
     await expectNoA11yViolations(container);
+
+    // Les liens légaux ne vivent que sur /login et ici, pas dans le Layout.
+    const legal = screen.getByRole('navigation', { name: 'Informations légales' });
+    expect(Array.from(legal.querySelectorAll('a')).map((link) => link.getAttribute('href'))).toEqual([
+      '/mentions-legales',
+      '/cgu',
+      '/confidentialite',
+      '/accessibilite',
+    ]);
   });
 
   it('the "danger zone" delete-account section has no violation', async () => {

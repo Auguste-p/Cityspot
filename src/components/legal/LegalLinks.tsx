@@ -7,7 +7,7 @@ const LINKS = [
   { to: '/accessibilite', label: 'Accessibilité' },
 ] as const;
 
-/** Liens vers les quatre pages légales — footer de l'app, page de connexion et pied des pages légales. */
+/** Liens vers les quatre pages légales — page de connexion, paramètres du profil et pied des pages légales. */
 export function LegalLinks() {
   return (
     <nav aria-label="Informations légales" className="legal-links">

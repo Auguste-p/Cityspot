@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoA11yViolations } from '../test/a11y';
 
 vi.mock('../context/UserContext', () => ({
@@ -55,6 +55,19 @@ describe('Layout accessibility (RGAA / axe-core)', () => {
     const { container } = renderLayout();
     await screen.findByText('Carte des signalements');
     await expectNoA11yViolations(container);
+  });
+
+  it('does not show the legal links on every screen (only on the login page and in the settings)', async () => {
+    mockedUseUser.mockReturnValue({
+      user: { id: 'u1', email: 'a@b.com', role: 'citizen' },
+      loading: false,
+      isMunicipalUser: false,
+      refreshUser: vi.fn(),
+    });
+
+    renderLayout();
+    await screen.findByText('Carte des signalements');
+    expect(screen.queryByRole('navigation', { name: 'Informations légales' })).toBeNull();
   });
 
   it('the account-deletion gate has no violation', async () => {

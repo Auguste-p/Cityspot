@@ -14,6 +14,7 @@ import { deleteOwnAccount, getUserProfile, signOut, updateUserProfile } from '..
 import { settingsFormSchema } from '../schemas/formSchemas';
 import { isAllowedImageFile, uploadToBucket } from '../lib/storage';
 import { reverseCommune, searchAddress, type GeocodeResult } from '../lib/geocode';
+import { LegalLinks } from './legal/LegalLinks';
 import { z } from 'zod';
 
 const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
@@ -494,6 +495,10 @@ export function Settings() {
             </p>
           </form>
         </Form>
+
+        <div className="mt-4">
+          <LegalLinks />
+        </div>
       </div>
     </div>
   );

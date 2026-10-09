@@ -26,7 +26,7 @@ Sur l'écran `/login` :
 1. Mode **"S'inscrire"** : renseigner nom, ville, email et mot de passe, cocher la case d'acceptation des conditions d'utilisation et de la politique de confidentialité (obligatoire), puis valider. Le compte est créé avec le rôle `citizen` par défaut.
 2. Mode **"Se connecter"** : email + mot de passe d'un compte existant.
 
-Une session valide redirige automatiquement vers la carte (`/`). Sans session, toute route de l'application redirige vers `/login`, à l'exception des quatre pages légales (`/mentions-legales`, `/cgu`, `/confidentialite`, `/accessibilite`), publiques et accessibles par les liens du pied de page.
+Une session valide redirige automatiquement vers la carte (`/`). Sans session, toute route de l'application redirige vers `/login`, à l'exception des quatre pages légales (`/mentions-legales`, `/cgu`, `/confidentialite`, `/accessibilite`), publiques et accessibles par les liens en bas de la page de connexion et des paramètres du profil.
 
 ## 4. Signaler une dégradation
 
