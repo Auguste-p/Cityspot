@@ -39,7 +39,7 @@ export function Layout() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="app-shell flex flex-col">
       {/* Header */}
       <header className="bg-primary text-primary-foreground shadow-md">
         <div className="container mx-auto px-4 py-4">
@@ -73,12 +73,12 @@ export function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      <main className="app-main flex-1 min-h-0 overflow-y-auto">
         <Outlet />
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-card border-t border-border shadow-lg sticky bottom-0">
+      <nav className="bg-card border-t border-border shadow-lg">
         <div className="container mx-auto px-4">
           <div className="flex justify-around items-center h-16">
             <Button

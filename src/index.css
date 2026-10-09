@@ -3223,3 +3223,31 @@ html {
   font-size: 0.75rem;
   color: var(--muted-foreground);
 }
+
+/* ---------------------------------------------------------------------------
+   Coque de l'app (Layout) : elle occupe exactement l'écran visible, seul <main> défile.
+   - `position: fixed` plutôt que `h-screen` (100vh) : sur mobile, 100vh dépasse la zone réellement
+     visible (barre d'adresse) et rendait la page entière défilable.
+   - `overflow: hidden` sur `html` seulement (il se propage au viewport) tant que la coque est
+     affichée (pas sur /login ni les pages légales, qui défilent normalement). Surtout pas sur `body`
+     en plus : il deviendrait un conteneur de défilement de hauteur nulle et, sur Safari, y collerait
+     tout élément `position: sticky` (la barre du bas se retrouvait par-dessus l'en-tête).
+   - `overscroll-behavior: contain` sur <main> : arrivé en bas, le défilement ne « déborde » plus
+     sur la page (scroll chaining).
+   --------------------------------------------------------------------------- */
+.app-shell {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.app-main {
+  overscroll-behavior: contain;
+}
+
+html:has(.app-shell) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}

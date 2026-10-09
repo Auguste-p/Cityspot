@@ -10,6 +10,15 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### Non publié — 2026-10-10 — Défilement : plus de « page dans la page »
+
+- **Symptôme** : sur les écrans de l'app (création, détail…), arrivé en bas de la zone qui défile, la molette faisait défiler la page entière, et la barre de navigation du bas — ou l'en-tête — partait avec ; idem molette au-dessus de la barre du bas.
+- **Cause** : la coque `Layout` s'étendait à `h-screen` (`100vh`, plus grand que la zone réellement visible sur mobile) sans empêcher le document de défiler, et le défilement de `<main>` se propageait au document en bout de course (*scroll chaining*).
+- **Correctif** (`Layout.tsx`, fin de `src/index.css`) : `.app-shell` en `position: fixed` plein écran (remplace `h-screen`) ; `html` en `overflow: hidden` tant que la coque est affichée (`html:has(.app-shell)` — `/login` et les pages légales défilent donc normalement) ; `overscroll-behavior: contain` sur `<main>`.
+- **Régression Safari corrigée avant publication** : une première version mettait aussi `overflow: hidden` sur `body`, qui devenait un conteneur de défilement de hauteur nulle ; la barre du bas (`sticky bottom-0`) s'y collait et apparaissait par-dessus l'en-tête sur Safari (Chromium ne le reproduit pas). `overflow: hidden` reste sur `html` seul, et la barre n'est plus `sticky` (inutile : dernier élément de la colonne).
+- **Vérifié** dans un Chromium sans interface sur la vraie feuille de style : coque = hauteur visible, en-tête et barre du bas immobiles même si le document est forcé à défiler. **Non vérifié** : le rendu sur un vrai téléphone (barre d'adresse mobile, clavier virtuel) et l'application complète connectée (pas de navigateur piloté disponible). Test : `Layout.test.tsx` (+1, vérifie les classes seulement, pas la mise en page). **Safari non testable ici** (seul Chromium est installé) : à vérifier sur Safari avant de considérer le correctif terminé.
+- Liens légaux : retirés du `Layout`, désormais seulement sur la page de connexion et dans les paramètres du profil.
+
 ### v2.3.0 — 2026-10-10 — Code INSEE, e-mail du propriétaire protégé
 
 - **Rattachement à la commune par code INSEE** (migration `20261010010000_add_city_insee.sql`) : `issues.city_insee` et `users.city_insee` (5 caractères, validés par une contrainte) remplacent la comparaison de noms de ville, qui confondait les homonymes (Saint-Denis, Castelnau-…). `is_municipal_of_insee()` remplace `is_municipal_of_city()` dans la policy `SELECT` de `issues` et dans la RPC `revoke_issue` ; `handle_new_user()` lit `cityInsee` des métadonnées d'inscription ; l'Edge Function `notify-mairie` retrouve les agents par `city_insee`. Le nom de ville (`city`) ne sert plus qu'à l'affichage.
