@@ -704,3 +704,43 @@ describe('getMunicipalStats', () => {
     await expect(getMunicipalStats()).rejects.toThrow('Supabase non configuré');
   });
 });
+
+describe('nom du créateur (vue issue_authors)', () => {
+  it('adds the author name to the issue detail', async () => {
+    const { getIssueById } = await import('./issuesService');
+    const { client, calls } = recordingClient({
+      issues: { data: issueRow, error: null },
+      issue_authors: { data: { author_name: 'Jeanne Dupont' }, error: null },
+    });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    expect((await getIssueById('issue-1'))?.authorName).toBe('Jeanne Dupont');
+    expect(calls).toContainEqual({ table: 'issue_authors', method: 'eq', args: ['issue_id', 'issue-1'] });
+  });
+
+  it('opens the issue without a name when the view returns nothing or fails', async () => {
+    const { getIssueById } = await import('./issuesService');
+
+    mockedGetSupabaseClient.mockReturnValue(
+      recordingClient({ issues: { data: issueRow, error: null }, issue_authors: { data: null, error: null } }).client,
+    );
+    expect((await getIssueById('issue-1'))?.authorName).toBeUndefined();
+
+    mockedGetSupabaseClient.mockReturnValue(
+      recordingClient({ issues: { data: issueRow, error: null }, issue_authors: { data: null, error: { message: 'vue absente' } } }).client,
+    );
+    const post = await getIssueById('issue-1');
+    expect(post?.title).toBe('T');
+    expect(post?.authorName).toBeUndefined();
+  });
+
+  it('does not load author names for issue lists', async () => {
+    const { listIssues } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: [issueRow], error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await listIssues();
+
+    expect(calls.some((call) => call.table === 'issue_authors')).toBe(false);
+  });
+});

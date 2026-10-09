@@ -310,6 +310,13 @@ export function PostDetail() {
           />
         </div>
 
+        {/* Créateur du signalement, entre la photo et le titre / badge de statut */}
+        {post.authorName && (
+          <p className="mb-3 text-sm text-muted-foreground">
+            Signalé par <span className="font-medium text-foreground">{user?.id === post.created_by ? 'vous' : post.authorName}</span>
+          </p>
+        )}
+
         {/* Title & Status */}
         <div className="mb-6">
           <div className="flex items-start justify-between gap-4 mb-3">

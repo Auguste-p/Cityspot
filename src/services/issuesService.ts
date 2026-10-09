@@ -447,12 +447,23 @@ export async function getIssueById(issueId: string): Promise<Post | null> {
     throw new Error(ownerError.message);
   }
 
-  return normalizeIssue(
-    issueRow as IssueRow,
-    (taskRows ?? []) as TaskRow[],
-    (materialRows ?? []) as MaterialRow[],
-    ownerContact?.owner_email ?? undefined,
-  );
+  // Nom du créateur : vue issue_authors (users n'est pas lisible par un autre compte). Un échec ici
+  // ne doit pas empêcher d'ouvrir le signalement : on l'affiche simplement sans nom.
+  const { data: author } = await (client as any)
+    .from('issue_authors')
+    .select('author_name')
+    .eq('issue_id', issueId)
+    .maybeSingle();
+
+  return {
+    ...normalizeIssue(
+      issueRow as IssueRow,
+      (taskRows ?? []) as TaskRow[],
+      (materialRows ?? []) as MaterialRow[],
+      ownerContact?.owner_email ?? undefined,
+    ),
+    authorName: author?.author_name ?? undefined,
+  };
 }
 
 export async function createIssue(input: CreateIssueInput): Promise<Post> {

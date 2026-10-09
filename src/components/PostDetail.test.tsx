@@ -326,3 +326,45 @@ describe('PostDetail content reporting', () => {
     await expectNoA11yViolations(document.body);
   });
 });
+
+describe('PostDetail creator name', () => {
+  const setup = (userId: string, overrides: Partial<Post> = {}) => {
+    mockedUseUser.mockReturnValue({ user: { ...CITIZEN, id: userId }, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssue.mockReturnValue({
+      issue: post({ created_by: 'author', authorName: 'Jeanne Dupont', ...overrides }),
+      loading: false,
+      error: null,
+    });
+    mockedUseComments.mockReturnValue({ comments: [], loading: false, error: null, addComment: vi.fn() });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+  };
+
+  it('shows who reported it, between the photo and the status badge, with no violation', async () => {
+    setup('u1');
+    const { container } = renderPostDetail();
+
+    const author = await screen.findByText('Signalé par', { exact: false });
+    expect(author.textContent).toBe('Signalé par Jeanne Dupont');
+
+    const photo = screen.getByRole('img', { name: 'Nid de poule rue Victor Hugo' });
+    const badge = screen.getByText('En vote');
+    expect(photo.compareDocumentPosition(author) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(author.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expectNoA11yViolations(container);
+  });
+
+  it('says "vous" to the creator of the signalement', async () => {
+    setup('author');
+    renderPostDetail();
+
+    expect((await screen.findByText('Signalé par', { exact: false })).textContent).toBe('Signalé par vous');
+  });
+
+  it('shows nothing when the creator has no name', async () => {
+    setup('u1', { authorName: undefined });
+    renderPostDetail();
+
+    await screen.findByText('Nid de poule rue Victor Hugo');
+    expect(screen.queryByText('Signalé par', { exact: false })).toBeNull();
+  });
+});

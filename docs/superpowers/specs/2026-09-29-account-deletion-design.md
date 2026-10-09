@@ -7,7 +7,8 @@ Permettre à un utilisateur connecté de supprimer son propre compte depuis
 
 - il perd tout accès fonctionnel à son compte (aucune écriture possible) ;
 - son nom disparaît partout où il apparaît actuellement (uniquement
-  `comments.author_name` et le profil public — les signalements n'affichent
+  `comments.author_name` et le profil public — [mise à jour 2026-10-12 : le détail d'un signalement affiche
+  aussi le nom de son créateur, via la vue `issue_authors` (« Utilisateur supprimé » après suppression)] — les signalements n'affichaient
   jamais le nom de leur créateur) ;
 - ses signalements, commentaires et votes restent visibles (décision produit :
   contenu conservé, auteur anonymisé) ;

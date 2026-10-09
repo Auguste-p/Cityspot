@@ -32,6 +32,8 @@ export interface Post {
   isMunicipalProject?: boolean;
   categories: PostCategory[];
   created_by?: string;
+  // Nom du créateur (vue issue_authors) : seulement sur le détail d'un signalement.
+  authorName?: string;
   city?: string;
   // Code INSEE de la commune : clé de rattachement à la mairie (city n'est que le nom affiché).
   cityInsee?: string;

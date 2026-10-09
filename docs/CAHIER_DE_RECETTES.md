@@ -107,6 +107,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | DET-20 | F | Majeur | Signaler un signalement | Avec un compte non auteur, cliquer sur le drapeau d'un signalement, choisir un motif, envoyer ; recommencer ; ouvrir un signalement dont on est l'auteur | Envoi impossible sans motif ; ligne créée dans `content_reports` (visible dans le dashboard) ; second envoi : message « déjà signalé » sans doublon ; drapeau absent sur son propre signalement | ✅ *(exécuté 2026-10-10 par l'utilisateur : le bouton « Signaler » fonctionne)* |
 | DET-21 | SEC | Majeur | Signaler un commentaire et confidentialité des signalements | Signaler le commentaire d'un autre compte ; vérifier l'absence de drapeau sur son propre commentaire ; tenter `select` sur `content_reports` avec le jeton d'un compte client | Ligne avec `comment_id` renseigné ; pas de drapeau sur son commentaire ; la lecture de la table depuis le client renvoie 0 ligne (aucune policy SELECT) | ☐ *(non rejoué — ajouté le 2026-10-09)* |
 | DET-22 | SEC | Majeur | E-mail du propriétaire réservé à l'auteur et à la mairie | Créer un signalement « voie privée, non propriétaire » avec un e-mail de propriétaire ; l'ouvrir avec l'auteur, avec la mairie de la commune, puis avec un autre citoyen ; tenter `select * from issue_owner_contacts` en REST avec le jeton de ce citoyen | Bloc « E-mail du propriétaire » visible pour l'auteur et la mairie de la commune seulement ; la lecture REST du citoyen renvoie 0 ligne ; modifier le signalement avec un e-mail vide supprime la ligne | ☐ *(non rejoué — ajouté le 2026-10-10)* |
+| DET-23 | F | Mineur | Nom du créateur sur le détail | Ouvrir un signalement créé par un autre compte, puis un des siens ; supprimer un compte de test auteur et rouvrir son signalement | « Signalé par Prénom Nom » sous la photo et au-dessus du badge de statut ; « Signalé par vous » pour le sien ; « Utilisateur supprimé » après suppression du compte ; les cartes de liste n'affichent pas le nom | ☐ *(non rejoué — ajouté le 2026-10-12)* |
 | DET-17 | F | Mineur | Nom de l'auteur et lien vers le profil public | Ouvrir un signalement avec des commentaires d'un autre utilisateur | Nom réel de l'auteur affiché (au lieu de "Citoyen"), cliquable vers `/user/:id` ; ses propres commentaires portent la mention "(vous)" et ne sont pas cliquables | ✅ *(exécuté 2026-09-03 par l'utilisateur avec 2 comptes réels)* |
 | DET-08 | F | Mineur | Partage | Cliquer sur "Partager" (navigateur sans Web Share API) | Lien copié dans le presse-papier, toast de confirmation | ✅ *(exécuté 2026-07-17, repli presse-papier confirmé en environnement headless)* |
 | DET-09 | SEC | Bloquant | Icônes Modifier/Supprimer réservées au créateur | Ouvrir un post créé par un autre utilisateur, puis le même post en étant le créateur | Absentes dans le premier cas, visibles dans le second (garde `user?.id === post.created_by`) | ✅ *(exécuté 2026-07-17 avec 2 comptes réels : non-propriétaire → Modifier/Supprimer absents ; propriétaire → Modifier/Supprimer visibles)* |
@@ -206,21 +207,21 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | Fonctionnels (F) | 76 |
 | Structurels (S) | 11 |
 | Sécurité (SEC) | 20 |
-| **Total** | **114** |
+| **Total** | **115** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 19 |
 | Majeur | 45 |
 | Mineur | 43 |
-| **Total** | **114** |
+| **Total** | **115** |
 
 | État d'exécution | Nombre |
 |---|---|
 | ✅ OK | 88 *(73 le 2026-07-17 + 10 le 2026-09-03 + 1 le 2026-10-10 (DET-20 — signalement de contenu) + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 26 *(dont 1 ajouté le 2026-10-11 : MUN-13 — statistiques anonymes —, 2 ajoutés le 2026-10-10 : MUN-12 — code INSEE, partiellement rejoué —, DET-22 — e-mail du propriétaire —, et 3 ajoutés le 2026-10-09 : AUTH-09/10 — CGU et pages légales —, DET-21 — signalement d'un commentaire —, et 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
-| **Total** | **114** |
+| ☐ Non exécuté (raison documentée par ligne) | 27 *(dont 1 ajouté le 2026-10-12 : DET-23 — nom du créateur —, 1 ajouté le 2026-10-11 : MUN-13 — statistiques anonymes —, 2 ajoutés le 2026-10-10 : MUN-12 — code INSEE, partiellement rejoué —, DET-22 — e-mail du propriétaire —, et 3 ajoutés le 2026-10-09 : AUTH-09/10 — CGU et pages légales —, DET-21 — signalement d'un commentaire —, et 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
+| **Total** | **115** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

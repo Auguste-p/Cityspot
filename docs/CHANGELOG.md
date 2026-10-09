@@ -10,6 +10,13 @@ Convention de version : [SemVer](https://semver.org/lang/fr/) (`MAJOR.MINOR.PATC
 
 ## 2. Versions
 
+### Non publié — 2026-10-12 — Nom du créateur sur le signalement
+
+- **Affichage** (`PostDetail.tsx`) : « Signalé par *Nom* » sous la photo, au-dessus de la ligne titre / badge de statut (« Signalé par vous » pour l'auteur ; rien si le compte n'a pas de nom). Texte simple, sans lien vers le profil. Détail seulement : les cartes de liste (profil, vue mairie) n'affichent pas le nom.
+- **Donnée** (migration `20261012020000_add_issue_authors_view.sql`) : `users` n'est pas lisible par un autre compte, donc nouvelle vue `public.issue_authors (issue_id, author_name)` sur le modèle de `public_profiles` — jamais d'e-mail, téléphone, adresse ni identifiant de compte. Compte supprimé : « Utilisateur supprimé ». Signalement révoqué : auteur révélé seulement à lui-même et à la mairie de la commune. Lue par `getIssueById` ; son échec n'empêche pas d'ouvrir le signalement. Vérifiée sur un Postgres local (8 contrôles). Pas de dénormalisation : un changement de nom ou une suppression de compte se répercutent tout de suite, sans backfill.
+- **Décision de produit** (annule celle de la spec de suppression de compte, annotée) : le nom est montré à tous les comptes connectés, comme celui d'un auteur de commentaire, **indépendamment de « Visibilité du profil »**. Politique de confidentialité mise à jour.
+- Tests : `PostDetail.test.tsx` (+3 : position entre la photo et le badge, « vous », absence de nom), `issuesService.test.ts` (+3).
+
 ### Non publié — 2026-10-12 — Simplifications (revue ponytail)
 
 - **SQL** (migration `20261012010000_simplify_municipal_stats.sql`, qui remplace la fonction de `20261011010000` déjà appliquée) : `municipal_stats()` n'a plus de paramètre (la fenêtre est toujours de 12 mois, personne n'en demandait d'autre) et « participants » / « actifs sur 30 jours » partent d'un seul CTE `actors` au lieu de deux unions recopiées. Mêmes résultats, validés sur un Postgres local en rejouant l'ancienne puis la nouvelle migration (21 contrôles). L'ancienne signature est supprimée ; l'appel `rpc('municipal_stats')` sans argument marche avec l'une comme l'autre version, donc l'ordre de déploiement front / base n'a pas d'importance.
