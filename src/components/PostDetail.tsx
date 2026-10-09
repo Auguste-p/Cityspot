@@ -310,17 +310,18 @@ export function PostDetail() {
           />
         </div>
 
-        {/* Créateur du signalement, entre la photo et le titre / badge de statut */}
-        {post.authorName && (
-          <p className="mb-3 text-sm text-muted-foreground">
-            Signalé par <span className="font-medium text-foreground">{user?.id === post.created_by ? 'vous' : post.authorName}</span>
-          </p>
-        )}
-
-        {/* Title & Status */}
+        {/* Deux rangées : titre + créateur, puis description + badges de statut */}
         <div className="mb-6">
           <div className="flex items-start justify-between gap-4 mb-3">
-            <h1>{post.title}</h1>
+            <h1 className="min-w-0">{post.title}</h1>
+            {post.authorName && (
+              <p className="flex-shrink-0 text-sm text-muted-foreground">
+                Signalé par <span className="font-medium text-foreground">{user?.id === post.created_by ? 'vous' : post.authorName}</span>
+              </p>
+            )}
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <p className="flex-1 min-w-0 text-muted-foreground">{post.description}</p>
             <div className="flex flex-col gap-2 flex-shrink-0">
               {post.revoked ? (
                 <Badge variant="outline" className="bg-red-50 text-red-700 border-0 flex items-center gap-1.5 px-3 py-1">
@@ -344,7 +345,6 @@ export function PostDetail() {
               )}
             </div>
           </div>
-          <p className="text-muted-foreground">{post.description}</p>
         </div>
 
         {post.revoked && (

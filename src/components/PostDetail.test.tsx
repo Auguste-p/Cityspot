@@ -353,6 +353,22 @@ describe('PostDetail creator name', () => {
     await expectNoA11yViolations(container);
   });
 
+  it('lays out the title with the creator on one row, and the description with the status badge on the next', async () => {
+    setup('u1');
+    renderPostDetail();
+
+    const author = await screen.findByText('Signalé par', { exact: false });
+    const title = screen.getByRole('heading', { level: 1, name: 'Nid de poule rue Victor Hugo' });
+    const description = screen.getByText('Un trou dangereux pour les cyclistes');
+    const badge = screen.getByText('En vote');
+
+    expect(title.parentElement).toBe(author.parentElement);
+    expect(description.parentElement).toBe(badge.closest('div')?.parentElement);
+    expect(title.parentElement).not.toBe(description.parentElement);
+    // La photo garde son écart habituel avec ce qui suit, nom ou pas.
+    expect(screen.getByRole('img', { name: 'Nid de poule rue Victor Hugo' }).parentElement?.className).toContain('mb-6');
+  });
+
   it('says "vous" to the creator of the signalement', async () => {
     setup('author');
     renderPostDetail();
@@ -366,5 +382,6 @@ describe('PostDetail creator name', () => {
 
     await screen.findByText('Nid de poule rue Victor Hugo');
     expect(screen.queryByText('Signalé par', { exact: false })).toBeNull();
+
   });
 });

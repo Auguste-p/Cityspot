@@ -63,7 +63,7 @@ Sur `/post/:id` :
 - **Partager** — copie le lien du signalement (ou ouvre le partage natif du système sur mobile).
 
 - **Signaler un contenu** — l'icône drapeau (en haut du détail d'un signalement d'un autre auteur, ou à droite d'un commentaire d'un autre auteur) ouvre un formulaire : choisissez un motif (illicite, injure ou haine, vie privée, spam, autre), ajoutez des précisions si besoin, puis envoyez. L'éditeur examine la demande ; l'auteur du contenu n'est pas informé de votre identité. Un contenu ne se signale qu'une fois par compte.
-- **Créateur** — sous la photo, au-dessus du titre et du badge de statut, « Signalé par *Prénom Nom* » (« Signalé par vous » pour vos propres signalements). Un compte supprimé apparaît comme « Utilisateur supprimé » ; rien n'est affiché si le compte n'a pas de nom. Le nom est visible de tous les comptes connectés, comme celui d'un auteur de commentaire.
+- **Créateur** — à droite du titre, sous la photo (les badges de statut sont sur la ligne de la description), « Signalé par *Prénom Nom* » (« Signalé par vous » pour vos propres signalements). Un compte supprimé apparaît comme « Utilisateur supprimé » ; rien n'est affiché si le compte n'a pas de nom. Le nom est visible de tous les comptes connectés, comme celui d'un auteur de commentaire.
 - **Signalement révoqué** — si la mairie de la ville a révoqué le signalement, un badge rouge « Révoqué » remplace le statut et une bannière en affiche le motif ; le vote, les commentaires, la modification et la suppression ne sont plus proposés. Le signalement n'apparaît plus sur la carte ni dans les listes, seul son lien direct reste ouvrable (auteur et mairie de la ville).
 
 ### 6.1 Modifier ou supprimer son propre signalement
