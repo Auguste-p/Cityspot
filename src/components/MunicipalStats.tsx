@@ -191,9 +191,6 @@ export function MunicipalStatsTiles({ stats }: { stats: Stats }) {
           hint={`${nf(stats.participants)} ${plural(stats.participants, 'personne a participé', 'personnes ont participé')}`}
         />
       </div>
-      <p className="stats-note">
-        Chiffres anonymes de votre commune : aucun nom, e-mail ou identifiant d’habitant n’est affiché.
-      </p>
     </div>
   );
 }
