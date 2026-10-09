@@ -17,7 +17,7 @@ import { createPostSchema } from '../schemas/formSchemas';
 import { createIssue, notifyMairie, updateIssue } from '../services/issuesService';
 import { useIssue } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
-import { searchAddress, type GeocodeResult } from '../lib/geocode';
+import { reverseCommune, searchAddress, type GeocodeResult } from '../lib/geocode';
 import { FALLBACK_CITY } from '../constants/map';
 import { POST_CATEGORIES, POST_CATEGORY_CONFIG, requiresAuthorization } from '../lib/postCategory';
 import { MAX_UPLOAD_SIZE, isAllowedImageFile, uploadToBucket } from '../lib/storage';
@@ -345,6 +345,14 @@ function FormActions({
   );
 }
 
+// Commune officielle du lieu (API Géo) : son code INSEE rattache le signalement à une mairie. Le nom
+// de ville du géocodeur d'adresses sert de repli d'affichage quand l'API ne répond pas.
+async function resolveCommune(coords: { lat: number; lng: number; city?: string }) {
+  const commune = await reverseCommune(coords.lat, coords.lng);
+  const city = commune?.name ?? coords.city;
+  return city || commune ? { city, insee: commune?.insee } : null;
+}
+
 export function CreatePost() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
@@ -483,6 +491,8 @@ export function CreatePost() {
           selectedLocation ??
           (addressChanged ? (await searchAddress(data.address))[0] ?? null : null);
 
+        const commune = coords ? await resolveCommune(coords) : null;
+
         await updateIssue(id, {
           title: data.title,
           description: data.description,
@@ -498,10 +508,10 @@ export function CreatePost() {
           isOwnProperty: data.isOwnProperty === 'yes',
           ownerEmail: data.ownerEmail,
           categories: data.categories,
-          // Pas d'adresse recalculée (coords null) ou ville non résolue = on ne touche pas à
-          // la ville existante. Jamais de repli sur la ville du profil : le mail à la mairie
-          // part selon issues.city, qui doit être celle du lieu, pas celle de l'auteur.
-          city: coords?.city,
+          // Pas d'adresse recalculée (coords null) ou commune non résolue = on ne touche pas à
+          // la commune existante. Jamais de repli sur la ville du profil : le mail à la mairie
+          // part selon issues.city_insee, qui doit être celle du lieu, pas celle de l'auteur.
+          ...(commune ? { city: commune.city, cityInsee: commune.insee } : {}),
         });
 
         toast.success('Signalement modifié avec succès !');
@@ -513,6 +523,8 @@ export function CreatePost() {
       // géolocaliser le texte saisi avant de retomber sur la ville de repli,
       // pour ne jamais créer un signalement à (0, 0).
       const coords = selectedLocation ?? (await searchAddress(data.address))[0] ?? null;
+
+      const commune = coords ? await resolveCommune(coords) : null;
 
       const created = await createIssue({
         title: data.title,
@@ -534,10 +546,11 @@ export function CreatePost() {
         isMunicipalProject: false,
         categories: data.categories,
         created_by: user.id,
-        // Ville du lieu choisi/géocodé, et rien d'autre : pas de repli sur la ville du profil
-        // de l'auteur (le mail à la mairie et la vue municipale se basent sur cette valeur).
-        // Ville non résolue (lieu-dit, hors commune) = null : personne n'est prévenu.
-        city: coords?.city,
+        // Commune du lieu choisi/géocodé, et rien d'autre : pas de repli sur la ville du profil
+        // de l'auteur (le mail à la mairie et la vue municipale se basent sur le code INSEE).
+        // Hors de France ou API Géo injoignable = sans code INSEE : personne n'est prévenu.
+        city: commune?.city,
+        cityInsee: commune?.insee,
       });
 
       toast.success('Signalement créé avec succès !');

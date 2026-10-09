@@ -28,6 +28,7 @@ const MUNICIPAL_AGENT = {
   name: 'Agent Municipal',
   role: 'municipal' as const,
   city: 'Montpellier, Occitanie',
+  cityInsee: '34172',
 };
 
 function post(overrides: Partial<Post> = {}): Post {
@@ -59,6 +60,36 @@ function renderMunicipalView() {
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+});
+
+describe('MunicipalView without a commune', () => {
+  it('tells an agent with no INSEE code to contact the editor, and never lists other communes, with no violation', async () => {
+    mockedUseUser.mockReturnValue({
+      user: { ...MUNICIPAL_AGENT, cityInsee: undefined },
+      loading: false,
+      isMunicipalUser: true,
+      refreshUser: vi.fn(),
+    });
+    mockedUseIssues.mockReturnValue({ issues: [post()], loading: false, error: null, reload: vi.fn() });
+    mockedUseRevokedCityIssues.mockReturnValue({ issues: [], loading: false, error: null });
+
+    const { container } = renderMunicipalView();
+
+    await screen.findByText('Compte non rattaché à une commune');
+    expect(screen.queryByText('Nid de poule rue Victor Hugo')).toBeNull();
+    await expectNoA11yViolations(container);
+  });
+
+  it('filters the dashboard by the INSEE code of the agent', async () => {
+    mockedUseUser.mockReturnValue({ user: MUNICIPAL_AGENT, loading: false, isMunicipalUser: true, refreshUser: vi.fn() });
+    mockedUseIssues.mockReturnValue({ issues: [], loading: false, error: null, reload: vi.fn() });
+    mockedUseRevokedCityIssues.mockReturnValue({ issues: [], loading: false, error: null });
+
+    renderMunicipalView();
+
+    expect(mockedUseIssues).toHaveBeenCalledWith('34172');
+    expect(mockedUseRevokedCityIssues).toHaveBeenCalledWith('34172');
+  });
 });
 
 describe('MunicipalView accessibility (RGAA / axe-core)', () => {

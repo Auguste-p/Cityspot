@@ -6,6 +6,13 @@ export interface SignUpProfile {
   city: string;
   cityLat?: number;
   cityLng?: number;
+  cityInsee?: string;
+  // Preuve d'acceptation des CGU / de la politique de confidentialité : stockée
+  // dans les user_metadata de auth.users (le trigger handle_new_user() ignore
+  // ces clés, aucune migration nécessaire). Limite assumée : user_metadata est
+  // modifiable par son propriétaire — c'est une trace, pas une preuve signée.
+  termsVersion: string;
+  termsAcceptedAt: string;
 }
 
 export async function signUp(email: string, password: string, profile: SignUpProfile) {
@@ -21,7 +28,7 @@ export async function signUp(email: string, password: string, profile: SignUpPro
     throw new Error('Un compte existe déjà avec cet email.');
   }
 
-  // name/city/cityLat/cityLng passent tous par user_metadata : le trigger
+  // name/city/cityLat/cityLng/cityInsee passent tous par user_metadata : le trigger
   // handle_new_user() les insère en une fois dans public.users, côté serveur,
   // indépendamment de toute session client (importante depuis que ce projet
   // exige la confirmation par email — pas de session juste après signUp()).
@@ -105,15 +112,18 @@ export interface UpdateUserProfileInput {
   city?: string;
   cityLat?: number;
   cityLng?: number;
+  cityInsee?: string | null;
   avatar?: string;
   emailNotifications?: boolean;
   profileVisible?: boolean;
 }
 
 export async function updateUserProfile(userId: string, profile: UpdateUserProfileInput) {
+  // La colonne s'appelle city_insee (snake_case), contrairement à cityLat/cityLng.
+  const { cityInsee, ...rest } = profile;
   const { error } = await getSupabaseClient()!
     .from('users')
-    .update(profile)
+    .update({ ...rest, ...(cityInsee !== undefined ? { city_insee: cityInsee } : {}) })
     .eq('id', userId);
 
   if (error) throw error;

@@ -16,7 +16,6 @@ export interface Database {
           image_url: string | null;
           is_private_property: boolean | null;
           is_own_property: boolean | null;
-          owner_email: string | null;
           positive_votes: number | null;
           negative_votes: number | null;
           created_at: string | null;
@@ -24,6 +23,7 @@ export interface Database {
           is_municipal_project: boolean | null;
           categories: string[];
           city: string | null;
+          city_insee: string | null;
           created_by: string | null;
           revoked_at: string | null;
           revoked_reason: string | null;
@@ -36,7 +36,6 @@ export interface Database {
           image_url?: string | null;
           is_private_property?: boolean | null;
           is_own_property?: boolean | null;
-          owner_email?: string | null;
           positive_votes?: number | null;
           negative_votes?: number | null;
           created_at?: string | null;
@@ -44,6 +43,7 @@ export interface Database {
           is_municipal_project?: boolean | null;
           categories?: string[];
           city?: string | null;
+          city_insee?: string | null;
         };
         Update: {
           id?: string;
@@ -53,7 +53,6 @@ export interface Database {
           image_url?: string | null;
           is_private_property?: boolean | null;
           is_own_property?: boolean | null;
-          owner_email?: string | null;
           positive_votes?: number | null;
           negative_votes?: number | null;
           created_at?: string | null;
@@ -61,6 +60,7 @@ export interface Database {
           is_municipal_project?: boolean | null;
           categories?: string[];
           city?: string | null;
+          city_insee?: string | null;
         };
         Relationships: [];
       };
@@ -139,6 +139,7 @@ export interface Database {
           city: string | null;
           cityLat: number | null;
           cityLng: number | null;
+          city_insee: string | null;
           role: string;
           phone: string | null;
           address: string | null;
@@ -154,6 +155,7 @@ export interface Database {
           city?: string | null;
           cityLat?: number | null;
           cityLng?: number | null;
+          city_insee?: string | null;
           role?: string;
           phone?: string | null;
           address?: string | null;
@@ -168,6 +170,7 @@ export interface Database {
           city?: string | null;
           cityLat?: number | null;
           cityLng?: number | null;
+          city_insee?: string | null;
           role?: string;
           phone?: string | null;
           address?: string | null;

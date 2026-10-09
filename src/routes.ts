@@ -9,6 +9,35 @@ export const router = createBrowserRouter([
       return { Component: LoginPage };
     },
   },
+  // Pages légales : publiques (lisibles avant l'inscription), hors de Layout.
+  {
+    path: "/mentions-legales",
+    lazy: async () => {
+      const { default: MentionsLegales } = await import("./components/legal/MentionsLegales");
+      return { Component: MentionsLegales };
+    },
+  },
+  {
+    path: "/cgu",
+    lazy: async () => {
+      const { default: Cgu } = await import("./components/legal/Cgu");
+      return { Component: Cgu };
+    },
+  },
+  {
+    path: "/confidentialite",
+    lazy: async () => {
+      const { default: Confidentialite } = await import("./components/legal/Confidentialite");
+      return { Component: Confidentialite };
+    },
+  },
+  {
+    path: "/accessibilite",
+    lazy: async () => {
+      const { default: Accessibilite } = await import("./components/legal/Accessibilite");
+      return { Component: Accessibilite };
+    },
+  },
   {
     path: "/",
     Component: Layout,

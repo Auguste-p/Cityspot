@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { MapPin } from 'lucide-react';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -7,6 +7,8 @@ import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { signIn, signUp, getCurrentUser } from '../services/authService';
 import { searchCity, type GeocodeResult } from '../lib/geocode';
+import { TERMS_VERSION } from '../constants/legal';
+import { LegalLinks } from './legal/LegalLinks';
 
 const CITY_SEARCH_DEBOUNCE_MS = 400;
 
@@ -18,12 +20,13 @@ export default function LoginPage() {
   const [city, setCity] = useState('');
   const [citySuggestions, setCitySuggestions] = useState<GeocodeResult[]>([]);
   const [citySuggestionsOpen, setCitySuggestionsOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{ lat: number; lng: number; insee?: string } | null>(null);
   const citySearchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     getCurrentUser().then((user) => {
@@ -49,7 +52,7 @@ export default function LoginPage() {
 
   const handleCitySelect = (suggestion: GeocodeResult) => {
     setCity(suggestion.label);
-    setSelectedCity({ lat: suggestion.lat, lng: suggestion.lng });
+    setSelectedCity({ lat: suggestion.lat, lng: suggestion.lng, insee: suggestion.insee });
     setCitySuggestionsOpen(false);
   };
 
@@ -71,6 +74,9 @@ export default function LoginPage() {
         city,
         cityLat: selectedCity?.lat,
         cityLng: selectedCity?.lng,
+        cityInsee: selectedCity?.insee,
+        termsVersion: TERMS_VERSION,
+        termsAcceptedAt: new Date().toISOString(),
       });
 
       if (session) {
@@ -190,6 +196,32 @@ export default function LoginPage() {
             />
           </div>
 
+          {mode === 'signup' && (
+            <div className="flex items-start gap-2">
+              <input
+                id="terms"
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                required
+                className="mt-1 size-4 shrink-0"
+              />
+              <Label htmlFor="terms" className="text-sm">
+                <span>
+                  J'ai lu et j'accepte les{' '}
+                  <Link to="/cgu" target="_blank" rel="noopener noreferrer" className="legal-inline-link">
+                    conditions d'utilisation<span className="sr-only"> (nouvel onglet)</span>
+                  </Link>{' '}
+                  et la{' '}
+                  <Link to="/confidentialite" target="_blank" rel="noopener noreferrer" className="legal-inline-link">
+                    politique de confidentialité<span className="sr-only"> (nouvel onglet)</span>
+                  </Link>
+                  . <span aria-hidden="true">*</span>
+                </span>
+              </Label>
+            </div>
+          )}
+
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
@@ -213,6 +245,8 @@ export default function LoginPage() {
             {mode === 'login' ? "S'inscrire" : 'Se connecter'}
           </button>
         </p>
+
+        <LegalLinks />
       </Card>
     </div>
   );

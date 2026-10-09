@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { searchAddress, searchCity } from './geocode';
+import { reverseCommune, searchAddress, searchCity } from './geocode';
 
 function photonResponse(features: unknown[]) {
   return { ok: true, json: async () => ({ features }) };
@@ -119,37 +119,70 @@ describe('searchAddress', () => {
   });
 });
 
-describe('searchCity', () => {
-  it('restricts the query to city/town/village place types', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(photonResponse([]));
+describe('searchCity (API Géo)', () => {
+  const lyon = {
+    nom: 'Lyon',
+    code: '69123',
+    centre: { type: 'Point', coordinates: [4.8320114, 45.7578137] },
+    departement: { code: '69', nom: 'Rhône' },
+  };
+
+  it('does not call the API for a query shorter than 2 characters', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+
+    await expect(searchCity('L')).resolves.toEqual([]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('queries communes by name, most populated first', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
     vi.stubGlobal('fetch', fetchMock);
 
     await searchCity('Lyon');
 
     const calledUrl = new URL(fetchMock.mock.calls[0][0]);
-    expect(calledUrl.searchParams.getAll('osm_tag')).toEqual(['place:city', 'place:town', 'place:village']);
+    expect(calledUrl.origin + calledUrl.pathname).toBe('https://geo.api.gouv.fr/communes');
+    expect(calledUrl.searchParams.get('nom')).toBe('Lyon');
+    expect(calledUrl.searchParams.get('boost')).toBe('population');
   });
 
-  it('builds a simple "name, region" label, not a full address', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        photonResponse([
-          {
-            properties: {
-              name: 'Lyon',
-              county: 'Métropole de Lyon',
-              state: 'Auvergne-Rhône-Alpes',
-              country: 'France',
-            },
-            geometry: { coordinates: [4.8320114, 45.7578137] },
-          },
-        ]),
-      ),
-    );
+  it('returns a "name, département" label with the INSEE code and the commune centre', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [lyon] }));
 
-    const results = await searchCity('Lyon');
+    await expect(searchCity('Lyon')).resolves.toEqual([
+      { label: 'Lyon, Rhône', lat: 45.7578137, lng: 4.8320114, insee: '69123' },
+    ]);
+  });
 
-    expect(results).toEqual([{ label: 'Lyon, Auvergne-Rhône-Alpes', lat: 45.7578137, lng: 4.8320114 }]);
+  it('resolves an empty array on an HTTP or network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    await expect(searchCity('Lyon')).resolves.toEqual([]);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+    await expect(searchCity('Lyon')).resolves.toEqual([]);
+  });
+});
+
+describe('reverseCommune', () => {
+  it('returns the commune (name and INSEE code) that contains the point', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [{ nom: 'Castelnau-le-Lez', code: '34057' }] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(reverseCommune(43.63, 3.91)).resolves.toEqual({ name: 'Castelnau-le-Lez', insee: '34057' });
+
+    const calledUrl = new URL(fetchMock.mock.calls[0][0]);
+    expect(calledUrl.searchParams.get('lat')).toBe('43.63');
+    expect(calledUrl.searchParams.get('lon')).toBe('3.91');
+  });
+
+  it('returns null outside France, on an HTTP error and on a network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
+    await expect(reverseCommune(51.5, -0.12)).resolves.toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    await expect(reverseCommune(43.63, 3.91)).resolves.toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+    await expect(reverseCommune(43.63, 3.91)).resolves.toBeNull();
   });
 });

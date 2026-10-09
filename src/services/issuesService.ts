@@ -20,7 +20,6 @@ interface IssueRow {
   image_url: string | null;
   is_private_property: boolean | null;
   is_own_property: boolean | null;
-  owner_email: string | null;
   positive_votes: number | null;
   negative_votes: number | null;
   created_at: string | null;
@@ -29,6 +28,7 @@ interface IssueRow {
   categories: PostCategory[] | null;
   created_by: string | null;
   city: string | null;
+  city_insee: string | null;
   revoked_at?: string | null;
   revoked_reason?: string | null;
 }
@@ -80,6 +80,7 @@ export interface CreateIssueInput {
   categories?: PostCategory[];
   created_by?: string;
   city?: string;
+  cityInsee?: string;
 }
 
 const localIssuesStore: Post[] = [];
@@ -221,6 +222,7 @@ function normalizeIssue(
   row: IssueRow,
   taskRows: TaskRow[] = [],
   materialRows: MaterialRow[] = [],
+  ownerEmail?: string,
 ): Post {
   const location = row.location ?? {};
 
@@ -238,7 +240,7 @@ function normalizeIssue(
     materials: materialRows.map((material) => material.name),
     isPrivateProperty: Boolean(row.is_private_property),
     isOwnProperty: row.is_own_property ?? undefined,
-    ownerEmail: row.owner_email ?? undefined,
+    ownerEmail,
     votes: {
       positive: row.positive_votes ?? 0,
       negative: row.negative_votes ?? 0,
@@ -251,6 +253,7 @@ function normalizeIssue(
     categories: (row.categories ?? []).filter((category) => POST_CATEGORIES.includes(category)),
     created_by: row.created_by ?? undefined,
     city: row.city ?? undefined,
+    cityInsee: row.city_insee ?? undefined,
     revoked: row.revoked_at
       ? { at: new Date(row.revoked_at), reason: row.revoked_reason ?? '' }
       : undefined,
@@ -291,7 +294,8 @@ function buildLocalIssue(input: CreateIssueInput): Post {
   };
 }
 
-export async function listIssues(city?: string): Promise<Post[]> {
+// `cityInsee` : commune dont on veut les signalements (vue mairie). Absent : tous.
+export async function listIssues(cityInsee?: string): Promise<Post[]> {
   const client = getSupabaseClient();
 
   if (!client) {
@@ -301,8 +305,8 @@ export async function listIssues(city?: string): Promise<Post[]> {
   // Les signalements révoqués sont exclus des listes (carte, profils, stats) pour
   // tous ; la RLS ne les laisse ouvrir en détail qu'à l'auteur et à la mairie.
   let query = client.from('issues').select('*').is('revoked_at', null);
-  if (city) {
-    query = query.eq('city', city);
+  if (cityInsee) {
+    query = query.eq('city_insee', cityInsee);
   }
 
   const { data: issueRows, error: issuesError } = await query.order('created_at', { ascending: false });
@@ -334,16 +338,16 @@ export async function listRevokedIssuesByUser(userId: string): Promise<Post[]> {
   return hydrateIssues(client, (data ?? []) as IssueRow[]);
 }
 
-// Tableau de bord mairie : la RLS ne renvoie les révoqués d'une ville qu'à sa mairie (et à
-// leur auteur) ; un compte sans droit reçoit simplement une liste vide.
-export async function listRevokedIssuesByCity(city: string): Promise<Post[]> {
+// Tableau de bord mairie : la RLS ne renvoie les révoqués d'une commune (code INSEE) qu'à sa
+// mairie (et à leur auteur) ; un compte sans droit reçoit simplement une liste vide.
+export async function listRevokedIssuesByCity(cityInsee: string): Promise<Post[]> {
   const client = getSupabaseClient();
-  if (!client || !city) return [];
+  if (!client || !cityInsee) return [];
 
   const { data, error } = await client
     .from('issues')
     .select('*')
-    .eq('city', city)
+    .eq('city_insee', cityInsee)
     .not('revoked_at', 'is', null)
     .order('created_at', { ascending: false });
 
@@ -432,10 +436,22 @@ export async function getIssueById(issueId: string): Promise<Post | null> {
     throw new Error(materialsError.message);
   }
 
+  // La RLS de issue_owner_contacts ne renvoie la ligne qu'à l'auteur et à la mairie de la commune.
+  const { data: ownerContact, error: ownerError } = await (client as any)
+    .from('issue_owner_contacts')
+    .select('owner_email')
+    .eq('issue_id', issueId)
+    .maybeSingle();
+
+  if (ownerError) {
+    throw new Error(ownerError.message);
+  }
+
   return normalizeIssue(
     issueRow as IssueRow,
     (taskRows ?? []) as TaskRow[],
     (materialRows ?? []) as MaterialRow[],
+    ownerContact?.owner_email ?? undefined,
   );
 }
 
@@ -461,7 +477,6 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     image_url: input.imageUrl?.trim() ? input.imageUrl : getDefaultIssuePhotoUrl(),
     is_private_property: input.isPrivateProperty ?? false,
     is_own_property: input.isOwnProperty ?? null,
-    owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
     positive_votes: input.positiveVotes ?? 0,
     negative_votes: input.negativeVotes ?? 0,
     status: denormalizePostStatus('pending'),
@@ -469,6 +484,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     categories: input.categories ?? [],
     created_by: input.created_by ?? undefined,
     city: input.city ?? null,
+    city_insee: input.cityInsee ?? null,
   };
 
   const supabase = client as any;
@@ -518,6 +534,18 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     }
   }
 
+  // E-mail du propriétaire d'un lieu privé : table à part, lisible seulement par l'auteur et la mairie.
+  const ownerEmail = input.ownerEmail?.trim();
+  if (ownerEmail) {
+    const { error: ownerError } = await supabase
+      .from('issue_owner_contacts')
+      .insert({ issue_id: issueId, owner_email: ownerEmail });
+
+    if (ownerError) {
+      throw new Error(ownerError.message);
+    }
+  }
+
   // Fetch the tasks and materials after insertion to ensure we return the complete issue data
   const { data: taskRows, error: tasksError } = await supabase
     .from('tasks')
@@ -545,6 +573,7 @@ export async function createIssue(input: CreateIssueInput): Promise<Post> {
     createdIssue as IssueRow,
     (taskRows ?? []) as TaskRow[],
     (materialRows ?? []) as MaterialRow[],
+    ownerEmail || undefined,
   );
 }
 
@@ -564,6 +593,7 @@ export interface UpdateIssueInput {
   ownerEmail?: string;
   categories?: PostCategory[];
   city?: string;
+  cityInsee?: string;
 }
 
 export async function updateIssue(issueId: string, input: UpdateIssueInput): Promise<Post> {
@@ -607,9 +637,9 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
       image_url: input.imageUrl?.trim() ? input.imageUrl : getDefaultIssuePhotoUrl(),
       is_private_property: input.isPrivateProperty ?? false,
       is_own_property: input.isOwnProperty ?? null,
-      owner_email: input.ownerEmail?.trim() ? input.ownerEmail : null,
       ...(input.categories !== undefined ? { categories: input.categories } : {}),
       ...(input.city !== undefined ? { city: input.city } : {}),
+      ...(input.cityInsee !== undefined ? { city_insee: input.cityInsee } : {}),
     })
     .eq('id', issueId)
     .select('*')
@@ -627,6 +657,15 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
   // Tasks/materials are simple title lists with no stable diff key — replace wholesale.
   await supabase.from('tasks').delete().eq('issue_id', issueId);
   await supabase.from('materials').delete().eq('issue_id', issueId);
+
+  // E-mail du propriétaire : remplacé s'il est fourni, retiré sinon (comme avant : vide = effacé).
+  const ownerEmail = input.ownerEmail?.trim();
+  const { error: ownerError } = ownerEmail
+    ? await supabase.from('issue_owner_contacts').upsert({ issue_id: issueId, owner_email: ownerEmail }, { onConflict: 'issue_id' })
+    : await supabase.from('issue_owner_contacts').delete().eq('issue_id', issueId);
+  if (ownerError) {
+    throw new Error(ownerError.message);
+  }
 
   const taskInputs = input.tasks ?? [];
   const materialInputs = input.materials ?? [];
@@ -674,6 +713,7 @@ export async function updateIssue(issueId: string, input: UpdateIssueInput): Pro
     updatedIssue as IssueRow,
     (taskRows ?? []) as TaskRow[],
     (materialRows ?? []) as MaterialRow[],
+    ownerEmail || undefined,
   );
 }
 
@@ -837,6 +877,35 @@ export async function createComment(issueId: string, userId: string, text: strin
     comment: row.comment,
     authorName: row.author_name ?? undefined,
   };
+}
+
+export type ReportReason = 'illegal' | 'harassment' | 'privacy' | 'spam' | 'other';
+
+// Signalement d'un contenu (bouton « Signaler », CGU §8). Écriture seule : la RLS de
+// content_reports n'a pas de policy SELECT, l'éditeur lit la table depuis le dashboard.
+// L'index unique (signaleur, signalement, commentaire) fait échouer un doublon en 23505,
+// que l'on traite comme un succès — le contenu a déjà été signalé par ce compte.
+export async function reportContent(input: {
+  userId: string;
+  issueId: string;
+  commentId?: string;
+  reason: ReportReason;
+  details?: string;
+}): Promise<'sent' | 'duplicate'> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase non configuré');
+
+  const { error } = await (client as any).from('content_reports').insert({
+    reporter_id: input.userId,
+    issue_id: input.issueId,
+    comment_id: input.commentId ?? null,
+    reason: input.reason,
+    details: input.details?.trim() || null,
+  });
+
+  if (error?.code === '23505') return 'duplicate';
+  if (error) throw new Error(error.message);
+  return 'sent';
 }
 
 interface VoteRow {

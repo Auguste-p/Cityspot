@@ -33,5 +33,7 @@ export interface Post {
   categories: PostCategory[];
   created_by?: string;
   city?: string;
+  // Code INSEE de la commune : clé de rattachement à la mairie (city n'est que le nom affiché).
+  cityInsee?: string;
   revoked?: { at: Date; reason: string };
 }

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Post } from '../types/Post';
 import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listRevokedIssuesByCity, listRevokedIssuesByUser, listVotes, listVotesByUser } from '../services/issuesService';
 
-export function useIssues(city?: string) {
+// `cityInsee` : code INSEE de la commune à filtrer (vue mairie) ; absent = tous les signalements.
+export function useIssues(cityInsee?: string) {
   const [issues, setIssues] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -12,14 +13,14 @@ export function useIssues(city?: string) {
     setError(null);
 
     try {
-      const nextIssues = await listIssues(city);
+      const nextIssues = await listIssues(cityInsee);
       setIssues(nextIssues);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError : new Error('Impossible de charger les signalements'));
     } finally {
       setLoading(false);
     }
-  }, [city]);
+  }, [cityInsee]);
 
   useEffect(() => {
     void reload();
@@ -143,21 +144,21 @@ export function useRevokedIssues(userId?: string) {
   return { issues, loading, error };
 }
 
-export function useRevokedCityIssues(city?: string) {
+export function useRevokedCityIssues(cityInsee?: string) {
   const [issues, setIssues] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let isActive = true;
-    if (!city) { setIssues([]); setLoading(false); return; }
+    if (!cityInsee) { setIssues([]); setLoading(false); return; }
     setLoading(true);
-    listRevokedIssuesByCity(city)
+    listRevokedIssuesByCity(cityInsee)
       .then((data) => { if (isActive) setIssues(data); })
       .catch((err) => { if (isActive) setError(err instanceof Error ? err : new Error('Impossible de charger les signalements révoqués')); })
       .finally(() => { if (isActive) setLoading(false); });
     return () => { isActive = false; };
-  }, [city]);
+  }, [cityInsee]);
 
   return { issues, loading, error };
 }

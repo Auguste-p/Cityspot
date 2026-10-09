@@ -23,6 +23,9 @@ afterEach(() => {
   mockedGetSupabaseClient.mockReset();
 });
 
+// Preuve d'acceptation des CGU, transmise telle quelle via user_metadata.
+const TERMS = { termsVersion: '2026-10-09', termsAcceptedAt: '2026-10-09T10:00:00.000Z' };
+
 describe('signUp', () => {
   function emailNotTaken() {
     return vi.fn().mockResolvedValue({ data: false, error: null });
@@ -32,13 +35,13 @@ describe('signUp', () => {
     const signUpMock = vi.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null });
     mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc: emailNotTaken() } as any);
 
-    const result = await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon' });
+    const result = await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon', ...TERMS });
 
     expect(signUpMock).toHaveBeenCalledWith({
       email: 'a@b.com',
       password: 'pw',
       options: {
-        data: { name: 'A', city: 'Lyon' },
+        data: { name: 'A', city: 'Lyon', ...TERMS },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     });
@@ -51,23 +54,32 @@ describe('signUp', () => {
       rpc: emailNotTaken(),
     } as any);
 
-    await expect(signUp('bad', 'pw', { name: 'A', city: 'Lyon' })).rejects.toThrow('invalid email');
+    await expect(signUp('bad', 'pw', { name: 'A', city: 'Lyon', ...TERMS })).rejects.toThrow('invalid email');
   });
 
   it('forwards city coordinates through user_metadata (read by the handle_new_user trigger)', async () => {
     const signUpMock = vi.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null });
     mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc: emailNotTaken() } as any);
 
-    await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85 });
+    await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85, ...TERMS });
 
     expect(signUpMock).toHaveBeenCalledWith({
       email: 'a@b.com',
       password: 'pw',
       options: {
-        data: { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85 },
+        data: { name: 'A', city: 'Lyon', cityLat: 45.75, cityLng: 4.85, ...TERMS },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     });
+  });
+
+  it('forwards the INSEE code of the chosen commune through user_metadata', async () => {
+    const signUpMock = vi.fn().mockResolvedValue({ data: { user: { id: '1' } }, error: null });
+    mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc: emailNotTaken() } as any);
+
+    await signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon, Rhône', cityInsee: '69123', ...TERMS });
+
+    expect(signUpMock.mock.calls[0][0].options.data).toMatchObject({ cityInsee: '69123' });
   });
 
   it('refuses to sign up when the email is already registered (auth.users or public.users)', async () => {
@@ -75,7 +87,7 @@ describe('signUp', () => {
     const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
     mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: signUpMock }, rpc } as any);
 
-    await expect(signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon' })).rejects.toThrow(
+    await expect(signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon', ...TERMS })).rejects.toThrow(
       'Un compte existe déjà avec cet email.',
     );
     expect(rpc).toHaveBeenCalledWith('email_exists', { check_email: 'a@b.com' });
@@ -86,7 +98,7 @@ describe('signUp', () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('rpc unavailable') });
     mockedGetSupabaseClient.mockReturnValue({ auth: { signUp: vi.fn() }, rpc } as any);
 
-    await expect(signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon' })).rejects.toThrow('rpc unavailable');
+    await expect(signUp('a@b.com', 'pw', { name: 'A', city: 'Lyon', ...TERMS })).rejects.toThrow('rpc unavailable');
   });
 });
 
@@ -191,6 +203,21 @@ describe('updateUserProfile', () => {
 
     expect(update).toHaveBeenCalledWith({ name: 'A', phone: '0601020304' });
     expect(eq).toHaveBeenCalledWith('id', 'u1');
+  });
+
+  it('writes the INSEE code to the city_insee column, and leaves it alone when not given', async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn().mockReturnValue({ eq });
+    mockedGetSupabaseClient.mockReturnValue({ from: vi.fn().mockReturnValue({ update }) } as any);
+
+    await updateUserProfile('u1', { name: 'A', cityInsee: '34172' });
+    expect(update).toHaveBeenLastCalledWith({ name: 'A', city_insee: '34172' });
+
+    await updateUserProfile('u1', { name: 'A', cityInsee: null });
+    expect(update).toHaveBeenLastCalledWith({ name: 'A', city_insee: null });
+
+    await updateUserProfile('u1', { name: 'A' });
+    expect(update).toHaveBeenLastCalledWith({ name: 'A' });
   });
 });
 

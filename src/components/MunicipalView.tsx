@@ -22,7 +22,6 @@ import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from "../lib/postStatus";
 import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from "../lib/postCategory";
 import { PostCard } from "./PostCard";
 import { useIssues, useRevokedCityIssues } from "../hooks/useIssues";
-import { getCityName } from "../lib/geocode";
 import { useUser } from "../context/UserContext";
 
 type CategoryValue = PostCategory | "all";
@@ -46,10 +45,12 @@ export function MunicipalView() {
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<PostCategory[]>([]); // vide = toutes
   const { user } = useUser();
-  const cityName = getCityName(user?.city);
-  const { issues: posts, loading, error } = useIssues(cityName);
+  // Rattachement par code INSEE. Sans code, `useIssues(undefined)` listerait toutes les communes :
+  // le garde-fou plus bas affiche un message à la place.
+  const cityInsee = user?.cityInsee;
+  const { issues: posts, loading, error } = useIssues(cityInsee);
   // Lecture secondaire : son échec ne bloque pas le tableau de bord, il est signalé dans l'onglet.
-  const { issues: revokedPosts, error: revokedError } = useRevokedCityIssues(cityName);
+  const { issues: revokedPosts, error: revokedError } = useRevokedCityIssues(cityInsee);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryValue, number> = {
@@ -110,6 +111,20 @@ export function MunicipalView() {
         : revokedPosts.filter((post) => post.categories.some((c) => selectedCategories.includes(c))),
     [revokedPosts, selectedCategories],
   );
+
+  if (!cityInsee) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-sm w-full">
+          <AlertCircle className="size-10 mx-auto mb-4 text-destructive" />
+          <h2 className="mb-2">Compte non rattaché à une commune</h2>
+          <p className="text-sm text-muted-foreground">
+            Votre compte mairie n'a pas encore de code INSEE. Contactez l'éditeur de City Spot pour le renseigner.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

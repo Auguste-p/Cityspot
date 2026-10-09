@@ -24,15 +24,16 @@ import {
   Loader2,
   Tag,
   Ban,
+  Flag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VoteDialog } from './VoteDialog';
+import { ReportDialog } from './ReportDialog';
 import { MUNICIPAL_GRADIENT_CLASS, VOTE_GOAL, VOTE_GOAL_LABEL, getActualStatus, getStatusConfig } from '../lib/postStatus';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
 import { useUser } from '../context/UserContext';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { deleteIssue, revokeIssue } from '../services/issuesService';
-import { getCityName } from '../lib/geocode';
 import { PrivateNoteCard } from './PrivateNoteCard';
 import { POST_CATEGORY_CONFIG } from '../lib/postCategory';
 
@@ -56,6 +57,8 @@ export function PostDetail() {
   const [votersDialogOpen, setVotersDialogOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // null = dialogue fermé ; commentId absent = on signale le signalement lui-même.
+  const [reportTarget, setReportTarget] = useState<{ commentId?: string } | null>(null);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [revokeReason, setRevokeReason] = useState('');
   const [revoking, setRevoking] = useState(false);
@@ -153,7 +156,7 @@ export function PostDetail() {
   const isRevoked = Boolean(post.revoked);
   // Même règle que la RPC revoke_issue (qui reste la vraie garde, côté Postgres).
   const canRevoke =
-    isMunicipalUser && !isRevoked && !!post.city && getCityName(user?.city) === post.city;
+    isMunicipalUser && !isRevoked && !!post.cityInsee && user?.cityInsee === post.cityInsee;
 
   const handleRevoke = async () => {
     setRevoking(true);
@@ -248,6 +251,17 @@ export function PostDetail() {
               >
                 <Share2 className="size-5" />
               </Button>
+              {user && user.id !== post.created_by && (
+                <Button
+                  onClick={() => setReportTarget({})}
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 text-muted-foreground hover:text-foreground"
+                  aria-label="Signaler ce signalement"
+                >
+                  <Flag className="size-5" />
+                </Button>
+              )}
               {canRevoke && (
                 <Button
                   onClick={() => setRevokeDialogOpen(true)}
@@ -412,7 +426,7 @@ export function PostDetail() {
                 <Mail className="size-5 text-primary" />
               </div>
               <div className="flex-1">
-                <h4 className="text-sm text-muted-foreground mb-1">Propriétaire notifié</h4>
+                <h4 className="text-sm text-muted-foreground mb-1">E-mail du propriétaire</h4>
                 <p className="text-sm">{post.ownerEmail}</p>
               </div>
             </div>
@@ -630,6 +644,17 @@ export function PostDetail() {
                           {new Date(comment.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
                       </div>
+                      {user && !isMe && (
+                        <Button
+                          onClick={() => setReportTarget({ commentId: comment.id })}
+                          variant="ghost"
+                          size="sm"
+                          className="ml-auto p-2 text-muted-foreground hover:text-foreground"
+                          aria-label={`Signaler le commentaire de ${authorLabel}`}
+                        >
+                          <Flag className="size-4" />
+                        </Button>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">{comment.comment}</p>
                   </div>
@@ -673,6 +698,17 @@ export function PostDetail() {
         postTitle={post.title}
         currentVotes={{ positive: displayPositive, negative: displayNegative }}
       />
+
+      {/* Report Dialog */}
+      {user && (
+        <ReportDialog
+          open={reportTarget !== null}
+          onClose={() => setReportTarget(null)}
+          userId={user.id}
+          issueId={post.id}
+          commentId={reportTarget?.commentId}
+        />
+      )}
 
       {/* Revoke Dialog */}
       <Dialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>

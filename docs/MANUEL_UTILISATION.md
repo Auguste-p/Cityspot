@@ -23,10 +23,10 @@ Un compte est municipal ou non selon la colonne `role` de `public.users` en base
 
 Sur l'écran `/login` :
 
-1. Mode **"S'inscrire"** : renseigner nom, ville, email et mot de passe, puis valider. Le compte est créé avec le rôle `citizen` par défaut.
+1. Mode **"S'inscrire"** : renseigner nom, ville, email et mot de passe, cocher la case d'acceptation des conditions d'utilisation et de la politique de confidentialité (obligatoire), puis valider. Le compte est créé avec le rôle `citizen` par défaut.
 2. Mode **"Se connecter"** : email + mot de passe d'un compte existant.
 
-Une session valide redirige automatiquement vers la carte (`/`). Sans session, toute route de l'application redirige vers `/login`.
+Une session valide redirige automatiquement vers la carte (`/`). Sans session, toute route de l'application redirige vers `/login`, à l'exception des quatre pages légales (`/mentions-legales`, `/cgu`, `/confidentialite`, `/accessibilite`), publiques et accessibles par les liens du pied de page.
 
 ## 4. Signaler une dégradation
 
@@ -62,6 +62,7 @@ Sur `/post/:id` :
 - **Commentaires** — tout utilisateur connecté peut lire et publier un commentaire ; le nom de chaque auteur est affiché (lien vers son profil public s'il l'a activé, §8) et vos propres commentaires sont repérés par la mention "(vous)". Les commentaires écrits par un compte mairie portent le badge bleu **« Mairie »** à côté du nom, pour les identifier d'un coup d'œil.
 - **Partager** — copie le lien du signalement (ou ouvre le partage natif du système sur mobile).
 
+- **Signaler un contenu** — l'icône drapeau (en haut du détail d'un signalement d'un autre auteur, ou à droite d'un commentaire d'un autre auteur) ouvre un formulaire : choisissez un motif (illicite, injure ou haine, vie privée, spam, autre), ajoutez des précisions si besoin, puis envoyez. L'éditeur examine la demande ; l'auteur du contenu n'est pas informé de votre identité. Un contenu ne se signale qu'une fois par compte.
 - **Signalement révoqué** — si la mairie de la ville a révoqué le signalement, un badge rouge « Révoqué » remplace le statut et une bannière en affiche le motif ; le vote, les commentaires, la modification et la suppression ne sont plus proposés. Le signalement n'apparaît plus sur la carte ni dans les listes, seul son lien direct reste ouvrable (auteur et mairie de la ville).
 
 ### 6.1 Modifier ou supprimer son propre signalement

@@ -147,6 +147,60 @@ Après un premier déploiement, attendre quelques minutes avant de tester : just
 
 Ces fonctions ne sont pas déployées par `deploy.yml` (qui ne gère que le VPS).
 
+### 8.6 Informations légales, signalements de contenu et Matomo
+
+**Informations de l'éditeur** : à renseigner dans `src/constants/legal.ts` (`LEGAL_INFO`), puis redéployer. Tant qu'un champ est vide, les quatre pages légales affichent « [À compléter : …] » surligné. À chaque modification substantielle des textes : mettre à jour `LEGAL_LAST_UPDATE` et `TERMS_VERSION`.
+
+**Signalements de contenu** (bouton « Signaler », migration `20261009020000_add_content_reports.sql` à pousser avec `supabase db push`). Aucune notification : consulter régulièrement la table depuis le dashboard Supabase (éditeur SQL) :
+
+```sql
+select created_at, reason, issue_id, comment_id, details
+from public.content_reports where status = 'new' order by created_at;
+-- après traitement :
+update public.content_reports set status = 'handled' where id = '<uuid>';
+```
+
+Pour retirer un contenu : supprimer le commentaire (`delete from public.comments where id = …`) ou le signalement depuis le dashboard ; pour un compte, voir `MANUEL_UTILISATION.md`. La CGU promet un retrait « dans les meilleurs délais » pour un contenu manifestement illicite.
+
+**Matomo** (`matomo.projet-cityspot.fr`) : le snippet désactive les cookies. À régler dans l'interface Matomo pour que la politique de confidentialité soit exacte : *Administration → Confidentialité* → anonymiser l'adresse IP (2 octets au moins), respecter « Do Not Track », supprimer les anciennes données brutes après 13 mois.
+
+**Journaux serveur** : la politique annonce 12 mois au plus ; vérifier la rotation des journaux nginx / Traefik sur le VPS.
+
+### 8.7 Mise en production du rattachement par code INSEE (une fois)
+
+Ordre à respecter (migrations `20261010010000` à `20261010030000` ; la dernière n'ajoute que `city_insee` à la purge des comptes) :
+
+1. `supabase db push` (les trois migrations). À partir de là, une mairie ne voit plus rien tant que les codes ne sont pas renseignés.
+2. Rattrapage des codes existants, depuis ta machine. Le script lit l'URL dans ton `.env` (`--env-file`, Node 20.6+) ; la **clé service** (Supabase → Project Settings → API → `service_role` ou `secret`, pas la clé anon : elle ne peut ni lire ni modifier les lignes des autres comptes) se passe devant la commande, sans l'écrire dans un fichier ni la commiter :
+   ```bash
+   SUPABASE_SERVICE_ROLE_KEY=<clé> node --env-file=.env scripts/backfill-insee.mjs          # simulation
+   SUPABASE_SERVICE_ROLE_KEY=<clé> node --env-file=.env scripts/backfill-insee.mjs --apply  # écriture
+   ```
+   Les lignes « commune introuvable » (coordonnées absentes, lieu hors de France) restent sans code : à compléter à la main.
+3. Vérifier les comptes mairie : `select id, city, city_insee from public.users where role = 'municipal';`.
+4. Redéployer la fonction : `supabase functions deploy notify-mairie`.
+5. Déployer le front (tag `vX.Y.Z`) **tout de suite après l'étape 1** : l'ancien front écrit encore `issues.owner_email`, colonne supprimée par la migration `20261010020000` (la création d'un signalement échoue entre les deux).
+
+### 8.8 Effacement de l'e-mail de connexion à la demande (manuel)
+
+La purge nocturne (`purge_deleted_accounts`, pg_cron, 03:00) ne fait que **vider le profil** (`public.users` : nom, téléphone, adresse, photo, ville, code INSEE) des comptes marqués supprimés depuis plus de 30 jours. L'adresse e-mail de connexion reste dans `auth.users`, géré par Supabase : le projet n'y écrit jamais. La politique de confidentialité promet de l'effacer **sur demande** (e-mail de contact).
+
+Procédure, à la réception d'une demande :
+
+1. Vérifier que le compte est bien purgé : `select name, deleted_at from public.users where id = '<uuid>';` (nom « Utilisateur supprimé », `deleted_at` de plus de 30 jours). Sinon, la personne doit d'abord supprimer son compte depuis les Paramètres.
+2. **Avant de supprimer l'utilisateur**, vérifier ce que les clés étrangères vers `auth.users` feraient de ses signalements, commentaires et votes (certaines ne sont pas versionnées dans `supabase/migrations/`) :
+   ```sql
+   select conrelid::regclass as table_liee, conname,
+          case confdeltype when 'c' then 'CASCADE (les lignes liées sont supprimées)'
+                           when 'n' then 'SET NULL' when 'a' then 'NO ACTION (suppression refusée)'
+                           when 'r' then 'RESTRICT' else confdeltype::text end as a_la_suppression
+   from pg_constraint
+   where confrelid = 'auth.users'::regclass and contype = 'f';
+   ```
+   Un `CASCADE` sur `issues`, `comments` ou `votes` supprimerait les contenus de la personne, que le projet choisit de conserver anonymisés. Dans ce cas, ne pas supprimer : changer l'e-mail depuis le dashboard (*Authentication → Users → ⋯ → Update email*) vers une adresse jetable comme `effacee-<uuid>@invalid.local`.
+3. Sans `CASCADE` gênant : *Authentication → Users → ⋯ → Delete user*.
+4. Répondre à la personne sous un mois (RGPD) et noter la date de l'effacement dans ton registre des demandes.
+
 ## 9. Critères de qualité et de performance
 
 | Axe | Critère | Mesure actuelle | Outil |

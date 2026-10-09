@@ -442,7 +442,7 @@ Détail complet : [`MANUEL_UTILISATION.md`](./MANUEL_UTILISATION.md).
 **Base de données** : évolutions de schéma versionnées dans `supabase/migrations/` (un fichier par changement). Particularité assumée du dépôt : les migrations déjà appliquées sont régulièrement supprimées du dossier local une fois poussées car exécutées sur l'interface web supabase directement. Conservées depuis la v1.0.0. L'historique de référence fiable est le plan de correction des bogues (§15), pas le dossier `migrations/`. Toute nouvelle table exposée à l'API doit recevoir des policies RLS explicites dès sa création (ne jamais laisser de policy permissive de type `"all for all"` — cf. BUG-10/BUG-13).
 
 **Tâches d'administration courantes** :
-- Attribuer le rôle municipal : `update public.users set role = 'municipal' where id = '<uuid>'`.
+- Attribuer le rôle municipal : `update public.users set role = 'municipal', city_insee = '<code INSEE>' where id = '<uuid>'` (le code INSEE rattache l'agent à sa commune).
 - Mettre à jour les dépendances : `npm outdated` / `npm audit` / `npm update`, puis `npm run build && npm test` avant de valider.
 - Rotation d'une clé Supabase : régénération côté Supabase, mise à jour de `.env` et des secrets GitHub, reconstruction de l'image.
 

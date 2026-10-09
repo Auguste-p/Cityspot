@@ -71,10 +71,14 @@ Pour une nouvelle migration :
 Le rôle municipal se lit exclusivement dans `public.users.role` (source de vérité unique depuis la migration `20260717070000_add_users_role.sql` — voir `PLAN_CORRECTION_BOGUES.md`, BUG-12). Il n'existe pas d'interface pour le changer soi-même ; c'est une opération d'administration en base :
 
 ```sql
-update public.users set role = 'municipal' where id = '<uuid-du-compte>';
+-- city_insee : code INSEE de la commune de l'agent (5 caractères : 34172 pour Montpellier, 2A004 pour Ajaccio…).
+-- Chercher le code : https://geo.api.gouv.fr/communes?nom=Montpellier&fields=nom,code
+update public.users
+set role = 'municipal', city_insee = '<code-insee>'
+where id = '<uuid-du-compte>';
 ```
 
-Le compte obtient alors l'accès à `/municipal`, le bouton de navigation dédié et le badge "Mairie" sur son profil, sans étape supplémentaire.
+Le compte obtient alors l'accès à `/municipal`, le bouton de navigation dédié et le badge "Mairie" sur son profil. **Sans `city_insee`, la vue municipale affiche « Compte non rattaché à une commune »** : le code INSEE est la clé qui rattache l'agent aux signalements de sa commune (migration `20261010010000_add_city_insee.sql`). Depuis cette migration, ni le rôle ni le code d'un compte mairie ne sont modifiables depuis l'application (un trigger les refuse aux rôles `anon`/`authenticated`) : seul le SQL d'administration le peut.
 
 ### 6.2 Mettre à jour les dépendances
 

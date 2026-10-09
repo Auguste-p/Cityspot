@@ -5,6 +5,9 @@ export const NOMINATIM_REVERSE_GEOCODE_URL = 'https://nominatim.openstreetmap.or
 // recherche au fil de la frappe : rues, numéros, lieux nommés — pas
 // uniquement des villes) : https://photon.komoot.io/
 export const PHOTON_SEARCH_URL = 'https://photon.komoot.io/api/';
+// API Géo (Etalab / DINUM, données officielles, sans clé) : recherche de commune par nom et
+// commune d'un point GPS, avec son code INSEE — clé de rattachement des signalements aux mairies.
+export const GEO_API_COMMUNES_URL = 'https://geo.api.gouv.fr/communes';
 
 export const FALLBACK_CITY = {
   name: 'Paris',

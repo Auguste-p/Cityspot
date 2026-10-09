@@ -24,7 +24,7 @@ function tableStub(result: { data: unknown; error: unknown }) {
 
 function fakeClient(tables: Record<string, { data: unknown; error: unknown }>) {
   return {
-    from: (table: string) => tableStub(tables[table]),
+    from: (table: string) => tableStub(tables[table] ?? { data: null, error: null }),
     storage: {
       from: (bucket: string) => ({
         getPublicUrl: (path: string) => ({ data: { publicUrl: `https://fake.supabase.co/storage/v1/object/public/${bucket}/${path}` } }),
@@ -330,7 +330,7 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
         issues: {
           data: [{
             id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
-            is_private_property: false, is_own_property: null, owner_email: null,
+            is_private_property: false, is_own_property: null,
             positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
             is_municipal_project: false, categories: [], created_by: 'u1', city: 'Castelnau-le-Lez',
             revoked_at: '2026-10-07T10:00:00Z', revoked_reason: 'Doublon',
@@ -369,9 +369,9 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
         issues: {
           data: {
             id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
-            is_private_property: false, is_own_property: null, owner_email: null,
+            is_private_property: false, is_own_property: null,
             positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
-            is_municipal_project: false, categories: [], created_by: 'u1', city: 'Castelnau-le-Lez',
+            is_municipal_project: false, categories: [], created_by: 'u1', city: 'Castelnau-le-Lez', city_insee: '34057',
             revoked_at: '2026-10-07T10:00:00Z', revoked_reason: 'Doublon',
           },
           error: null,
@@ -383,6 +383,7 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
 
     const post = await getIssueById('issue-1');
     expect(post?.city).toBe('Castelnau-le-Lez');
+    expect(post?.cityInsee).toBe('34057');
     expect(post?.revoked).toEqual({ at: new Date('2026-10-07T10:00:00Z'), reason: 'Doublon' });
   });
 
@@ -393,7 +394,7 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
         issues: {
           data: {
             id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
-            is_private_property: false, is_own_property: null, owner_email: null,
+            is_private_property: false, is_own_property: null,
             positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
             is_municipal_project: false, categories: ['voirie', 'pothole', ''], created_by: 'u1', city: null,
           },
@@ -451,7 +452,7 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
         issues: {
           data: [{
             id: 'issue-1', title: 'T', description: null, location: {}, image_url: null,
-            is_private_property: false, is_own_property: null, owner_email: null,
+            is_private_property: false, is_own_property: null,
             positive_votes: 0, negative_votes: 0, created_at: null, status: 'open',
             is_municipal_project: false, categories: ['voirie'], created_by: 'u1', city: 'Lyon',
             revoked_at: '2026-10-07T10:00:00Z', revoked_reason: 'Doublon',
@@ -477,5 +478,207 @@ describe('deleteIssue (RLS directe sur `issues`)', () => {
     vi.resetModules();
     const mod = await import('./issuesService');
     await expect(mod.listRevokedIssuesByCity('Lyon')).resolves.toEqual([]);
+  });
+});
+
+describe('reportContent', () => {
+  const input = { userId: 'u1', issueId: 'i1', reason: 'spam' as const };
+
+  it('inserts the report as the caller, trimming details and defaulting comment_id to null', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn().mockReturnValue({ insert });
+    mockedGetSupabaseClient.mockReturnValue({ from } as any);
+    const { reportContent } = await import('./issuesService');
+
+    await expect(reportContent({ ...input, details: '  pub  ' })).resolves.toBe('sent');
+    expect(from).toHaveBeenCalledWith('content_reports');
+    expect(insert).toHaveBeenCalledWith({
+      reporter_id: 'u1', issue_id: 'i1', comment_id: null, reason: 'spam', details: 'pub',
+    });
+  });
+
+  it('forwards the comment id', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    mockedGetSupabaseClient.mockReturnValue({ from: () => ({ insert }) } as any);
+    const { reportContent } = await import('./issuesService');
+
+    await reportContent({ ...input, commentId: 'c9' });
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ comment_id: 'c9', details: null }));
+  });
+
+  it('treats an already-reported content (unique violation) as a success', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } });
+    mockedGetSupabaseClient.mockReturnValue({ from: () => ({ insert }) } as any);
+    const { reportContent } = await import('./issuesService');
+
+    await expect(reportContent(input)).resolves.toBe('duplicate');
+  });
+
+  it('throws on any other database error and when Supabase is not configured', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: { code: '42501', message: 'rls refused' } });
+    mockedGetSupabaseClient.mockReturnValue({ from: () => ({ insert }) } as any);
+    const { reportContent } = await import('./issuesService');
+    await expect(reportContent(input)).rejects.toThrow('rls refused');
+
+    mockedGetSupabaseClient.mockReturnValue(null);
+    await expect(reportContent(input)).rejects.toThrow('Supabase non configuré');
+  });
+});
+
+// Variante de tableStub qui enregistre chaque appel (table, méthode, arguments).
+function recordingClient(tables: Record<string, { data: unknown; error: unknown }>) {
+  const calls: { table: string; method: string; args: unknown[] }[] = [];
+  const client = {
+    from: (table: string) => {
+      const result = tables[table] ?? { data: null, error: null };
+      const chain: any = Promise.resolve(result);
+      for (const method of ['select', 'eq', 'is', 'not', 'in', 'order', 'insert', 'update', 'upsert', 'delete']) {
+        chain[method] = (...args: unknown[]) => {
+          calls.push({ table, method, args });
+          return chain;
+        };
+      }
+      chain.single = () => Promise.resolve(result);
+      chain.maybeSingle = () => Promise.resolve(result);
+      return chain;
+    },
+    storage: { from: (bucket: string) => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: `https://fake.supabase.co/${bucket}/${path}` } }) }) },
+  } as any;
+  return { client, calls };
+}
+
+const issueRow = { id: 'issue-1', title: 'T', description: null, location: {}, image_url: null, created_by: 'u1', categories: [] };
+const ownerCalls = (calls: { table: string; method: string; args: unknown[] }[]) => calls.filter((call) => call.table === 'issue_owner_contacts');
+
+describe('commune par code INSEE', () => {
+  it('filters the issue list by city_insee', async () => {
+    const { listIssues } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: [], error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await listIssues('34057');
+
+    expect(calls).toContainEqual({ table: 'issues', method: 'eq', args: ['city_insee', '34057'] });
+  });
+
+  it('does not filter by commune when no code is given', async () => {
+    const { listIssues } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: [], error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await listIssues();
+
+    expect(calls.some((call) => call.method === 'eq' && call.args[0] === 'city_insee')).toBe(false);
+  });
+
+  it('filters the revoked issues of a commune by city_insee, and returns nothing without a code', async () => {
+    const { listRevokedIssuesByCity } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: [], error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await listRevokedIssuesByCity('34057');
+    expect(calls).toContainEqual({ table: 'issues', method: 'eq', args: ['city_insee', '34057'] });
+
+    await expect(listRevokedIssuesByCity('')).resolves.toEqual([]);
+  });
+
+  it('stores the commune name and INSEE code of a new issue', async () => {
+    const { createIssue } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: issueRow, error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await createIssue({ title: 'T', description: 'D', address: 'A', city: 'Castelnau-le-Lez', cityInsee: '34057' });
+
+    const insert = calls.find((call) => call.table === 'issues' && call.method === 'insert');
+    expect(insert?.args[0]).toMatchObject({ city: 'Castelnau-le-Lez', city_insee: '34057' });
+  });
+
+  it('leaves the commune untouched on update when none is resolved', async () => {
+    const { updateIssue } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: issueRow, error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await updateIssue('issue-1', { title: 'T', description: 'D', location: { lat: 1, lng: 2, address: 'A' } });
+
+    const update = calls.find((call) => call.table === 'issues' && call.method === 'update');
+    expect(update?.args[0]).not.toHaveProperty('city_insee');
+    expect(update?.args[0]).not.toHaveProperty('city');
+  });
+});
+
+describe("e-mail du propriétaire dans une table à part", () => {
+  it('writes it to issue_owner_contacts at creation, never to the issues row', async () => {
+    const { createIssue } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: issueRow, error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    const post = await createIssue({ title: 'T', description: 'D', address: 'A', ownerEmail: '  prop@example.fr ' });
+
+    const issuesInsert = calls.find((call) => call.table === 'issues' && call.method === 'insert');
+    expect(issuesInsert?.args[0]).not.toHaveProperty('owner_email');
+    expect(ownerCalls(calls)).toContainEqual({
+      table: 'issue_owner_contacts',
+      method: 'insert',
+      args: [{ issue_id: expect.any(String), owner_email: 'prop@example.fr' }],
+    });
+    expect(post.ownerEmail).toBe('prop@example.fr');
+  });
+
+  it('writes nothing when no e-mail is given', async () => {
+    const { createIssue } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: issueRow, error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    await createIssue({ title: 'T', description: 'D', address: 'A', ownerEmail: '   ' });
+
+    expect(ownerCalls(calls)).toEqual([]);
+  });
+
+  it('replaces it on update when given, removes it when emptied', async () => {
+    const { updateIssue } = await import('./issuesService');
+    const input = { title: 'T', description: 'D', location: { lat: 1, lng: 2, address: 'A' } };
+
+    const withEmail = recordingClient({ issues: { data: issueRow, error: null } });
+    mockedGetSupabaseClient.mockReturnValue(withEmail.client);
+    await updateIssue('issue-1', { ...input, ownerEmail: 'prop@example.fr' });
+    expect(ownerCalls(withEmail.calls)).toContainEqual({
+      table: 'issue_owner_contacts',
+      method: 'upsert',
+      args: [{ issue_id: 'issue-1', owner_email: 'prop@example.fr' }, { onConflict: 'issue_id' }],
+    });
+
+    const emptied = recordingClient({ issues: { data: issueRow, error: null } });
+    mockedGetSupabaseClient.mockReturnValue(emptied.client);
+    await updateIssue('issue-1', { ...input, ownerEmail: '' });
+    expect(ownerCalls(emptied.calls).map((call) => call.method)).toEqual(['delete', 'eq']);
+  });
+
+  it('reads it with the issue when the RLS lets the caller see it, and not otherwise', async () => {
+    const { getIssueById } = await import('./issuesService');
+
+    mockedGetSupabaseClient.mockReturnValue(
+      recordingClient({
+        issues: { data: issueRow, error: null },
+        issue_owner_contacts: { data: { owner_email: 'prop@example.fr' }, error: null },
+      }).client,
+    );
+    expect((await getIssueById('issue-1'))?.ownerEmail).toBe('prop@example.fr');
+
+    // Citoyen tiers : la RLS ne renvoie aucune ligne.
+    mockedGetSupabaseClient.mockReturnValue(
+      recordingClient({ issues: { data: issueRow, error: null }, issue_owner_contacts: { data: null, error: null } }).client,
+    );
+    expect((await getIssueById('issue-1'))?.ownerEmail).toBeUndefined();
+  });
+
+  it('does not expose the e-mail in issue lists', async () => {
+    const { listIssues } = await import('./issuesService');
+    const { client, calls } = recordingClient({ issues: { data: [issueRow], error: null } });
+    mockedGetSupabaseClient.mockReturnValue(client);
+
+    const [post] = await listIssues();
+
+    expect(post.ownerEmail).toBeUndefined();
+    expect(ownerCalls(calls)).toEqual([]);
   });
 });

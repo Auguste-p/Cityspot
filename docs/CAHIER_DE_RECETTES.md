@@ -52,6 +52,8 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | AUTH-06 | F | Majeur | Déconnexion | Depuis `/settings`, cliquer "Se déconnecter" | Session invalidée, redirection vers `/login` | ☐ |
 | AUTH-07 | F | Mineur | Validation des champs Nom/Ville | En mode inscription, laisser "Nom" ou "Ville" vide, tenter de valider | Soumission bloquée par la validation native du navigateur (`required`), `signUp` non appelé | ☐ |
 | AUTH-08 | F | Majeur | Synchronisation `public.users` à l'inscription | S'inscrire avec nom="Jeanne Dupont", ville="Lyon", puis consulter la table `public.users` dans Supabase Studio | Une ligne apparaît avec `id` = uuid du compte, `name`="Jeanne Dupont", `city`="Lyon" (trigger `on_auth_user_created` → `handle_new_user()`) | ☐ |
+| AUTH-09 | F | Majeur | Case d'acceptation des CGU à l'inscription | Passer en mode « S'inscrire », tenter de créer un compte sans cocher la case ; la cocher et créer le compte | Case absente en mode connexion, non pré-cochée en inscription ; sans case cochée, le navigateur bloque la soumission ; avec, le compte est créé et `auth.users.raw_user_meta_data` contient `termsVersion` et `termsAcceptedAt` | ☐ *(non rejoué — ajouté le 2026-10-09)* |
+| AUTH-10 | F | Majeur | Pages légales publiques et liens de pied de page | Sans être connecté, ouvrir `/mentions-legales`, `/cgu`, `/confidentialite`, `/accessibilite` ; connecté, cliquer les liens du pied de page ; renseigner `LEGAL_INFO` | Les quatre pages s'affichent sans compte, les liens du pied de page (app et connexion) y mènent, « Retour » ramène à la page précédente ; un champ vide apparaît surligné « [À compléter : …] », rempli il affiche sa valeur | ☐ *(non rejoué — ajouté le 2026-10-09)* |
 
 ## 6. Création d'un signalement (`/create`)
 
@@ -102,6 +104,9 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | DET-06 | SEC | Majeur | Édition des tâches restreinte | Se connecter avec un compte différent du créateur, tenter de cocher une tâche sur un post "en cours" | Action bloquée, toast "Les tâches ne sont plus modifiables..." (contrôle `canEditTasks`) | ✅ *(vérification partielle exécutée 2026-07-17 : sur un post "en vote" (pending), cliquer une tâche affiche bien le toast d'information au lieu de la cocher. Le cas exact "en cours + non-créateur" reste hors de portée, bloqué par le seuil de vote de DET-04)* |
 | DET-07 | F | Majeur | Ajout de commentaire | Saisir un commentaire, publier | Commentaire ajouté en fin de liste avec auteur et date | ✅ *(exécuté 2026-07-17)* |
 | DET-19 | F | Mineur | Badge « Mairie » sur les commentaires | Avec un compte mairie, commenter un signalement ; ouvrir le même signalement avec un compte citoyen, qui commente aussi | Le commentaire de la mairie porte le badge « Mairie » (vu par la mairie et par le citoyen), celui du citoyen n'en porte pas | ☐ *(non rejoué — ajouté le 2026-10-07)* |
+| DET-20 | F | Majeur | Signaler un signalement | Avec un compte non auteur, cliquer sur le drapeau d'un signalement, choisir un motif, envoyer ; recommencer ; ouvrir un signalement dont on est l'auteur | Envoi impossible sans motif ; ligne créée dans `content_reports` (visible dans le dashboard) ; second envoi : message « déjà signalé » sans doublon ; drapeau absent sur son propre signalement | ✅ *(exécuté 2026-10-10 par l'utilisateur : le bouton « Signaler » fonctionne)* |
+| DET-21 | SEC | Majeur | Signaler un commentaire et confidentialité des signalements | Signaler le commentaire d'un autre compte ; vérifier l'absence de drapeau sur son propre commentaire ; tenter `select` sur `content_reports` avec le jeton d'un compte client | Ligne avec `comment_id` renseigné ; pas de drapeau sur son commentaire ; la lecture de la table depuis le client renvoie 0 ligne (aucune policy SELECT) | ☐ *(non rejoué — ajouté le 2026-10-09)* |
+| DET-22 | SEC | Majeur | E-mail du propriétaire réservé à l'auteur et à la mairie | Créer un signalement « voie privée, non propriétaire » avec un e-mail de propriétaire ; l'ouvrir avec l'auteur, avec la mairie de la commune, puis avec un autre citoyen ; tenter `select * from issue_owner_contacts` en REST avec le jeton de ce citoyen | Bloc « E-mail du propriétaire » visible pour l'auteur et la mairie de la commune seulement ; la lecture REST du citoyen renvoie 0 ligne ; modifier le signalement avec un e-mail vide supprime la ligne | ☐ *(non rejoué — ajouté le 2026-10-10)* |
 | DET-17 | F | Mineur | Nom de l'auteur et lien vers le profil public | Ouvrir un signalement avec des commentaires d'un autre utilisateur | Nom réel de l'auteur affiché (au lieu de "Citoyen"), cliquable vers `/user/:id` ; ses propres commentaires portent la mention "(vous)" et ne sont pas cliquables | ✅ *(exécuté 2026-09-03 par l'utilisateur avec 2 comptes réels)* |
 | DET-08 | F | Mineur | Partage | Cliquer sur "Partager" (navigateur sans Web Share API) | Lien copié dans le presse-papier, toast de confirmation | ✅ *(exécuté 2026-07-17, repli presse-papier confirmé en environnement headless)* |
 | DET-09 | SEC | Bloquant | Icônes Modifier/Supprimer réservées au créateur | Ouvrir un post créé par un autre utilisateur, puis le même post en étant le créateur | Absentes dans le premier cas, visibles dans le second (garde `user?.id === post.created_by`) | ✅ *(exécuté 2026-07-17 avec 2 comptes réels : non-propriétaire → Modifier/Supprimer absents ; propriétaire → Modifier/Supprimer visibles)* |
@@ -126,6 +131,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | MUN-09 | SEC | Bloquant | Révocation hors périmètre refusée | (a) citoyen : aucun bouton ; (b) mairie d'une autre ville : aucun bouton ; (c) appel direct `rpc('revoke_issue')` par ces comptes ; (d) auteur qui tente un `update` de `revoked_at` | (a)(b) bouton absent ; (c)(d) erreur Postgres, aucune ligne modifiée ; un citoyen tiers ne voit plus le signalement révoqué | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | MUN-10 | F | Majeur | Mail de révocation à l'auteur | Après MUN-08 (fonction déployée, secrets Resend posés, domaine vérifié), consulter la boîte de l'auteur ; puis recommencer avec `RESEND_API_KEY` volontairement invalide | Mail reçu avec titre, ville et motif ; en cas d'échec, la révocation reste valide et la mairie voit « l'e-mail à l'auteur n'a pas pu être envoyé » | ✅ *(exécuté 2026-10-07 : mail reçu avec Resend ; il est arrivé dans les indésirables — authentification SPF/DKIM/DMARC du domaine expéditeur à vérifier, non bloquant)* |
 | MUN-11 | F | Majeur | Onglet « Révoqués » du tableau de bord | Après MUN-08, ouvrir `/municipal` avec un compte mairie de la ville (puis d'une autre ville) ; filtrer par catégorie | Onglet « Révoqués (n) » listant le signalement avec son badge, la date et le motif, absent des autres onglets et des statistiques ; la mairie d'une autre ville ne le voit pas ; le filtre de catégorie s'applique | ☐ *(non rejoué — ajouté le 2026-10-07)* |
+| MUN-12 | SEC | Majeur | Rattachement de la mairie par code INSEE | Avec deux comptes mairie de deux communes de même nom (ou une commune voisine), ouvrir `/municipal` et un signalement de l'autre commune ; avec un compte mairie sans `city_insee`, ouvrir `/municipal` ; tenter `update users set city_insee = …` en REST avec le jeton d'un compte mairie | Chaque mairie ne voit et ne révoque que les signalements de son code INSEE ; sans code : message « Compte non rattaché à une commune » ; la modification est refusée par la base | ☐ *(partiellement rejoué le 2026-10-10 par l'utilisateur : une mairie ne peut révoquer que les signalements de sa commune ; restent à rejouer : la mairie voit uniquement sa commune dans `/municipal`, le refus de la modification REST de `role` / `city_insee`, et le message d'un compte sans code INSEE)* |
 | MUN-04 | F | Mineur | Onglets par statut | Parcourir les onglets Tous/En vote/En cours/Terminés | Contenu et compteurs cohérents avec les données | ✅ *(exécuté 2026-07-17)* |
 | MUN-05 | F | Mineur | Statistiques globales | Comparer les cartes de stats en haut de page aux données réelles | Total, en vote, en cours, terminés corrects | ✅ *(exécuté 2026-07-17, statistiques affichées)* |
 | MUN-06 | F | Mineur | État vide | Filtrer une catégorie sans signalement | Message "Aucun signalement dans cette catégorie" | ✅ *(exécuté 2026-07-17, message d'état vide affiché sur "Mobilier urbain")* |
@@ -199,21 +205,21 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | Fonctionnels (F) | 76 |
 | Structurels (S) | 11 |
 | Sécurité (SEC) | 20 |
-| **Total** | **107** |
+| **Total** | **113** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 19 |
 | Majeur | 45 |
 | Mineur | 43 |
-| **Total** | **107** |
+| **Total** | **113** |
 
 | État d'exécution | Nombre |
 |---|---|
-| ✅ OK | 87 *(73 le 2026-07-17 + 10 le 2026-09-03 + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
+| ✅ OK | 88 *(73 le 2026-07-17 + 10 le 2026-09-03 + 1 le 2026-10-10 (DET-20 — signalement de contenu) + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 20 *(dont 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
-| **Total** | **107** |
+| ☐ Non exécuté (raison documentée par ligne) | 25 *(dont 2 ajoutés le 2026-10-10 : MUN-12 — code INSEE, partiellement rejoué —, DET-22 — e-mail du propriétaire —, et 3 ajoutés le 2026-10-09 : AUTH-09/10 — CGU et pages légales —, DET-21 — signalement d'un commentaire —, et 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
+| **Total** | **113** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

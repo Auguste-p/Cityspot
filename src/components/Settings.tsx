@@ -13,14 +13,14 @@ import { useUser } from '../context/UserContext';
 import { deleteOwnAccount, getUserProfile, signOut, updateUserProfile } from '../services/authService';
 import { settingsFormSchema } from '../schemas/formSchemas';
 import { isAllowedImageFile, uploadToBucket } from '../lib/storage';
-import { searchAddress, type GeocodeResult } from '../lib/geocode';
+import { reverseCommune, searchAddress, type GeocodeResult } from '../lib/geocode';
 import { z } from 'zod';
 
 const ADDRESS_SEARCH_DEBOUNCE_MS = 400;
 
 export function Settings() {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isMunicipalUser } = useUser();
 
   const form = useForm<z.input<typeof settingsFormSchema>, undefined, z.output<typeof settingsFormSchema>>({
     resolver: zodResolver(settingsFormSchema),
@@ -42,7 +42,7 @@ export function Settings() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [addressSuggestions, setAddressSuggestions] = useState<GeocodeResult[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; insee?: string } | null>(null);
   const addressSearchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -101,6 +101,9 @@ export function Settings() {
         // session (nouvelle suggestion choisie) — sinon on ne touche pas aux
         // coordonnées existantes, déjà cohérentes avec la ville affichée.
         ...(selectedLocation ? { cityLat: selectedLocation.lat, cityLng: selectedLocation.lng } : {}),
+        // Code INSEE de la commune choisie. Jamais pour un compte mairie : c'est sa clé d'accès aux
+        // signalements d'une commune, la base refuse qu'il la change lui-même.
+        ...(selectedLocation && !isMunicipalUser ? { cityInsee: selectedLocation.insee ?? null } : {}),
         avatar,
         emailNotifications: data.emailNotifications,
         profileVisible: data.profileVisible,
@@ -141,6 +144,18 @@ export function Settings() {
     form.setValue('city', suggestion.city ?? '');
     setSelectedLocation({ lat: suggestion.lat, lng: suggestion.lng });
     setSuggestionsOpen(false);
+
+    // La commune officielle (API Géo) remplace le nom de ville du géocodeur : même source que le
+    // code INSEE enregistré. Si l'API ne répond pas, on garde le nom du géocodeur, sans code.
+    void reverseCommune(suggestion.lat, suggestion.lng).then((commune) => {
+      if (!commune) return;
+      form.setValue('city', commune.name);
+      setSelectedLocation((current) =>
+        current && current.lat === suggestion.lat && current.lng === suggestion.lng
+          ? { ...current, insee: commune.insee }
+          : current,
+      );
+    });
   };
 
   const handleLogout = async () => {

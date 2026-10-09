@@ -14,6 +14,7 @@ vi.mock('../hooks/useIssues', () => ({
 vi.mock('../services/issuesService', () => ({
   deleteIssue: vi.fn(),
   revokeIssue: vi.fn(),
+  reportContent: vi.fn(),
   getPrivateNote: vi.fn(),
   savePrivateNote: vi.fn(),
 }));
@@ -24,7 +25,7 @@ vi.mock('../context/UserContext', () => ({
 
 import { useUser } from '../context/UserContext';
 import { useComments, useIssue, useVotes } from '../hooks/useIssues';
-import { getPrivateNote, revokeIssue } from '../services/issuesService';
+import { getPrivateNote, reportContent, revokeIssue } from '../services/issuesService';
 import { PostDetail } from './PostDetail';
 
 const mockedUseUser = vi.mocked(useUser);
@@ -197,17 +198,17 @@ describe('PostDetail city hall badge on comments', () => {
 });
 
 describe('PostDetail revocation by the city hall', () => {
-  const MAIRIE = { id: 'm1', email: 'm@ville.fr', role: 'municipal' as const, city: 'Castelnau-le-Lez, Occitanie' };
+  const MAIRIE = { id: 'm1', email: 'm@ville.fr', role: 'municipal' as const, city: 'Castelnau-le-Lez, Occitanie', cityInsee: '34057' };
   const asUser = (user: typeof CITIZEN | typeof MAIRIE) =>
     mockedUseUser.mockReturnValue({ user, loading: false, isMunicipalUser: user.role === 'municipal', refreshUser: vi.fn() });
   const withIssue = (overrides: Partial<Post> = {}) => {
-    mockedUseIssue.mockReturnValue({ issue: post({ city: 'Castelnau-le-Lez', ...overrides }), loading: false, error: null });
+    mockedUseIssue.mockReturnValue({ issue: post({ city: 'Castelnau-le-Lez', cityInsee: '34057', ...overrides }), loading: false, error: null });
     mockedUseComments.mockReturnValue({ comments: [], loading: false, error: null, addComment: vi.fn() });
     mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
     vi.mocked(getPrivateNote).mockResolvedValue('');
   };
 
-  it('is offered to the city hall of the issue city only', async () => {
+  it('is offered to the city hall of the issue commune only (by INSEE code, not by name)', async () => {
     withIssue();
     asUser(CITIZEN);
     renderPostDetail();
@@ -215,7 +216,8 @@ describe('PostDetail revocation by the city hall', () => {
     expect(screen.queryByRole('button', { name: 'Révoquer le signalement' })).toBeNull();
     cleanup();
 
-    asUser({ ...MAIRIE, city: 'Montpellier, Occitanie' });
+    // Même nom de ville, autre commune (homonyme) : pas de droit de révocation.
+    asUser({ ...MAIRIE, city: 'Castelnau-le-Lez, Occitanie', cityInsee: '34172' });
     renderPostDetail();
     await screen.findByText('Nid de poule rue Victor Hugo');
     expect(screen.queryByRole('button', { name: 'Révoquer le signalement' })).toBeNull();
@@ -257,3 +259,70 @@ describe('PostDetail revocation by the city hall', () => {
   });
 });
 
+
+describe('PostDetail content reporting', () => {
+  const comment = (id: string, id_user: string) => ({
+    id, created_at: '2026-10-07T10:00:00Z', id_issue: 'post-1', id_user, comment: `Message ${id}`, authorName: `Auteur ${id}`,
+  });
+  const setup = (userId = 'u1') => {
+    mockedUseUser.mockReturnValue({ user: { ...CITIZEN, id: userId }, loading: false, isMunicipalUser: false, refreshUser: vi.fn() });
+    mockedUseIssue.mockReturnValue({ issue: post({ created_by: 'author' }), loading: false, error: null });
+    mockedUseComments.mockReturnValue({
+      comments: [comment('c1', 'u1'), comment('c2', 'someone')], loading: false, error: null, addComment: vi.fn(),
+    });
+    mockedUseVotes.mockReturnValue({ votes: [], loading: false, error: null, addVote: vi.fn() });
+  };
+
+  it('reports the issue with a reason, then confirms', async () => {
+    setup();
+    vi.mocked(reportContent).mockResolvedValue('sent');
+    renderPostDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Signaler ce signalement' }));
+    const send = await screen.findByRole('button', { name: 'Envoyer le signalement' });
+    expect((send as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Spam ou publicité' }));
+    fireEvent.click(send);
+
+    await waitFor(() =>
+      expect(reportContent).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u1', issueId: 'post-1', commentId: undefined, reason: 'spam' }),
+      ),
+    );
+  });
+
+  it('reports a comment written by someone else, never my own', async () => {
+    setup();
+    vi.mocked(reportContent).mockResolvedValue('sent');
+    renderPostDetail();
+
+    await screen.findByText('Message c2');
+    expect(screen.queryByRole('button', { name: 'Signaler le commentaire de Auteur c1' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Signaler le commentaire de Auteur c2' }));
+    fireEvent.click(await screen.findByRole('radio', { name: 'Contenu illicite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Envoyer le signalement' }));
+
+    await waitFor(() =>
+      expect(reportContent).toHaveBeenCalledWith(expect.objectContaining({ commentId: 'c2', reason: 'illegal' })),
+    );
+  });
+
+  it("does not offer to report one's own issue", async () => {
+    setup('author');
+    renderPostDetail();
+
+    await screen.findByText('Message c2');
+    expect(screen.queryByRole('button', { name: 'Signaler ce signalement' })).toBeNull();
+  });
+
+  it('the open report dialog has no violation', async () => {
+    setup();
+    renderPostDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Signaler ce signalement' }));
+    await screen.findByRole('button', { name: 'Envoyer le signalement' });
+    await expectNoA11yViolations(document.body);
+  });
+});

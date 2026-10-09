@@ -1,10 +1,12 @@
-import { FALLBACK_CITY, PHOTON_SEARCH_URL } from '../constants/map';
+import { FALLBACK_CITY, GEO_API_COMMUNES_URL, PHOTON_SEARCH_URL } from '../constants/map';
 
 export interface GeocodeResult {
   label: string;
   lat: number;
   lng: number;
   city?: string;
+  /** Code INSEE de la commune (renseigné par la recherche de commune, pas par Photon). */
+  insee?: string;
 }
 
 interface PhotonProperties {
@@ -54,10 +56,6 @@ function toLabel(p: PhotonProperties): string {
 // serait vide, et le signalement retomberait sur une ville qui n'est pas celle choisie.
 function toCity(p: PhotonProperties): string | undefined {
   return p.city ?? (['city', 'town', 'village'].includes(p.osm_value ?? '') ? p.name : undefined);
-}
-
-function toCityLabel(p: PhotonProperties): string {
-  return [p.name, p.state].filter(Boolean).join(', ');
 }
 
 // Le profil stocke le label complet de toCityLabel ("Montpellier, Occitanie") ;
@@ -119,9 +117,69 @@ export function searchAddress(query: string): Promise<GeocodeResult[]> {
   return photonSearch(query, {}, toLabel);
 }
 
-// Réservé aux villes/communes (pas de rue ni de lieu-dit) — utilisé à
-// l'inscription pour garantir une ville reconnue par OpenStreetMap, avec des
-// coordonnées fiables pour centrer la carte à la connexion.
-export function searchCity(query: string): Promise<GeocodeResult[]> {
-  return photonSearch(query, { osm_tag: ['place:city', 'place:town', 'place:village'] }, toCityLabel);
+interface GeoApiCommune {
+  nom: string;
+  code: string;
+  centre?: { coordinates: [number, number] }; // [lon, lat]
+  departement?: { nom: string };
+}
+
+export interface Commune {
+  name: string;
+  insee: string;
+}
+
+// Recherche de commune au fil de la frappe (inscription) : commune officielle, code INSEE et
+// coordonnées de son centre pour centrer la carte à la connexion. Les communes les plus
+// peuplées passent en premier (`boost=population`).
+export async function searchCity(query: string): Promise<GeocodeResult[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return [];
+  }
+
+  const params = new URLSearchParams({
+    nom: trimmed,
+    fields: 'nom,code,centre,departement',
+    boost: 'population',
+    limit: '5',
+  });
+
+  try {
+    const response = await fetch(`${GEO_API_COMMUNES_URL}?${params}`);
+    if (!response.ok) {
+      return [];
+    }
+
+    const communes = (await response.json()) as GeoApiCommune[];
+    return communes
+      .filter((commune) => commune.centre)
+      .map((commune) => ({
+        label: [commune.nom, commune.departement?.nom].filter(Boolean).join(', '),
+        lat: commune.centre!.coordinates[1],
+        lng: commune.centre!.coordinates[0],
+        insee: commune.code,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// Commune qui contient un point GPS : c'est elle, et non le nom de ville renvoyé par le géocodeur
+// d'adresses, qui rattache un signalement à une mairie. Marche aussi pour un lieu-dit. `null` si le
+// point est hors de France ou si l'API est injoignable — l'appelant continue sans code INSEE.
+export async function reverseCommune(lat: number, lng: number): Promise<Commune | null> {
+  const params = new URLSearchParams({ lat: String(lat), lon: String(lng), fields: 'nom,code' });
+
+  try {
+    const response = await fetch(`${GEO_API_COMMUNES_URL}?${params}`);
+    if (!response.ok) {
+      return null;
+    }
+
+    const [commune] = (await response.json()) as GeoApiCommune[];
+    return commune ? { name: commune.nom, insee: commune.code } : null;
+  } catch {
+    return null;
+  }
 }

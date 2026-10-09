@@ -51,20 +51,18 @@ Deno.serve(async (req) => {
     .eq('created_by', user.id)
     .is('mairie_notified_at', null)
     .overlaps('categories', AUTHORIZATION_CATEGORIES)
-    .select('title, description, city, location, categories')
+    .select('title, description, city, city_insee, location, categories')
     .maybeSingle();
   if (!issue) return json({ error: 'Notification refusée ou déjà envoyée' }, 403);
 
   const release = () => admin.from('issues').update({ mairie_notified_at: null }).eq('id', issueId);
 
-  // users.city est un label complet ("Castelnau-le-Lez, Occitanie") ; issues.city seulement
-  // le nom de commune : préfiltre SQL, puis égalité exacte sur le premier segment.
-  const { data: agents } = issue.city
-    ? await admin.from('users').select('id, city').eq('role', 'municipal').is('deleted_at', null).like('city', `${issue.city}%`)
+  // Rattachement par code INSEE (et non plus par nom de ville : les homonymes se confondaient).
+  // Signalement sans code INSEE (lieu hors de France, API Géo injoignable) : personne à prévenir.
+  const { data: agents } = issue.city_insee
+    ? await admin.from('users').select('id').eq('role', 'municipal').is('deleted_at', null).eq('city_insee', issue.city_insee)
     : { data: [] };
-  const agentIds = (agents ?? [])
-    .filter((agent) => agent.city?.split(',')[0].trim() === issue.city)
-    .map((agent) => agent.id);
+  const agentIds = (agents ?? []).map((agent) => agent.id);
 
   const emails: string[] = [];
   for (const id of agentIds) {
@@ -92,8 +90,8 @@ Deno.serve(async (req) => {
         from: Deno.env.get('RESEND_FROM'),
         to: [to],
         subject: `Nouveau signalement nécessitant votre intervention : ${issue.title}`,
-        html: `<p>Bonjour,</p><p>Un signalement a été déposé sur City Spot pour <strong>${escapeHtml(issue.city)}</strong> : <strong>${escapeHtml(issue.title)}</strong>.</p><p>Il ne peut pas être réalisé par les habitants sans autorisation et matériel spécifique.</p><ul><li><strong>Catégories :</strong> ${escapeHtml(categories)}</li><li><strong>Adresse :</strong> ${escapeHtml(address)}</li></ul><p>${escapeHtml(description)}</p>${link ? `<p><a href="${escapeHtml(link)}">Voir le signalement</a></p>` : ''}<p>— City Spot</p>`,
-        text: `Un signalement a été déposé pour ${issue.city} : ${issue.title}.\nIl ne peut pas être réalisé sans autorisation et matériel spécifique.\nCatégories : ${categories}\nAdresse : ${address}\n\n${description}${link ? `\n\n${link}` : ''}\n— City Spot`,
+        html: `<p>Bonjour,</p><p>Un signalement a été déposé sur City Spot pour <strong>${escapeHtml(issue.city ?? '')}</strong> : <strong>${escapeHtml(issue.title)}</strong>.</p><p>Il ne peut pas être réalisé par les habitants sans autorisation et matériel spécifique.</p><ul><li><strong>Catégories :</strong> ${escapeHtml(categories)}</li><li><strong>Adresse :</strong> ${escapeHtml(address)}</li></ul><p>${escapeHtml(description)}</p>${link ? `<p><a href="${escapeHtml(link)}">Voir le signalement</a></p>` : ''}<p>— City Spot</p>`,
+        text: `Un signalement a été déposé pour ${issue.city ?? ''} : ${issue.title}.\nIl ne peut pas être réalisé sans autorisation et matériel spécifique.\nCatégories : ${categories}\nAdresse : ${address}\n\n${description}${link ? `\n\n${link}` : ''}\n— City Spot`,
       }),
     });
     if (res.ok) sent += 1;

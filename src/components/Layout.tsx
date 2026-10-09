@@ -6,6 +6,7 @@ import { useUser } from '../context/UserContext';
 import { AccountDeletionGate } from './AccountDeletionGate';
 import { toast } from 'sonner';
 import { logSecurityEvent } from '../lib/sentry';
+import { LegalLinks } from './legal/LegalLinks';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -76,6 +77,11 @@ export function Layout() {
       <main className="flex-1 min-h-0 overflow-y-auto">
         <Outlet />
       </main>
+
+      {/* Liens légaux */}
+      <footer className="bg-card border-t border-border py-1">
+        <LegalLinks />
+      </footer>
 
       {/* Bottom Navigation */}
       <nav className="bg-card border-t border-border shadow-lg sticky bottom-0">

@@ -13,7 +13,7 @@ const mockedGetSupabaseClient = vi.mocked(getSupabaseClient);
 
 function stubAuth(
   getUser: () => Promise<{ data: { user: any } }>,
-  profileRow?: { role?: string; cityLat?: number; cityLng?: number; deleted_at?: string },
+  profileRow?: { role?: string; cityLat?: number; cityLng?: number; city_insee?: string; deleted_at?: string },
 ) {
   return {
     auth: {
@@ -40,6 +40,7 @@ function Probe() {
       <span data-testid="role">{user?.role ?? 'none'}</span>
       <span data-testid="municipal">{String(isMunicipalUser)}</span>
       <span data-testid="city-coords">{user?.cityLat ?? 'none'},{user?.cityLng ?? 'none'}</span>
+      <span data-testid="city-insee">{user?.cityInsee ?? 'none'}</span>
       <span data-testid="pending-deletion">{pendingDeletion ? pendingDeletion.deletedAt.toISOString() : 'none'}</span>
     </div>
   );
@@ -87,6 +88,29 @@ describe('UserProvider', () => {
     render(<UserProvider><Probe /></UserProvider>);
 
     expect((await screen.findByTestId('city-coords')).textContent).toBe('45.75,4.85');
+  });
+
+  it('exposes the INSEE code of the account commune (city hall accounts are matched on it)', async () => {
+    mockedGetSupabaseClient.mockReturnValue(
+      stubAuth(
+        async () => ({ data: { user: { id: 'u4', email: 'm@ville.fr', user_metadata: {} } } }),
+        { role: 'municipal', city_insee: '34057' },
+      ),
+    );
+
+    render(<UserProvider><Probe /></UserProvider>);
+
+    expect((await screen.findByTestId('city-insee')).textContent).toBe('34057');
+  });
+
+  it('has no INSEE code when the profile has none', async () => {
+    mockedGetSupabaseClient.mockReturnValue(
+      stubAuth(async () => ({ data: { user: { id: 'u5', email: 'd@x.com', user_metadata: {} } } }), { role: 'citizen' }),
+    );
+
+    render(<UserProvider><Probe /></UserProvider>);
+
+    expect((await screen.findByTestId('city-insee')).textContent).toBe('none');
   });
 
   it('resolves to no user when unauthenticated', async () => {

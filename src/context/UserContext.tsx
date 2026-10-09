@@ -19,6 +19,8 @@ export interface AppUser {
   city?: string;
   cityLat?: number;
   cityLng?: number;
+  // Code INSEE de la commune : rattache un compte mairie à ses signalements.
+  cityInsee?: string;
 }
 
 export interface PendingDeletion {
@@ -44,6 +46,7 @@ interface Profile {
   city?: string;
   cityLat?: number;
   cityLng?: number;
+  cityInsee?: string;
   deletedAt?: Date;
 }
 
@@ -57,7 +60,7 @@ async function fetchProfile(userId: string): Promise<Profile> {
 
   const { data } = await client
     .from('users')
-    .select('role, name, avatar, city, cityLat, cityLng, deleted_at')
+    .select('role, name, avatar, city, cityLat, cityLng, city_insee, deleted_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -68,6 +71,7 @@ async function fetchProfile(userId: string): Promise<Profile> {
     city: data?.city ?? undefined,
     cityLat: data?.cityLat ?? undefined,
     cityLng: data?.cityLng ?? undefined,
+    cityInsee: data?.city_insee ?? undefined,
     deletedAt: data?.deleted_at ? new Date(data.deleted_at) : undefined,
   };
 }
@@ -86,6 +90,7 @@ function toAppUser(u: User, profile: Profile): AppUser {
     city: profile.city,
     cityLat: profile.cityLat,
     cityLng: profile.cityLng,
+    cityInsee: profile.cityInsee,
   };
 }
 
