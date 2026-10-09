@@ -3172,7 +3172,7 @@ html {
 
 .legal-page a,
 .legal-links a,
-.legal-inline-link {
+.link-underline {
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;

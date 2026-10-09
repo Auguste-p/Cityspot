@@ -45,6 +45,9 @@ function getVoterIdentity(isMe: boolean, userName?: string, otherName?: string) 
   };
 }
 
+// Même libellé que celui de la vue issue_authors pour un compte supprimé (pas de profil à ouvrir).
+const DELETED_AUTHOR_NAME = 'Utilisateur supprimé';
+
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -154,6 +157,12 @@ export function PostDetail() {
   };
 
   const isRevoked = Boolean(post.revoked);
+  const authorIsMe = user?.id === post.created_by;
+  const authorProfilePath = authorIsMe
+    ? '/profile'
+    : post.created_by && post.authorName !== DELETED_AUTHOR_NAME
+      ? `/user/${post.created_by}`
+      : null;
   // Même règle que la RPC revoke_issue (qui reste la vraie garde, côté Postgres).
   const canRevoke =
     isMunicipalUser && !isRevoked && !!post.cityInsee && user?.cityInsee === post.cityInsee;
@@ -316,7 +325,14 @@ export function PostDetail() {
             <h1 className="min-w-0">{post.title}</h1>
             {post.authorName && (
               <p className="flex-shrink-0 text-sm text-muted-foreground">
-                Signalé par <span className="font-medium text-foreground">{user?.id === post.created_by ? 'vous' : post.authorName}</span>
+                Signalé par{' '}
+                {authorProfilePath ? (
+                  <Link to={authorProfilePath} className="font-medium text-foreground link-underline">
+                    {authorIsMe ? 'vous' : post.authorName}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-foreground">{post.authorName}</span>
+                )}
               </p>
             )}
           </div>

@@ -374,6 +374,26 @@ describe('PostDetail creator name', () => {
     renderPostDetail();
 
     expect((await screen.findByText('Signalé par', { exact: false })).textContent).toBe('Signalé par vous');
+    // Le créateur retrouve son propre profil (privé), pas la page publique.
+    expect(screen.getByRole('link', { name: 'vous' }).getAttribute('href')).toBe('/profile');
+  });
+
+  it('links the creator name to the public profile of the creator, with no violation', async () => {
+    setup('u1');
+    const { container } = renderPostDetail();
+
+    const link = await screen.findByRole('link', { name: 'Jeanne Dupont' });
+    expect(link.getAttribute('href')).toBe('/user/author');
+    expect(link.className).toContain('link-underline');
+    await expectNoA11yViolations(container);
+  });
+
+  it('does not link a deleted account: it has no profile to open', async () => {
+    setup('u1', { authorName: 'Utilisateur supprimé' });
+    renderPostDetail();
+
+    expect((await screen.findByText('Signalé par', { exact: false })).textContent).toBe('Signalé par Utilisateur supprimé');
+    expect(screen.queryByRole('link', { name: 'Utilisateur supprimé' })).toBeNull();
   });
 
   it('shows nothing when the creator has no name', async () => {

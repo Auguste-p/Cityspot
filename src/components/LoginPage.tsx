@@ -206,11 +206,11 @@ export default function LoginPage() {
               <Label htmlFor="terms" className="text-sm">
                 <span>
                   J'ai lu et j'accepte les{' '}
-                  <Link to="/cgu" target="_blank" rel="noopener noreferrer" className="legal-inline-link">
+                  <Link to="/cgu" target="_blank" rel="noopener noreferrer" className="link-underline">
                     conditions d'utilisation<span className="sr-only"> (nouvel onglet)</span>
                   </Link>{' '}
                   et la{' '}
-                  <Link to="/confidentialite" target="_blank" rel="noopener noreferrer" className="legal-inline-link">
+                  <Link to="/confidentialite" target="_blank" rel="noopener noreferrer" className="link-underline">
                     politique de confidentialité<span className="sr-only"> (nouvel onglet)</span>
                   </Link>
                   . <span aria-hidden="true">*</span>
