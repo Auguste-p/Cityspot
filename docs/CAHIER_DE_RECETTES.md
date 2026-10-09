@@ -132,6 +132,7 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | MUN-10 | F | Majeur | Mail de révocation à l'auteur | Après MUN-08 (fonction déployée, secrets Resend posés, domaine vérifié), consulter la boîte de l'auteur ; puis recommencer avec `RESEND_API_KEY` volontairement invalide | Mail reçu avec titre, ville et motif ; en cas d'échec, la révocation reste valide et la mairie voit « l'e-mail à l'auteur n'a pas pu être envoyé » | ✅ *(exécuté 2026-10-07 : mail reçu avec Resend ; il est arrivé dans les indésirables — authentification SPF/DKIM/DMARC du domaine expéditeur à vérifier, non bloquant)* |
 | MUN-11 | F | Majeur | Onglet « Révoqués » du tableau de bord | Après MUN-08, ouvrir `/municipal` avec un compte mairie de la ville (puis d'une autre ville) ; filtrer par catégorie | Onglet « Révoqués (n) » listant le signalement avec son badge, la date et le motif, absent des autres onglets et des statistiques ; la mairie d'une autre ville ne le voit pas ; le filtre de catégorie s'applique | ☐ *(non rejoué — ajouté le 2026-10-07)* |
 | MUN-12 | SEC | Majeur | Rattachement de la mairie par code INSEE | Avec deux comptes mairie de deux communes de même nom (ou une commune voisine), ouvrir `/municipal` et un signalement de l'autre commune ; avec un compte mairie sans `city_insee`, ouvrir `/municipal` ; tenter `update users set city_insee = …` en REST avec le jeton d'un compte mairie | Chaque mairie ne voit et ne révoque que les signalements de son code INSEE ; sans code : message « Compte non rattaché à une commune » ; la modification est refusée par la base | ☐ *(partiellement rejoué le 2026-10-10 par l'utilisateur : une mairie ne peut révoquer que les signalements de sa commune ; restent à rejouer : la mairie voit uniquement sa commune dans `/municipal`, le refus de la modification REST de `role` / `city_insee`, et le message d'un compte sans code INSEE)* |
+| MUN-13 | F | Majeur | Statistiques anonymes de la commune | Avec un compte mairie, ouvrir `/municipal` : lire les six indicateurs de l'en-tête, puis cliquer « Voir les graphiques » ; comparer les chiffres au contenu des onglets (total, terminés) ; repasser avec la mairie d'une autre commune ; tenter l'appel REST `rpc/municipal_stats` avec le jeton d'un citoyen | Les quatre anciens carrés ont disparu ; inscrits, signalements, taux de résolution, délai moyen, votes, commentaires et graphiques correspondent à la commune de l'agent seulement ; aucun nom ni e-mail affiché ; le tableau donne les mêmes chiffres ; l'appel d'un citoyen est refusé (« réservées aux comptes mairie ») ; le délai n'apparaît (« — ») que si un signalement a été terminé depuis la mise en service | ☐ *(non rejoué — ajouté le 2026-10-11)* |
 | MUN-04 | F | Mineur | Onglets par statut | Parcourir les onglets Tous/En vote/En cours/Terminés | Contenu et compteurs cohérents avec les données | ✅ *(exécuté 2026-07-17)* |
 | MUN-05 | F | Mineur | Statistiques globales | Comparer les cartes de stats en haut de page aux données réelles | Total, en vote, en cours, terminés corrects | ✅ *(exécuté 2026-07-17, statistiques affichées)* |
 | MUN-06 | F | Mineur | État vide | Filtrer une catégorie sans signalement | Message "Aucun signalement dans cette catégorie" | ✅ *(exécuté 2026-07-17, message d'état vide affiché sur "Mobilier urbain")* |
@@ -205,21 +206,21 @@ Chaque scénario précise : les étapes à exécuter, le résultat attendu, une 
 | Fonctionnels (F) | 76 |
 | Structurels (S) | 11 |
 | Sécurité (SEC) | 20 |
-| **Total** | **113** |
+| **Total** | **114** |
 
 | Criticité | Nombre de scénarios |
 |---|---|
 | Bloquant | 19 |
 | Majeur | 45 |
 | Mineur | 43 |
-| **Total** | **113** |
+| **Total** | **114** |
 
 | État d'exécution | Nombre |
 |---|---|
 | ✅ OK | 88 *(73 le 2026-07-17 + 10 le 2026-09-03 + 1 le 2026-10-10 (DET-20 — signalement de contenu) + 4 le 2026-10-07 (MUN-08, MUN-10 — révocation et mail ; POST-17, POST-18 — message et mail à la mairie) ; les 10 du 2026-09-03 : POST-15/16, DET-17, MUN-07, PROF-09/10/11, SET-08/09/10 — profils publics, catégorie obligatoire, filtre municipal par ville, cf. `CHANGELOG.md` v2.1.1/v2.2.0)* |
 | ❌ KO confirmé | 0 |
-| ☐ Non exécuté (raison documentée par ligne) | 25 *(dont 2 ajoutés le 2026-10-10 : MUN-12 — code INSEE, partiellement rejoué —, DET-22 — e-mail du propriétaire —, et 3 ajoutés le 2026-10-09 : AUTH-09/10 — CGU et pages légales —, DET-21 — signalement d'un commentaire —, et 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
-| **Total** | **113** |
+| ☐ Non exécuté (raison documentée par ligne) | 26 *(dont 1 ajouté le 2026-10-11 : MUN-13 — statistiques anonymes —, 2 ajoutés le 2026-10-10 : MUN-12 — code INSEE, partiellement rejoué —, DET-22 — e-mail du propriétaire —, et 3 ajoutés le 2026-10-09 : AUTH-09/10 — CGU et pages légales —, DET-21 — signalement d'un commentaire —, et 6 ajoutés le 2026-10-07 : MUN-09, DET-18, PROF-12 — révocation —, POST-19 — ville du mail —, DET-19 — badge des commentaires —, MUN-11 — onglet Révoqués du tableau de bord)* |
+| **Total** | **114** |
 
 **Seuil d'acceptation de la recette :**
 - 100 % des scénarios **Bloquant** doivent être ✅ avant toute mise en production. **Atteint le 2026-07-17 : 18/18 ✅.**

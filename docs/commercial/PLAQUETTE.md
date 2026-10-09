@@ -17,6 +17,7 @@
 - **Une priorisation par les habitants** : chaque signalement est soumis au vote ; vous voyez d'un coup d'œil ce qui mobilise.
 - **Un tableau de bord dédié** aux agents : projets à traiter, en cours, terminés, filtre par catégorie, notes privées internes.
 - **Une alerte par mail** à vos agents quand un signalement exige autorisation et matériel spécifiques (voirie, éclairage, sécurité, mobilier urbain).
+- **Des statistiques anonymes de votre commune** : inscrits et habitants actifs, signalements par mois et par catégorie, taux de résolution, délai moyen de traitement, participation (votes, commentaires) — sans jamais exposer d'habitant.
 - **Un contrôle éditorial** : vous pouvez révoquer un signalement hors sujet ou déjà traité, avec un motif ; l'auteur est prévenu.
 - **Un retour visible** : le badge « Mairie » identifie vos réponses dans les commentaires.
 

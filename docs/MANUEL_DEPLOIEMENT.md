@@ -201,6 +201,10 @@ Procédure, à la réception d'une demande :
 3. Sans `CASCADE` gênant : *Authentication → Users → ⋯ → Delete user*.
 4. Répondre à la personne sous un mois (RGPD) et noter la date de l'effacement dans ton registre des demandes.
 
+### 8.9 Statistiques de la vue mairie (migration `20261011010000`)
+
+`supabase db push` suffit : la migration ajoute `issues.resolved_at`, son trigger et la fonction `municipal_stats`. Aucun secret, aucune Edge Function. Le délai moyen de résolution reste « — » tant qu'aucun signalement n'a été terminé **après** la migration (la date de résolution n'est pas reconstituable pour les anciens). Contrôle après déploiement : ouvrir la vue municipale avec un compte mairie dont `users.city_insee` est renseigné ; les chiffres doivent correspondre à ceux de la commune.
+
 ## 9. Critères de qualité et de performance
 
 | Axe | Critère | Mesure actuelle | Outil |

@@ -682,3 +682,28 @@ describe("e-mail du propriétaire dans une table à part", () => {
     expect(ownerCalls(calls)).toEqual([]);
   });
 });
+
+describe('getMunicipalStats', () => {
+  it('calls the municipal_stats RPC with the requested window and returns its payload as is', async () => {
+    const { getMunicipalStats } = await import('./issuesService');
+    const payload = { registeredUsers: 3, issues: { total: 4 } };
+    const rpc = vi.fn().mockResolvedValue({ data: payload, error: null });
+    mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
+
+    await expect(getMunicipalStats(6)).resolves.toBe(payload);
+    expect(rpc).toHaveBeenCalledWith('municipal_stats', { p_months: 6 });
+
+    await getMunicipalStats();
+    expect(rpc).toHaveBeenLastCalledWith('municipal_stats', { p_months: 12 });
+  });
+
+  it('surfaces the refusal of a non-municipal account, and a missing Supabase configuration', async () => {
+    const { getMunicipalStats } = await import('./issuesService');
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'Statistiques réservées aux comptes mairie rattachés à une commune' } });
+    mockedGetSupabaseClient.mockReturnValue({ rpc } as any);
+    await expect(getMunicipalStats()).rejects.toThrow('réservées aux comptes mairie');
+
+    mockedGetSupabaseClient.mockReturnValue(null);
+    await expect(getMunicipalStats()).rejects.toThrow('Supabase non configuré');
+  });
+});

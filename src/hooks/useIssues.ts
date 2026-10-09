@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Post } from '../types/Post';
-import { type Comment, type Vote, createComment, createVote, getIssueById, listComments, listIssues, listRevokedIssuesByCity, listRevokedIssuesByUser, listVotes, listVotesByUser } from '../services/issuesService';
+import { type Comment, type MunicipalStats, type Vote, createComment, getMunicipalStats, createVote, getIssueById, listComments, listIssues, listRevokedIssuesByCity, listRevokedIssuesByUser, listVotes, listVotesByUser } from '../services/issuesService';
 
 // `cityInsee` : code INSEE de la commune à filtrer (vue mairie) ; absent = tous les signalements.
 export function useIssues(cityInsee?: string) {
@@ -142,6 +142,27 @@ export function useRevokedIssues(userId?: string) {
   }, [userId]);
 
   return { issues, loading, error };
+}
+
+// `enabled` faux (compte mairie sans commune) : aucun appel, la RPC refuserait de toute façon.
+export function useMunicipalStats(months = 12, enabled = true) {
+  const [stats, setStats] = useState<MunicipalStats | null>(null);
+  const [loading, setLoading] = useState(enabled);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!enabled) { setStats(null); setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    getMunicipalStats(months)
+      .then((data) => { if (isActive) setStats(data); })
+      .catch((err) => { if (isActive) setError(err instanceof Error ? err : new Error('Impossible de charger les statistiques')); })
+      .finally(() => { if (isActive) setLoading(false); });
+    return () => { isActive = false; };
+  }, [months, enabled]);
+
+  return { stats, loading, error };
 }
 
 export function useRevokedCityIssues(cityInsee?: string) {

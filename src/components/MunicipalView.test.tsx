@@ -8,6 +8,7 @@ import type { Post } from '../types/Post';
 vi.mock('../hooks/useIssues', () => ({
   useIssues: vi.fn(),
   useRevokedCityIssues: vi.fn(),
+  useMunicipalStats: vi.fn(() => ({ stats: null, loading: false, error: null })),
 }));
 
 vi.mock('../context/UserContext', () => ({
@@ -15,7 +16,7 @@ vi.mock('../context/UserContext', () => ({
 }));
 
 import { useUser } from '../context/UserContext';
-import { useIssues, useRevokedCityIssues } from '../hooks/useIssues';
+import { useIssues, useMunicipalStats, useRevokedCityIssues } from '../hooks/useIssues';
 import { MunicipalView } from './MunicipalView';
 
 const mockedUseIssues = vi.mocked(useIssues);
@@ -139,6 +140,87 @@ describe('MunicipalView accessibility (RGAA / axe-core)', () => {
     const { container } = renderMunicipalView();
     await screen.findByText('Trottoir refait');
     await expectNoA11yViolations(container);
+  });
+});
+
+describe('MunicipalView — statistiques anonymes dans l\'en-tête', () => {
+  const STATS = {
+    registeredUsers: 120, participants: 45, activeUsers30d: 18,
+    issues: { total: 40, pending: 10, inProgress: 10, resolved: 20, revoked: 3 },
+    avgResolutionDays: 12.5, resolutionSample: 8, votes: 200, comments: 75,
+    categories: [{ category: 'voirie', count: 20 }],
+    monthly: [{ month: '2026-10', issues: 9, votes: 50, comments: 15, byCategory: { voirie: 6 } as Record<string, number> }],
+  };
+
+  beforeEach(() => {
+    mockedUseUser.mockReturnValue({ user: MUNICIPAL_AGENT, loading: false, isMunicipalUser: true, refreshUser: vi.fn() });
+    mockedUseIssues.mockReturnValue({ issues: [post()], loading: false, error: null, reload: vi.fn() });
+    mockedUseRevokedCityIssues.mockReturnValue({ issues: [], loading: false, error: null });
+  });
+
+  it('replaces the four status squares by the commune statistics, with no violation', async () => {
+    vi.mocked(useMunicipalStats).mockReturnValue({ stats: STATS, loading: false, error: null });
+    const { container } = renderMunicipalView();
+
+    expect(await screen.findByText('50 %')).toBeTruthy();
+    expect(screen.getByText(/inscrits dans la commune/)).toBeTruthy();
+    expect(screen.getByText('Taux de résolution')).toBeTruthy();
+    // Les anciens carrés (Total projets / En vote / En cours / Terminés) ont disparu ; les totaux restent dans les onglets.
+    expect(screen.queryByText('Total projets')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Tous (1)' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Statistiques' })).toBeNull();
+    await expectNoA11yViolations(container);
+  });
+
+  it('asks for the 12-month statistics of the commune once, on mount', async () => {
+    vi.mocked(useMunicipalStats).mockReturnValue({ stats: STATS, loading: false, error: null });
+    renderMunicipalView();
+    await screen.findByText('50 %');
+
+    expect(useMunicipalStats).toHaveBeenCalledWith(12, true);
+  });
+
+  it('unfolds the charts on demand, and folds them back, with no violation', async () => {
+    vi.mocked(useMunicipalStats).mockReturnValue({ stats: STATS, loading: false, error: null });
+    const { container } = renderMunicipalView();
+
+    const toggle = await screen.findByRole('button', { name: 'Voir les graphiques' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Signalements créés par mois')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(await screen.findByText('Signalements créés par mois')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Masquer les graphiques' }).getAttribute('aria-expanded')).toBe('true');
+    await expectNoA11yViolations(container);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Masquer les graphiques' }));
+    expect(screen.queryByText('Signalements créés par mois')).toBeNull();
+  });
+
+  it('says the statistics are loading, then that they are unavailable, without blocking the dashboard', async () => {
+    vi.mocked(useMunicipalStats).mockReturnValue({ stats: null, loading: true, error: null });
+    renderMunicipalView();
+    expect(await screen.findByText('Chargement des statistiques…')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Voir les graphiques' })).toBeNull();
+    cleanup();
+
+    vi.mocked(useMunicipalStats).mockReturnValue({ stats: null, loading: false, error: new Error('refusé') });
+    renderMunicipalView();
+    expect(await screen.findByText('Statistiques indisponibles pour le moment.')).toBeTruthy();
+    expect(screen.getByText('Nid de poule rue Victor Hugo')).toBeTruthy();
+  });
+
+  it('does not ask for statistics when the account has no commune', async () => {
+    mockedUseUser.mockReturnValue({
+      user: { ...MUNICIPAL_AGENT, cityInsee: undefined },
+      loading: false,
+      isMunicipalUser: true,
+      refreshUser: vi.fn(),
+    });
+    renderMunicipalView();
+    await screen.findByText('Compte non rattaché à une commune');
+
+    expect(useMunicipalStats).toHaveBeenCalledWith(12, false);
   });
 });
 

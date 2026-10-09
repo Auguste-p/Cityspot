@@ -80,10 +80,22 @@ Accessible via le bouton bâtiment en haut de l'écran, ou directement sur `/mun
 
 La vue est automatiquement limitée aux signalements de la ville de l'agent connecté (déduite de son profil) et propose :
 
-- des **statistiques** globales (total, en vote, en cours, terminés) ;
+- des **statistiques anonymes de la commune** (§7.2), en six indicateurs dans l'en-tête, et des graphiques à déplier ;
 - un **filtre par catégorie** (Voirie, Éclairage, Sécurité, Propreté, Espaces verts, Mobilier urbain) ;
 - des **onglets** par statut (Tous / En vote / En cours / Terminés), chaque signalement menant à son détail (§6) ;
 - un onglet **Révoqués**, qui liste les signalements de la ville révoqués par la mairie (§7.1), avec la date et le motif de chaque révocation. Il suit le filtre de catégorie, et ces signalements ne sont comptés ni dans les autres onglets ni dans les statistiques du haut de page.
+
+### 7.2 Statistiques de la commune
+
+L'en-tête de la vue affiche, pour la commune de l'agent (rattachée par son code INSEE), des **chiffres agrégés et anonymes** : aucun nom, e-mail ou identifiant d'habitant n'est jamais montré.
+
+- **Inscrits** dans la commune, et combien ont été actifs ces 30 derniers jours (signalement, vote ou commentaire) ;
+- **Signalements** (hors révoqués, comptés à part), **taux de résolution** (terminés ÷ total) ;
+- **Délai moyen de résolution**, entre la création et le passage à « terminé ». La date de passage à « terminé » n'est enregistrée que depuis la v2.4.0 : les signalements terminés avant n'entrent pas dans cette moyenne, et l'écran indique sur combien de signalements elle repose ;
+- **Participation** : votes et commentaires (totaux, par mois), nombre de personnes ayant participé ;
+- **Signalements par mois** (12 derniers mois) et **par catégorie** (depuis le lancement) ; les mêmes chiffres, mois par mois et catégorie par catégorie, sont disponibles en tableau sous les graphiques.
+
+Les six indicateurs sont dans l'en-tête ; le bouton **Voir les graphiques**, sous l'en-tête, déplie les graphiques et le tableau (**Masquer les graphiques** les replie). Le détail des projets par statut (en vote, en cours, terminés) reste dans les compteurs des onglets. Le filtre par catégorie ne s'applique pas à ces statistiques. Un compte mairie sans code INSEE ne voit pas la vue municipale (§7).
 
 ### 7.1 Révoquer un signalement de sa ville
 

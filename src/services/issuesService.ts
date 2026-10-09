@@ -879,6 +879,31 @@ export async function createComment(issueId: string, userId: string, text: strin
   };
 }
 
+// Statistiques anonymes de la commune de la mairie connectée (RPC municipal_stats) : des
+// comptages et des moyennes, jamais de personnes. La fonction refuse tout compte non mairie.
+export interface MunicipalStats {
+  registeredUsers: number;
+  participants: number;
+  activeUsers30d: number;
+  issues: { total: number; pending: number; inProgress: number; resolved: number; revoked: number };
+  // null : aucun signalement terminé avec une date de résolution (les plus anciens n'en ont pas).
+  avgResolutionDays: number | null;
+  resolutionSample: number;
+  votes: number;
+  comments: number;
+  categories: { category: string; count: number }[];
+  monthly: { month: string; issues: number; votes: number; comments: number; byCategory: Record<string, number> }[];
+}
+
+export async function getMunicipalStats(months = 12): Promise<MunicipalStats> {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase non configuré');
+
+  const { data, error } = await (client as any).rpc('municipal_stats', { p_months: months });
+  if (error) throw new Error(error.message);
+  return data as MunicipalStats;
+}
+
 export type ReportReason = 'illegal' | 'harassment' | 'privacy' | 'spam' | 'other';
 
 // Signalement d'un contenu (bouton « Signaler », CGU §8). Écriture seule : la RLS de

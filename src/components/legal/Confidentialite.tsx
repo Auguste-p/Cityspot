@@ -91,7 +91,7 @@ export default function Confidentialite() {
       <h2>4. Qui voit vos données ?</h2>
       <ul>
         <li><strong>Les autres utilisateurs connectés</strong> voient vos signalements, vos photos et vos commentaires (avec votre nom). Votre profil public (nom, photo, ville) n'est visible que si vous activez « Visibilité du profil » dans les Paramètres.</li>
-        <li><strong>La mairie de la commune</strong> du signalement voit les signalements de sa commune, et reçoit un e-mail pour certaines catégories (voirie, éclairage, sécurité, mobilier urbain). Elle ne voit ni votre e-mail de connexion, ni votre téléphone, ni votre adresse ; elle voit en revanche l'adresse e-mail du propriétaire d'un lieu privé si l'auteur d'un signalement l'a renseignée. Une mairie est rattachée à une commune par son code INSEE.</li>
+        <li><strong>La mairie de la commune</strong> du signalement voit les signalements de sa commune, et reçoit un e-mail pour certaines catégories (voirie, éclairage, sécurité, mobilier urbain). Elle ne voit ni votre e-mail de connexion, ni votre téléphone, ni votre adresse ; elle voit en revanche l'adresse e-mail du propriétaire d'un lieu privé si l'auteur d'un signalement l'a renseignée, et des statistiques anonymes sur sa commune (nombre d'inscrits, de signalements, de votes et de commentaires, délais de résolution), qui ne permettent d'identifier personne. Une mairie est rattachée à une commune par son code INSEE.</li>
         <li><strong>L'éditeur</strong> y accède pour exploiter, sécuriser et modérer le service.</li>
         <li><strong>Nos prestataires</strong> (ci-dessous), qui n'agissent que sur nos instructions.</li>
       </ul>

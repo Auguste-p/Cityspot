@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { PostCategory } from "../types/Post";
 import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 import {
   Tabs,
   TabsContent,
@@ -17,11 +18,15 @@ import {
   AlertCircle,
   Loader2,
   Ban,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { EMPTY_STATE_LABELS, VOTE_GOAL, getNetVotes } from "../lib/postStatus";
 import { POST_CATEGORIES, POST_CATEGORY_CONFIG } from "../lib/postCategory";
 import { PostCard } from "./PostCard";
-import { useIssues, useRevokedCityIssues } from "../hooks/useIssues";
+import { MunicipalStatsCharts, MunicipalStatsTiles } from "./MunicipalStats";
+import { useIssues, useMunicipalStats, useRevokedCityIssues } from "../hooks/useIssues";
 import { useUser } from "../context/UserContext";
 
 type CategoryValue = PostCategory | "all";
@@ -51,6 +56,9 @@ export function MunicipalView() {
   const { issues: posts, loading, error } = useIssues(cityInsee);
   // Lecture secondaire : son échec ne bloque pas le tableau de bord, il est signalé dans l'onglet.
   const { issues: revokedPosts, error: revokedError } = useRevokedCityIssues(cityInsee);
+  // Statistiques anonymes de la commune (RPC) : indicateurs dans l'en-tête, graphiques dépliables.
+  const { stats, loading: statsLoading, error: statsError } = useMunicipalStats(12, Boolean(cityInsee));
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryValue, number> = {
@@ -166,45 +174,42 @@ export function MunicipalView() {
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1 text-primary-foreground">
-                {filteredPosts.length}
-              </div>
-              <div className="text-xs text-primary-foreground/80">
-                Total projets
-              </div>
-            </Card>
-            <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1 text-primary-foreground">
-                {votingPosts.length}
-              </div>
-              <div className="text-xs text-primary-foreground/80">
-                En vote
-              </div>
-            </Card>
-            <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1 text-primary-foreground">
-                {inProgressPosts.length}
-              </div>
-              <div className="text-xs text-primary-foreground/80">
-                En cours
-              </div>
-            </Card>
-            <Card className="p-4 bg-primary-foreground/10 backdrop-blur-sm border-primary-foreground/20">
-              <div className="text-2xl mb-1 text-primary-foreground">
-                {completedPosts.length}
-              </div>
-              <div className="text-xs text-primary-foreground/80">
-                Terminés
-              </div>
-            </Card>
-          </div>
+          {/* Statistiques anonymes de la commune */}
+          {stats ? (
+            <MunicipalStatsTiles stats={stats} />
+          ) : (
+            <p className="text-sm text-primary-foreground/80" role="status">
+              {statsLoading ? "Chargement des statistiques…" : statsError ? "Statistiques indisponibles pour le moment." : ""}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {/* Graphiques des statistiques, dépliés à la demande */}
+        {stats && (
+          <div className="mb-6">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-expanded={statsOpen}
+              aria-controls="municipal-stats-charts"
+              onClick={() => setStatsOpen((open) => !open)}
+              className="flex items-center gap-2"
+            >
+              <BarChart3 className="size-4" aria-hidden="true" />
+              {statsOpen ? "Masquer les graphiques" : "Voir les graphiques"}
+              {statsOpen ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}
+            </Button>
+            {statsOpen && (
+              <div id="municipal-stats-charts" className="mt-4">
+                <MunicipalStatsCharts stats={stats} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Category Filters */}
         <div className="mb-6">
           <h2 className="mb-4">Filtrer par catégorie</h2>
@@ -382,6 +387,7 @@ export function MunicipalView() {
               </Card>
             )}
           </TabsContent>
+
         </Tabs>
       </div>
     </div>
